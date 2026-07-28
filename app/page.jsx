@@ -42,28 +42,34 @@ export default function Home() {
             <div style={{ maxWidth: '1200px', margin: '-40px auto 60px auto', padding: '0 20px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '25px' }}>
                     {/* Card 1 */}
-                    <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-                        <h3 style={{ fontSize: '22px', color: '#0f172a', marginTop: 0, marginBottom: '12px' }}>Study Courses</h3>
-                        <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
-                            Enroll in structured online courses with sections, video/audio/text lessons, progress tracking, and verified certificates.
-                        </p>
-                    </div>
+                    <Link href="/courses" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', height: '100%', boxSizing: 'border-box' }}>
+                            <h3 style={{ fontSize: '22px', color: '#0f172a', marginTop: 0, marginBottom: '12px' }}>Study Courses</h3>
+                            <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
+                                Enroll in structured online courses with sections, video/audio/text lessons, progress tracking, and verified certificates.
+                            </p>
+                        </div>
+                    </Link>
 
-                    {/* Card 2 */}
-                    <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-                        <h3 style={{ fontSize: '22px', color: '#0f172a', marginTop: 0, marginBottom: '12px' }}>Islamic Bookstore</h3>
-                        <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
-                            Browse featured books, review our step-by-step buying guide, and purchase authentic texts with instant digital download.
-                        </p>
-                    </div>
+                    {/* Card 2 - Islamic Bookstore (Now clickable and matches route) */}
+                    <Link href="/bookstore" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', height: '100%', boxSizing: 'border-box' }}>
+                            <h3 style={{ fontSize: '22px', color: '#0f172a', marginTop: 0, marginBottom: '12px' }}>Islamic Bookstore</h3>
+                            <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
+                                Browse featured books, review our step-by-step buying guide, and purchase authentic texts with instant digital download.
+                            </p>
+                        </div>
+                    </Link>
 
                     {/* Card 3 */}
-                    <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-                        <h3 style={{ fontSize: '22px', color: '#0f172a', marginTop: 0, marginBottom: '12px' }}>Lectures Library</h3>
-                        <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
-                            Access video and audio lectures accompanied by proper Adab and educational purpose notices, with optional downloading.
-                        </p>
-                    </div>
+                    <Link href="/media" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', height: '100%', boxSizing: 'border-box' }}>
+                            <h3 style={{ fontSize: '22px', color: '#0f172a', marginTop: 0, marginBottom: '12px' }}>Lectures Library</h3>
+                            <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
+                                Access video and audio lectures accompanied by proper Adad and educational purpose notices, with optional downloading.
+                            </p>
+                        </div>
+                    </Link>
                 </div>
             </div>
         </div>
