@@ -307,14 +307,6 @@ export default function AdminDashboard() {
                         </button>
                     </form>
 
-                    {/* Quick Demo Credentials Help Box */}
-                    <div style={{ marginTop: '24px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
-                        <strong style={{ display: 'block', marginBottom: '4px', color: '#14532d' }}>Test Account Credentials:</strong>
-                        <div>👑 Super Admin: <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>admin@ilmhub.com</code> / <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>admin1234</code></div>
-                        <div style={{ marginTop: '2px' }}>👨‍🏫 Instructor: <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>farid@ilmhub.com</code> / <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>farid123</code></div>
-                        <div style={{ marginTop: '2px' }}>📚 Store Manager: <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>bilal@ilmhub.com</code> / <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>bilal123</code></div>
-                    </div>
-
                     <div style={{ textAlign: 'center', marginTop: '20px' }}>
                         <Link href="/" style={{ color: '#64748b', textDecoration: 'none', fontSize: '13px', fontWeight: 'bold' }}>
                             &larr; Return to Public Website
