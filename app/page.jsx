@@ -9,12 +9,13 @@ export default function Home() {
                 <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#14532d' }}>
                     Ilm Hub Institute
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '25px', flexWrap: 'wrap' }}>
+                    <Link href="/admission" style={{ color: '#16a34a', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>Admission</Link>
                     <Link href="/courses" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Study Courses</Link>
                     <Link href="/books" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Islamic Bookstore</Link>
                     <Link href="/media" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Lectures</Link>
                     <Link href="/login" style={{ backgroundColor: '#0d9488', color: '#ffffff', padding: '10px 20px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
-                        Enroll / Login
+                        Sign In
                     </Link>
                 </div>
             </div>
@@ -26,6 +27,9 @@ export default function Home() {
                     Authentic Islamic knowledge, structured study courses, digital bookstore, and multimedia lectures for students.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap' }}>
+                    <Link href="/admission" style={{ backgroundColor: '#16a34a', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px', border: '2px solid #ffffff' }}>
+                        New Student Admission
+                    </Link>
                     <Link href="/courses" style={{ backgroundColor: '#0d9488', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
                         Explore Study Courses
                     </Link>
@@ -66,7 +70,7 @@ export default function Home() {
                         <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', height: '100%', boxSizing: 'border-box' }}>
                             <h3 style={{ fontSize: '22px', color: '#0f172a', marginTop: 0, marginBottom: '12px' }}>Lectures Library</h3>
                             <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
-                                Access video and audio lectures accompanied by proper Adad and educational purpose notices, with optional downloading.
+                                Access video and audio lectures accompanied by proper Adab and educational purpose notices, with optional downloading.
                             </p>
                         </div>
                     </Link>
