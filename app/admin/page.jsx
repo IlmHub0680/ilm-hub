@@ -66,12 +66,12 @@ export default function AdminDashboard() {
         { id: 2, author: 'Shaykh Farid Abdul Samad', text: 'Quiz 1 scheduled for next Monday covers chapters 1 through 3.', target: 'Quranic Arabic & Morphology' }
     ]);
 
-    // 6. Comprehensive Student Assessments
+    // 6. Comprehensive Student Assessments (Updated max scores: Quiz /15, Assignment /15, Midterm /30, Final /40)
     const [assessments, setAssessments] = useState([
-        { id: 1, student: 'Zayd ibn Thabit', course: 'Quranic Arabic & Morphology', instructor: 'Shaykh Farid Abdul Samad', type: 'Quiz 1', score: 'Pending', maxScore: '/20', feedback: '' },
-        { id: 2, student: 'Zayd ibn Thabit', course: 'Quranic Arabic & Morphology', instructor: 'Shaykh Farid Abdul Samad', type: 'Assignment 1', score: 'Pending', maxScore: '/50', feedback: '' },
-        { id: 3, student: 'Fatima al-Fihriyya', course: 'Quranic Arabic & Morphology', instructor: 'Shaykh Farid Abdul Samad', type: 'Midterm Exam', score: 'Pending', maxScore: '/100', feedback: '' },
-        { id: 4, student: 'Fatima al-Fihriyya', course: 'Quranic Arabic & Morphology', instructor: 'Shaykh Farid Abdul Samad', type: 'Final Exam', score: 'Pending', maxScore: '/100', feedback: '' }
+        { id: 1, student: 'Zayd ibn Thabit', course: 'Quranic Arabic & Morphology', instructor: 'Shaykh Farid Abdul Samad', type: 'Quiz 1', score: 'Pending', maxScore: '/15', feedback: '' },
+        { id: 2, student: 'Zayd ibn Thabit', course: 'Quranic Arabic & Morphology', instructor: 'Shaykh Farid Abdul Samad', type: 'Assignment 1', score: 'Pending', maxScore: '/15', feedback: '' },
+        { id: 3, student: 'Fatima al-Fihriyya', course: 'Quranic Arabic & Morphology', instructor: 'Shaykh Farid Abdul Samad', type: 'Midterm Exam', score: 'Pending', maxScore: '/30', feedback: '' },
+        { id: 4, student: 'Fatima al-Fihriyya', course: 'Quranic Arabic & Morphology', instructor: 'Shaykh Farid Abdul Samad', type: 'Final Exam', score: 'Pending', maxScore: '/40', feedback: '' }
     ]);
 
     // Instructor Course Grading Selections State
@@ -81,12 +81,13 @@ export default function AdminDashboard() {
     const [newAssessmentScore, setNewAssessmentScore] = useState('');
     const [newAssessmentFeedback, setNewAssessmentFeedback] = useState('');
 
-    // Dynamic max score determination based on selected assessment type
+    // Dynamic max score determination based on updated assessment type limits
     const getMaxScoreLimit = (type) => {
-        if (type.includes('Quiz')) return '/20';
-        if (type.includes('Assignment')) return '/50';
-        if (type.includes('Midterm') || type.includes('Final')) return '/100';
-        return '/20';
+        if (type.includes('Quiz')) return '/15';
+        if (type.includes('Assignment')) return '/15';
+        if (type.includes('Midterm')) return '/30';
+        if (type.includes('Final')) return '/40';
+        return '/15';
     };
 
     // 7. Course Schedule State
@@ -604,7 +605,7 @@ export default function AdminDashboard() {
                 {activeTab === 'instructor_dashboard' && currentUser?.role === 'Instructor' && (
                     <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Semester Course Grading & Student Assessments</h3>
-                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px' }}>Select your course, choose a registered student, and grade quizzes, assignments, midterms, or finals. Scores automatically update the student's official transcript record.</p>
+                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px' }}>Select your course, choose a registered student, and grade quizzes (/15), assignments (/15), midterms (/30), or finals (/40). Scores automatically update the student's official transcript record.</p>
                         
                         {/* Instructor Grading Form */}
                         <form onSubmit={handleSaveAssessmentGrade} style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '30px' }}>
@@ -643,10 +644,10 @@ export default function AdminDashboard() {
                                         onChange={(e) => setSelectedAssessmentType(e.target.value)}
                                         style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#ffffff' }}
                                     >
-                                        <option value="Quiz 1">Quiz 1</option>
-                                        <option value="Assignment 1">Assignment 1</option>
-                                        <option value="Midterm Exam">Midterm Exam</option>
-                                        <option value="Final Exam">Final Exam</option>
+                                        <option value="Quiz 1">Quiz (/15)</option>
+                                        <option value="Assignment 1">Assignment (/15)</option>
+                                        <option value="Midterm Exam">Midterm Exam (/30)</option>
+                                        <option value="Final Exam">Final Exam (/40)</option>
                                     </select>
                                 </div>
 
@@ -657,7 +658,7 @@ export default function AdminDashboard() {
                                         required
                                         value={newAssessmentScore}
                                         onChange={(e) => setNewAssessmentScore(e.target.value)}
-                                        placeholder="e.g. 18"
+                                        placeholder="e.g. 12"
                                         style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 'bold', boxSizing: 'border-box' }}
                                     />
                                 </div>
@@ -1127,7 +1128,7 @@ export default function AdminDashboard() {
                                         </div>
                                         <span style={{ 
                                             padding: '4px 10px', 
-                                            borderRadius: '12px', 
+                               5             borderRadius: '12px', 
                                             fontSize: '12px', 
                                             fontWeight: 'bold',
                                             background: t.status === 'Resolved' ? '#dcfce7' : '#fef3c7',
