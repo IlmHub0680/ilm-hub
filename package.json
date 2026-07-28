@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "next": "14.0.0",
     "next-auth": "^4.24.15",
@@ -20,6 +21,7 @@
     "resend": "^6.18.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.10.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",

@@ -1,9 +1,11 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+﻿import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const pendingAuthors = await db.user.findMany({
+    const pendingAuthors = await prisma.user.findMany({
       where: { role: 'AUTHOR', authorStatus: 'PENDING' },
       select: { id: true, name: true, email: true, createdAt: true },
     });
