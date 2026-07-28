@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 export default function StudentDashboard() {
@@ -7,7 +7,11 @@ export default function StudentDashboard() {
     const [applications, setApplications] = useState([]);
     const [userEmail, setUserEmail] = useState('test@gmail.com');
     
-    // New Feature States
+    // Reference for file picker dialog
+    const fileInputRef = useRef(null);
+    const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
+    
+    // Feature States
     const [assignments, setAssignments] = useState([
         { id: 1, code: 'ISL-101', title: 'Fiqh Research Essay: Principles of Modern Transactions', dueDate: '2026-08-10', status: 'Pending', grade: null },
         { id: 2, code: 'ARA-102', title: 'Morphology Exercise & Verb Conjugation Drill', dueDate: '2026-08-05', status: 'Submitted', grade: '92/100' },
@@ -72,13 +76,34 @@ export default function StudentDashboard() {
         { code: 'QUR-401', title: 'Qur\'an (Recital)', instructor: instructorsList[0], progress: 92, quiz: 29, midterm: 29, final: 59, total: 117 }
     ];
 
-    const submitAssignment = (id) => {
-        setAssignments(assignments.map(a => a.id === id ? { ...a, status: 'Submitted', grade: 'Pending Review' } : a));
-        alert('Assignment successfully uploaded and submitted!');
+    const handleFileClick = (id) => {
+        setSelectedAssignmentId(id);
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file && selectedAssignmentId) {
+            setAssignments(assignments.map(a => a.id === selectedAssignmentId ? { ...a, status: 'Submitted', grade: 'Pending Review' } : a));
+            alert(`File "${file.name}" successfully uploaded and submitted!`);
+            setSelectedAssignmentId(null);
+            e.target.value = null;
+        }
     };
 
     return (
         <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex' }}>
+            {/* Hidden file input dialog */}
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleFileChange} 
+                accept=".pdf,.doc,.docx,.txt"
+            />
+
             {/* Sidebar */}
             <div style={{ width: '280px', backgroundColor: '#14532d', color: '#ffffff', padding: '30px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
@@ -229,7 +254,7 @@ export default function StudentDashboard() {
                                         <td style={{ padding: '14px', fontWeight: 'bold' }}>{item.grade || '—'}</td>
                                         <td style={{ padding: '14px' }}>
                                             {item.status === 'Pending' ? (
-                                                <button onClick={() => submitAssignment(item.id)} style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+                                                <button onClick={() => handleFileClick(item.id)} style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
                                                     Upload & Submit
                                                 </button>
                                             ) : (

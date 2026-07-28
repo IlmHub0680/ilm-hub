@@ -3,79 +3,59 @@ import Link from 'next/link';
 
 export default function Home() {
     return (
-        <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', backgroundColor: '#f8fafc', margin: 0, padding: 0 }}>
-            {/* Top Navigation Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 40px', backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#14532d' }}>
-                    Ilm Hub Institute
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '25px', flexWrap: 'wrap' }}>
-                    <Link href="/admission" style={{ color: '#16a34a', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>Admission</Link>
-                    <Link href="/courses" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Study Courses</Link>
-                    <Link href="/books" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Islamic Bookstore</Link>
-                    <Link href="/media" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Lectures</Link>
-                    <Link href="/login" style={{ backgroundColor: '#0d9488', color: '#ffffff', padding: '10px 20px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
-                        Sign In
+        <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', backgroundColor: '#f8fafc', color: '#0f172a' }}>
+            {/* Header / Navbar */}
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 40px', backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0' }}>
+                <h1 style={{ fontSize: '22px', color: '#14532d', margin: 0 }}>Ilm-Hub Institute</h1>
+                <div style={{ display: 'flex', gap: '15px' }}>
+                    <Link href="/login" style={{ padding: '8px 16px', borderRadius: '6px', textDecoration: 'none', color: '#14532d', fontWeight: 'bold', border: '1px solid #14532d' }}>
+                        Login
+                    </Link>
+                    <Link href="/dashboard" style={{ padding: '8px 16px', borderRadius: '6px', textDecoration: 'none', backgroundColor: '#14532d', color: '#ffffff', fontWeight: 'bold' }}>
+                        Student Portal
                     </Link>
                 </div>
-            </div>
+            </header>
 
-            {/* Hero Section with Deep Green Background */}
-            <div style={{ backgroundColor: '#14532d', color: '#ffffff', textAlign: 'center', padding: '80px 20px 90px 20px' }}>
-                <h1 style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '16px', marginTop: 0 }}>Welcome to Ilm Hub Institute</h1>
-                <p style={{ fontSize: '18px', color: '#cbd5e1', maxWidth: '700px', margin: '0 auto 40px auto', lineHeight: '1.5' }}>
-                    Authentic Islamic knowledge, structured study courses, digital bookstore, and multimedia lectures for students.
+            {/* Hero Section */}
+            <section style={{ textAlign: 'center', padding: '80px 20px', backgroundColor: '#14532d', color: '#ffffff' }}>
+                <h2 style={{ fontSize: '38px', marginBottom: '15px' }}>Excellence in Islamic Studies & Qur'anic Sciences</h2>
+                <p style={{ fontSize: '18px', maxWidth: '700px', margin: '0 auto 30px auto', color: '#cbd5e1' }}>
+                    Empowering students worldwide with authentic foundational knowledge, structured curricula, and expert instruction.
                 </p>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap' }}>
-                    <Link href="/admission" style={{ backgroundColor: '#16a34a', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px', border: '2px solid #ffffff' }}>
-                        New Student Admission
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+                    <Link href="/register" style={{ padding: '12px 24px', borderRadius: '8px', textDecoration: 'none', backgroundColor: '#16a34a', color: '#ffffff', fontWeight: 'bold', fontSize: '16px' }}>
+                        Apply For Admission
                     </Link>
-                    <Link href="/courses" style={{ backgroundColor: '#0d9488', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
-                        Explore Study Courses
-                    </Link>
-                    <Link href="/books" style={{ backgroundColor: '#ffffff', color: '#14532d', padding: '12px 24px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
-                        Purchase Islamic Books
-                    </Link>
-                    <Link href="/media" style={{ backgroundColor: '#2563eb', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
-                        Browse Lectures
+                    <Link href="/admin" style={{ padding: '12px 24px', borderRadius: '8px', textDecoration: 'none', backgroundColor: 'transparent', color: '#ffffff', border: '1px solid #ffffff', fontWeight: 'bold', fontSize: '16px' }}>
+                        Admin Portal
                     </Link>
                 </div>
-            </div>
+            </section>
 
-            {/* Feature Cards Section */}
-            <div style={{ maxWidth: '1200px', margin: '-40px auto 60px auto', padding: '0 20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '25px' }}>
-                    {/* Card 1 */}
-                    <Link href="/courses" style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', height: '100%', boxSizing: 'border-box' }}>
-                            <h3 style={{ fontSize: '22px', color: '#0f172a', marginTop: 0, marginBottom: '12px' }}>Study Courses</h3>
-                            <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
-                                Enroll in structured online courses with sections, video/audio/text lessons, progress tracking, and verified certificates.
-                            </p>
-                        </div>
-                    </Link>
-
-                    {/* Card 2 - Islamic Bookstore */}
-                    <Link href="/books" style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', height: '100%', boxSizing: 'border-box' }}>
-                            <h3 style={{ fontSize: '22px', color: '#0f172a', marginTop: 0, marginBottom: '12px' }}>Islamic Bookstore</h3>
-                            <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
-                                Browse featured books, review our step-by-step buying guide, and purchase authentic texts with instant digital download.
-                            </p>
-                        </div>
-                    </Link>
-
-                    {/* Card 3 */}
-                    <Link href="/media" style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', height: '100%', boxSizing: 'border-box' }}>
-                            <h3 style={{ fontSize: '22px', color: '#0f172a', marginTop: 0, marginBottom: '12px' }}>Lectures Library</h3>
-                            <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
-                                Access video and audio lectures accompanied by proper Adab and educational purpose notices, with optional downloading.
-                            </p>
-                        </div>
-                    </Link>
+            {/* Programs Overview */}
+            <section style={{ maxWidth: '1100px', margin: '60px auto', padding: '0 20px' }}>
+                <h3 style={{ fontSize: '26px', color: '#14532d', textAlign: 'center', marginBottom: '40px' }}>Core Academic Programs</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '25px' }}>
+                    <div style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <h4 style={{ color: '#14532d', marginTop: 0, fontSize: '20px' }}>Islamic Jurisprudence (Fiqh)</h4>
+                        <p style={{ color: '#64748b', lineHeight: '1.6' }}>Master the principles of modern transactions, family law, and classical madhab methodologies.</p>
+                    </div>
+                    <div style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <h4 style={{ color: '#14532d', marginTop: 0, fontSize: '20px' }}>Qur'anic Arabic & Morphology</h4>
+                        <p style={{ color: '#64748b', lineHeight: '1.6' }}>Develop deep linguistic proficiency through root tables, verb conjugations, and direct text analysis.</p>
+                    </div>
+                    <div style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <h4 style={{ color: '#14532d', marginTop: 0, fontSize: '20px' }}>Hadith Terminology (Mustalah)</h4>
+                        <p style={{ color: '#64748b', lineHeight: '1.6' }}>Study narration classifications, Isnad evaluation, and classical collection structures.</p>
+                    </div>
                 </div>
-            </div>
+            </section>
+
+            {/* Footer */}
+            <footer style={{ textAlign: 'center', padding: '30px', backgroundColor: '#0f172a', color: '#94a3b8', fontSize: '14px', marginTop: '80px' }}>
+                <p>&copy; 2026 Ilm-Hub Institute of Islamic Sciences. All rights reserved.</p>
+            </footer>
         </div>
     );
 }
