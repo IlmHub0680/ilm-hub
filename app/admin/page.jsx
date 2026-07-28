@@ -5,6 +5,7 @@ import Link from 'next/link';
 export default function AdminDashboard() {
     // 1. Authentication State
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null); // Stores logged-in user object & role
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [authError, setAuthError] = useState('');
@@ -12,27 +13,38 @@ export default function AdminDashboard() {
     // Active Navigation Tab State
     const [activeTab, setActiveTab] = useState('overview');
 
-    // 2. Applications State
+    // 2. Staff Accounts Database State (Each with individual passwords & restricted roles)
+    const [staffList, setStaffList] = useState([
+        { id: 1, name: 'Imam Muhammad', email: 'admin@ilmhub.com', password: 'admin1234', role: 'Super Admin' },
+        { id: 2, name: 'Ustadha Maryam', email: 'maryam@ilmhub.com', password: 'maryam123', role: 'Instructor / Grader' },
+        { id: 3, name: 'Bilal ibn Rabah', email: 'bilal@ilmhub.com', password: 'bilal123', role: 'Bookstore Manager' }
+    ]);
+    const [newStaffName, setNewStaffName] = useState('');
+    const [newStaffEmail, setNewStaffEmail] = useState('');
+    const [newStaffPassword, setNewStaffPassword] = useState('');
+    const [newStaffRole, setNewStaffRole] = useState('Instructor / Grader');
+
+    // 3. Applications State
     const [applications, setApplications] = useState([
         { id: 1, name: 'Tariq ibn Ziyad', email: 'tariq@example.com', program: 'Quranic Arabic & Morphology', status: 'Pending', date: '2026-07-27' },
         { id: 2, name: 'Aisha bint Abi Bakr', email: 'aisha@example.com', program: 'Hadith Terminology (Mustalah)', status: 'Pending', date: '2026-07-28' },
         { id: 3, name: 'Umar ibn al-Khattab', email: 'umar@example.com', program: 'Islamic Jurisprudence (Fiqh)', status: 'Approved', date: '2026-07-25' }
     ]);
 
-    // 3. Announcements State
+    // 4. Announcements State
     const [announcement, setAnnouncement] = useState('');
     const [announcementsList, setAnnouncementsList] = useState([
         'Semester registration closes on August 15th, 2026.',
         'New Quranic Tafsir modules are now available in the student portal.'
     ]);
 
-    // 4. Assignment Grading State
+    // 5. Assignment Grading State
     const [submissions, setSubmissions] = useState([
         { id: 1, student: 'Zayd ibn Thabit', course: 'Quranic Arabic 102', assignment: 'Verb Conjugation Matrix (Exercise 4)', submissionDate: '2026-07-26', grade: 'Pending', feedback: '' },
         { id: 2, student: 'Fatima al-Fihriyya', course: 'Islamic Fiqh 101', assignment: 'Case Study on Modern Transactions', submissionDate: '2026-07-27', grade: 'Pending', feedback: '' }
     ]);
 
-    // 5. Course Schedule State
+    // 6. Course Schedule State
     const [schedules, setSchedules] = useState([
         { id: 1, course: 'Quranic Arabic & Morphology', day: 'Mondays & Wednesdays', time: '6:00 PM GMT', instructor: 'Shaykh Farid Abdul Samad' },
         { id: 2, course: 'Hadith Terminology (Mustalah)', day: 'Tuesdays & Thursdays', time: '7:30 PM GMT', instructor: 'Shaykh Ahmad Abdullahi Dawud' }
@@ -41,7 +53,7 @@ export default function AdminDashboard() {
     const [newCourseDay, setNewCourseDay] = useState('');
     const [newCourseInstructor, setNewCourseInstructor] = useState('');
 
-    // 6. Islamic Bookstore Inventory Upload State
+    // 7. Islamic Bookstore Inventory Upload State
     const [books, setBooks] = useState([
         { id: 1, title: 'The Sealed الرحيق المختوم', price: '$25.00', image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400' },
         { id: 2, title: 'Riyad as-Salihin', price: '$35.00', image: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400' }
@@ -50,24 +62,14 @@ export default function AdminDashboard() {
     const [bookPrice, setBookPrice] = useState('');
     const [bookImage, setBookImage] = useState('');
 
-    // 7. NEW: Role Management State
-    const [staffList, setStaffList] = useState([
-        { id: 1, name: 'Imam Muhammad', email: 'admin@ilmhub.com', role: 'Super Admin' },
-        { id: 2, name: 'Ustadha Maryam', email: 'maryam@ilmhub.com', role: 'Instructor / Grader' },
-        { id: 3, name: 'Bilal ibn Rabah', email: 'bilal@ilmhub.com', role: 'Bookstore Manager' }
-    ]);
-    const [staffName, setStaffName] = useState('');
-    const [staffEmail, setStaffEmail] = useState('');
-    const [staffRole, setStaffRole] = useState('Instructor / Grader');
-
-    // 8. NEW: Support Tickets / Direct Messaging State
+    // 8. Support Tickets State
     const [tickets, setTickets] = useState([
         { id: 1, student: 'Zayd ibn Thabit', subject: 'Issue with downloading lecture recording', message: 'Assalamu alaykum, the video link for session 3 shows an error code 404.', status: 'Open', reply: '' },
         { id: 2, student: 'Fatima al-Fihriyya', subject: 'Certificate question', message: 'When will certificates for the Fiqh introductory course be issued?', status: 'Resolved', reply: 'Certificates are issued automatically upon final grade verification.' }
     ]);
     const [replyText, setReplyText] = useState({});
 
-    // 9. NEW: Discount Codes / Coupon Generator State
+    // 9. Discount Coupons State
     const [coupons, setCoupons] = useState([
         { id: 1, code: 'RAMADAN20', discount: '20% OFF', status: 'Active' },
         { id: 2, code: 'STUDENT5', discount: '$5.00 OFF', status: 'Active' }
@@ -75,21 +77,52 @@ export default function AdminDashboard() {
     const [couponCode, setCouponCode] = useState('');
     const [couponDiscount, setCouponDiscount] = useState('');
 
-    // Handlers
+    // Authentication Handlers with Role Checks
     const handleLogin = (e) => {
         e.preventDefault();
-        if (email === 'admin@ilmhub.com' && password === 'admin1234') {
+        // Check against our staff database list
+        const foundStaff = staffList.find(staff => staff.email.toLowerCase() === email.toLowerCase() && staff.password === password);
+        
+        if (foundStaff) {
             setIsAuthenticated(true);
+            setCurrentUser(foundStaff);
             setAuthError('');
+            
+            // Set default landing tab based on role restrictions
+            if (foundStaff.role === 'Bookstore Manager') {
+                setActiveTab('bookstore');
+            } else if (foundStaff.role === 'Instructor / Grader') {
+                setActiveTab('academics');
+            } else {
+                setActiveTab('overview');
+            }
         } else {
-            setAuthError('Invalid administrator credentials. Please try again.');
+            setAuthError('Invalid email or password. Please check your credentials.');
         }
     };
 
     const handleLogout = () => {
         setIsAuthenticated(false);
+        setCurrentUser(null);
         setEmail('');
         setPassword('');
+        setActiveTab('overview');
+    };
+
+    // Role Management Handlers
+    const handleAddStaff = (e) => {
+        e.preventDefault();
+        if (!newStaffName || !newStaffEmail || !newStaffPassword) return;
+        setStaffList([...staffList, { 
+            id: Date.now(), 
+            name: newStaffName, 
+            email: newStaffEmail, 
+            password: newStaffPassword, 
+            role: newStaffRole 
+        }]);
+        setNewStaffName('');
+        setNewStaffEmail('');
+        setNewStaffPassword('');
     };
 
     const handleApprove = (id) => {
@@ -129,14 +162,6 @@ export default function AdminDashboard() {
         setBookImage('');
     };
 
-    const handleAddStaff = (e) => {
-        e.preventDefault();
-        if (!staffName || !staffEmail) return;
-        setStaffList([...staffList, { id: Date.now(), name: staffName, email: staffEmail, role: staffRole }]);
-        setStaffName('');
-        setStaffEmail('');
-    };
-
     const handleSendReply = (id) => {
         const text = replyText[id];
         if (!text) return;
@@ -155,10 +180,10 @@ export default function AdminDashboard() {
     if (!isAuthenticated) {
         return (
             <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
-                <div style={{ backgroundColor: '#ffffff', padding: '40px', borderRadius: '12px', border: '1px solid #e2e8f0', width: '100%', maxWidth: '400px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                <div style={{ backgroundColor: '#ffffff', padding: '40px', borderRadius: '12px', border: '1px solid #e2e8f0', width: '100%', maxWidth: '420px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                     <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                        <h2 style={{ color: '#14532d', margin: '0 0 8px 0', fontSize: '24px' }}>Admin Portal Login</h2>
-                        <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Restricted access for Ilm-Hub administrators only.</p>
+                        <h2 style={{ color: '#14532d', margin: '0 0 8px 0', fontSize: '24px' }}>Staff & Admin Portal</h2>
+                        <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Log in with your designated staff credentials.</p>
                     </div>
 
                     {authError && (
@@ -169,13 +194,13 @@ export default function AdminDashboard() {
 
                     <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#334155', marginBottom: '6px' }}>Admin Email</label>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#334155', marginBottom: '6px' }}>Staff Email</label>
                             <input 
                                 type="email" 
                                 required 
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                placeholder="admin@ilmhub.com"
+                                placeholder="name@ilmhub.com"
                                 style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
                             />
                         </div>
@@ -198,6 +223,14 @@ export default function AdminDashboard() {
                         </button>
                     </form>
 
+                    {/* Quick Demo Credentials Help Box */}
+                    <div style={{ marginTop: '24px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
+                        <strong style={{ display: 'block', marginBottom: '4px', color: '#14532d' }}>Test Account Credentials:</strong>
+                        <div>👑 Super Admin: <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>admin@ilmhub.com</code> / <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>admin1234</code></div>
+                        <div style={{ marginTop: '2px' }}>📚 Store Manager: <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>bilal@ilmhub.com</code> / <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>bilal123</code></div>
+                        <div style={{ marginTop: '2px' }}>👨‍🏫 Grader: <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>maryam@ilmhub.com</code> / <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>maryam123</code></div>
+                    </div>
+
                     <div style={{ textAlign: 'center', marginTop: '20px' }}>
                         <Link href="/" style={{ color: '#64748b', textDecoration: 'none', fontSize: '13px', fontWeight: 'bold' }}>
                             &larr; Return to Public Website
@@ -210,9 +243,14 @@ export default function AdminDashboard() {
 
     return (
         <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', backgroundColor: '#f8fafc', color: '#0f172a' }}>
-            {/* Header with Logout */}
+            {/* Header with Logged-in User Profile & Logout */}
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 40px', backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 100 }}>
-                <h1 style={{ fontSize: '22px', color: '#14532d', margin: 0 }}>Ilm-Hub Admin Portal &bull; Master Control Suite</h1>
+                <div>
+                    <h1 style={{ fontSize: '20px', color: '#14532d', margin: '0 0 4px 0' }}>Ilm-Hub Role-Based Control Portal</h1>
+                    <div style={{ fontSize: '13px', color: '#64748b' }}>
+                        Logged in as: <strong>{currentUser?.name}</strong> &bull; <span style={{ color: '#16a34a', fontWeight: 'bold' }}>{currentUser?.role}</span>
+                    </div>
+                </div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <Link href="/" style={{ padding: '8px 16px', borderRadius: '6px', textDecoration: 'none', backgroundColor: '#f1f5f9', color: '#334155', fontWeight: 'bold', fontSize: '14px', border: '1px solid #cbd5e1' }}>
                         Public Site
@@ -226,41 +264,68 @@ export default function AdminDashboard() {
                 </div>
             </header>
 
-            {/* Navigation Tabs */}
+            {/* Role-Filtered Navigation Tabs */}
             <nav style={{ backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '0 40px', display: 'flex', gap: '20px', overflowX: 'auto' }}>
-                {[
-                    { id: 'overview', label: '📊 Overview & Analytics' },
-                    { id: 'admissions', label: '🎓 Admissions' },
-                    { id: 'bookstore', label: '📚 Bookstore & Coupons' },
-                    { id: 'academics', label: '📝 Grading & Schedules' },
-                    { id: 'staff', label: '👥 Staff & Roles' },
-                    { id: 'support', label: '💬 Support Inbox' },
-                ].map((tab) => (
+                {currentUser?.role === 'Super Admin' && (
                     <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        style={{
-                            padding: '16px 4px',
-                            background: 'none',
-                            border: 'none',
-                            borderBottom: activeTab === tab.id ? '3px solid #14532d' : '3px solid transparent',
-                            color: activeTab === tab.id ? '#14532d' : '#64748b',
-                            fontWeight: 'bold',
-                            fontSize: '14px',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap'
-                        }}
+                        onClick={() => setActiveTab('overview')}
+                        style={{ padding: '16px 4px', background: 'none', border: 'none', borderBottom: activeTab === 'overview' ? '3px solid #14532d' : '3px solid transparent', color: activeTab === 'overview' ? '#14532d' : '#64748b', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     >
-                        {tab.label}
+                        📊 Overview & Analytics
                     </button>
-                ))}
+                )}
+
+                {(currentUser?.role === 'Super Admin') && (
+                    <button
+                        onClick={() => setActiveTab('admissions')}
+                        style={{ padding: '16px 4px', background: 'none', border: 'none', borderBottom: activeTab === 'admissions' ? '3px solid #14532d' : '3px solid transparent', color: activeTab === 'admissions' ? '#14532d' : '#64748b', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                        🎓 Admissions
+                    </button>
+                )}
+
+                {(currentUser?.role === 'Super Admin' || currentUser?.role === 'Bookstore Manager') && (
+                    <button
+                        onClick={() => setActiveTab('bookstore')}
+                        style={{ padding: '16px 4px', background: 'none', border: 'none', borderBottom: activeTab === 'bookstore' ? '3px solid #14532d' : '3px solid transparent', color: activeTab === 'bookstore' ? '#14532d' : '#64748b', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                        📚 Bookstore & Coupons
+                    </button>
+                )}
+
+                {(currentUser?.role === 'Super Admin' || currentUser?.role === 'Instructor / Grader') && (
+                    <button
+                        onClick={() => setActiveTab('academics')}
+                        style={{ padding: '16px 4px', background: 'none', border: 'none', borderBottom: activeTab === 'academics' ? '3px solid #14532d' : '3px solid transparent', color: activeTab === 'academics' ? '#14532d' : '#64748b', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                        📝 Grading & Schedules
+                    </button>
+                )}
+
+                {currentUser?.role === 'Super Admin' && (
+                    <button
+                        onClick={() => setActiveTab('staff')}
+                        style={{ padding: '16px 4px', background: 'none', border: 'none', borderBottom: activeTab === 'staff' ? '3px solid #14532d' : '3px solid transparent', color: activeTab === 'staff' ? '#14532d' : '#64748b', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                        👥 Staff Accounts & Passwords
+                    </button>
+                )}
+
+                {(currentUser?.role === 'Super Admin' || currentUser?.role === 'Instructor / Grader') && (
+                    <button
+                        onClick={() => setActiveTab('support')}
+                        style={{ padding: '16px 4px', background: 'none', border: 'none', borderBottom: activeTab === 'support' ? '3px solid #14532d' : '3px solid transparent', color: activeTab === 'support' ? '#14532d' : '#64748b', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                        💬 Support Inbox
+                    </button>
+                )}
             </nav>
 
             {/* Main Content Area */}
             <main style={{ maxWidth: '1100px', margin: '40px auto', padding: '0 20px' }}>
                 
-                {/* TAB 1: OVERVIEW & ANALYTICS */}
-                {activeTab === 'overview' && (
+                {/* TAB 1: OVERVIEW & ANALYTICS (Super Admin Only) */}
+                {activeTab === 'overview' && currentUser?.role === 'Super Admin' && (
                     <div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                             <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
@@ -280,25 +345,6 @@ export default function AdminDashboard() {
                             <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                 <h4 style={{ color: '#64748b', margin: '0 0 8px 0', fontSize: '13px' }}>Support Tickets</h4>
                                 <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#0284c7' }}>{tickets.filter(t => t.status === 'Open').length} Open</div>
-                            </div>
-                        </div>
-
-                        {/* Analytics Graphic Simulator */}
-                        <div style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '40px' }}>
-                            <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Enrollment & Bookstore Performance Trends</h3>
-                            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px' }}>Monthly growth metrics across student registrations and bookstore revenue distribution for 2026.</p>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px', alignItems: 'flex-end', height: '180px', paddingBottom: '10px', borderBottom: '2px solid #e2e8f0' }}>
-                                {['May', 'June', 'July', 'August (Proj.)'].map((month, i) => {
-                                    const heights = ['60px', '110px', '150px', '170px'];
-                                    return (
-                                        <div key={month} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                                            <div style={{ width: '100%', maxWidth: '60px', height: heights[i], backgroundColor: '#14532d', borderRadius: '6px 6px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontSize: '12px', fontWeight: 'bold' }}>
-                                                {parseInt(heights[i]) + 20}
-                                            </div>
-                                            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b', marginTop: '8px', textAlign: 'center' }}>{month}</div>
-                                        </div>
-                                    );
-                                })}
                             </div>
                         </div>
 
@@ -333,7 +379,7 @@ export default function AdminDashboard() {
                 )}
 
                 {/* TAB 2: ADMISSIONS */}
-                {activeTab === 'admissions' && (
+                {activeTab === 'admissions' && currentUser?.role === 'Super Admin' && (
                     <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '20px', fontSize: '20px' }}>Student Admission Requests</h3>
                         <div style={{ overflowX: 'auto' }}>
@@ -393,10 +439,9 @@ export default function AdminDashboard() {
                     </section>
                 )}
 
-                {/* TAB 3: BOOKSTORE & COUPONS */}
-                {activeTab === 'bookstore' && (
+                {/* TAB 3: BOOKSTORE & COUPONS (Accessible by Super Admin & Bookstore Manager) */}
+                {activeTab === 'bookstore' && (currentUser?.role === 'Super Admin' || currentUser?.role === 'Bookstore Manager') && (
                     <div>
-                        {/* Bookstore Management */}
                         <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '40px' }}>
                             <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Islamic Bookstore Inventory Management</h3>
                             <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Upload new literature items, define pricing, and publish book covers directly to the public store.</p>
@@ -458,10 +503,9 @@ export default function AdminDashboard() {
                             </div>
                         </section>
 
-                        {/* Coupon Generator */}
                         <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Discount Code & Coupon Generator</h3>
-                            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Create promo codes for students and bookstore shoppers.</p>
+                            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Create promo codes for bookstore shoppers.</p>
                             
                             <form onSubmit={handleAddCoupon} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px', marginBottom: '25px', background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                                 <input 
@@ -508,10 +552,9 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {/* TAB 4: ACADEMICS (GRADING & SCHEDULES) */}
-                {activeTab === 'academics' && (
+                {/* TAB 4: ACADEMICS (Accessible by Super Admin & Grader) */}
+                {activeTab === 'academics' && (currentUser?.role === 'Super Admin' || currentUser?.role === 'Instructor / Grader') && (
                     <div>
-                        {/* Assignment Grading */}
                         <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '40px' }}>
                             <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Assignment Grading & Student Evaluation</h3>
                             <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Review submitted student tasks, assign formal academic scores, and provide structured notes.</p>
@@ -564,10 +607,9 @@ export default function AdminDashboard() {
                             </div>
                         </section>
 
-                        {/* Course Schedules */}
                         <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Course Schedule Management</h3>
-                            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Publish weekly lecture timings and assign instructors to active curriculum modules.</p>
+                            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Publish weekly lecture timings and assign instructors.</p>
                             
                             <form onSubmit={handleAddSchedule} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '25px', background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                                 <input 
@@ -615,32 +657,40 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
-                {/* TAB 5: STAFF & ROLES */}
-                {activeTab === 'staff' && (
+                {/* TAB 5: STAFF ACCOUNTS & PASSWORDS (Super Admin Only) */}
+                {activeTab === 'staff' && currentUser?.role === 'Super Admin' && (
                     <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Staff Accounts & Role Management</h3>
-                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Assign granular permissions and operational roles to instructors and staff members.</p>
+                        <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Staff Accounts & Individual Passwords</h3>
+                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Create distinct login emails and passwords for instructors and store managers with role-based restrictions.</p>
                         
                         <form onSubmit={handleAddStaff} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '25px', background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                             <input 
                                 type="text" 
                                 placeholder="Staff Name" 
                                 required 
-                                value={staffName}
-                                onChange={(e) => setStaffName(e.target.value)}
+                                value={newStaffName}
+                                onChange={(e) => setNewStaffName(e.target.value)}
                                 style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
                             />
                             <input 
                                 type="email" 
                                 placeholder="Staff Email" 
                                 required 
-                                value={staffEmail}
-                                onChange={(e) => setStaffEmail(e.target.value)}
+                                value={newStaffEmail}
+                                onChange={(e) => setNewStaffEmail(e.target.value)}
+                                style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                            />
+                            <input 
+                                type="password" 
+                                placeholder="Login Password" 
+                                required 
+                                value={newStaffPassword}
+                                onChange={(e) => setNewStaffPassword(e.target.value)}
                                 style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
                             />
                             <select 
-                                value={staffRole}
-                                onChange={(e) => setStaffRole(e.target.value)}
+                                value={newStaffRole}
+                                onChange={(e) => setNewStaffRole(e.target.value)}
                                 style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', background: '#ffffff' }}
                             >
                                 <option value="Super Admin">Super Admin</option>
@@ -649,9 +699,9 @@ export default function AdminDashboard() {
                             </select>
                             <button 
                                 type="submit"
-                                style={{ padding: '10px', backgroundColor: '#14532d', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+                                style={{ padding: '10px', backgroundColor: '#14532d', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', gridColumn: '1 / -1' }}
                             >
-                                Add Staff Member
+                                Create Staff Account & Password
                             </button>
                         </form>
 
@@ -660,7 +710,7 @@ export default function AdminDashboard() {
                                 <div key={st.id} style={{ padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                                     <div>
                                         <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', marginBottom: '2px' }}>{st.name}</div>
-                                        <div style={{ fontSize: '13px', color: '#64748b' }}>{st.email}</div>
+                                        <div style={{ fontSize: '13px', color: '#64748b' }}>Email: {st.email} &bull; Password: <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>{st.password}</code></div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
                                         <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', background: '#e0f2fe', color: '#0369a1' }}>
@@ -681,8 +731,8 @@ export default function AdminDashboard() {
                     </section>
                 )}
 
-                {/* TAB 6: SUPPORT INBOX */}
-                {activeTab === 'support' && (
+                {/* TAB 6: SUPPORT INBOX (Accessible by Super Admin & Grader) */}
+                {activeTab === 'support' && (currentUser?.role === 'Super Admin' || currentUser?.role === 'Instructor / Grader') && (
                     <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Student Support Inbox & Inquiries</h3>
                         <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px' }}>Direct messaging and support tickets submitted by students.</p>
@@ -713,7 +763,7 @@ export default function AdminDashboard() {
 
                                     {t.reply ? (
                                         <div style={{ fontSize: '13px', color: '#16a34a', padding: '10px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
-                                            <strong>Admin Reply:</strong> {t.reply}
+                                            <strong>Staff Reply:</strong> {t.reply}
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
