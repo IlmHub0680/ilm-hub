@@ -11,7 +11,7 @@ export default function Home() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
                     <Link href="/courses" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Study Courses</Link>
-                    <Link href="/bookstore" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Islamic Bookstore</Link>
+                    <Link href="/books" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Islamic Bookstore</Link>
                     <Link href="/media" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '500', fontSize: '15px' }}>Lectures</Link>
                     <Link href="/login" style={{ backgroundColor: '#0d9488', color: '#ffffff', padding: '10px 20px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
                         Enroll / Login
@@ -29,7 +29,7 @@ export default function Home() {
                     <Link href="/courses" style={{ backgroundColor: '#0d9488', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
                         Explore Study Courses
                     </Link>
-                    <Link href="/bookstore" style={{ backgroundColor: '#ffffff', color: '#14532d', padding: '12px 24px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
+                    <Link href="/books" style={{ backgroundColor: '#ffffff', color: '#14532d', padding: '12px 24px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
                         Purchase Islamic Books
                     </Link>
                     <Link href="/media" style={{ backgroundColor: '#2563eb', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
@@ -51,8 +51,8 @@ export default function Home() {
                         </div>
                     </Link>
 
-                    {/* Card 2 - Islamic Bookstore (Now clickable and matches route) */}
-                    <Link href="/bookstore" style={{ textDecoration: 'none', color: 'inherit' }}>
+                    {/* Card 2 - Islamic Bookstore */}
+                    <Link href="/books" style={{ textDecoration: 'none', color: 'inherit' }}>
                         <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', height: '100%', boxSizing: 'border-box' }}>
                             <h3 style={{ fontSize: '22px', color: '#0f172a', marginTop: 0, marginBottom: '12px' }}>Islamic Bookstore</h3>
                             <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
