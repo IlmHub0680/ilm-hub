@@ -13,11 +13,11 @@ export default function AdminDashboard() {
     // Active Navigation Tab State
     const [activeTab, setActiveTab] = useState('overview');
 
-    // 2. Staff Accounts Database State
+    // 2. Staff Accounts Database State (Store Manager changed to Author/Seller role)
     const [staffList, setStaffList] = useState([
         { id: 1, name: 'Imam Muhammad', email: 'admin@ilmhub.com', password: 'admin1234', role: 'Super Admin' },
         { id: 2, name: 'Shaykh Farid Abdul Samad', email: 'farid@ilmhub.com', password: 'farid123', role: 'Instructor' },
-        { id: 3, name: 'Bilal ibn Rabah', email: 'bilal@ilmhub.com', password: 'bilal123', role: 'Bookstore Manager' }
+        { id: 3, name: 'Bilal ibn Rabah', email: 'bilal@ilmhub.com', password: 'bilal123', role: 'Author / Seller' }
     ]);
     const [newStaffName, setNewStaffName] = useState('');
     const [newStaffEmail, setNewStaffEmail] = useState('');
@@ -90,14 +90,15 @@ export default function AdminDashboard() {
     const [newCourseDay, setNewCourseDay] = useState('');
     const [newCourseInstructor, setNewCourseInstructor] = useState('');
 
-    // 8. Islamic Bookstore Inventory Upload State
+    // 8. Islamic Bookstore Inventory Upload State with Authoring, Admin Approval, and Admin Percentage Commission
     const [books, setBooks] = useState([
-        { id: 1, title: 'The Sealed الرحيق المختوم', price: '$25.00', image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400' },
-        { id: 2, title: 'Riyad as-Salihin', price: '$35.00', image: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400' }
+        { id: 1, title: 'The Sealed الرحيق المختوم', price: '$25.00', image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400', author: 'Imam Muhammad', status: 'Active', adminFeePercentage: '10%' },
+        { id: 2, title: 'Riyad as-Salihin', price: '$35.00', image: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400', author: 'Bilal ibn Rabah', status: 'Pending Approval', adminFeePercentage: '15%' }
     ]);
     const [bookTitle, setBookTitle] = useState('');
     const [bookPrice, setBookPrice] = useState('');
     const [bookImage, setBookImage] = useState('');
+    const [bookAdminFee, setBookAdminFee] = useState('10%');
 
     // 9. Support Tickets State
     const [tickets, setTickets] = useState([
@@ -108,8 +109,8 @@ export default function AdminDashboard() {
 
     // 10. Discount Coupons State
     const [coupons, setCoupons] = useState([
-        { id: 1, code: 'RAMADAN20', discount: '20% OFF', status: 'Active' },
-        { id: 2, code: 'STUDENT5', discount: '$5.00 OFF', status: 'Active' }
+        { id: 1, code: 'RAMADAN20', discount: '20% OFF', status: 'Active', author: 'Imam Muhammad' },
+        { id: 2, code: 'BILALBOOKS5', discount: '$5.00 OFF', status: 'Active', author: 'Bilal ibn Rabah' }
     ]);
     const [couponCode, setCouponCode] = useState('');
     const [couponDiscount, setCouponDiscount] = useState('');
@@ -124,7 +125,7 @@ export default function AdminDashboard() {
             setCurrentUser(foundStaff);
             setAuthError('');
             
-            if (foundStaff.role === 'Bookstore Manager') {
+            if (foundStaff.role === 'Author / Seller') {
                 setActiveTab('bookstore');
             } else if (foundStaff.role === 'Instructor') {
                 setActiveTab('instructor_dashboard');
@@ -187,12 +188,10 @@ export default function AdminDashboard() {
         e.preventDefault();
         if (!newAssessmentScore) return;
 
-        // Determine max score text based on assessment type
         let maxStr = '/20';
         if (selectedAssessmentType.includes('Assignment')) maxStr = '/50';
         if (selectedAssessmentType.includes('Exam')) maxStr = '/100';
 
-        // Check if assessment record already exists for this student/course/type
         const existingIndex = assessments.findIndex(
             item => item.student === selectedStudentForGrading && 
                     item.course === selectedCourseForGrading && 
@@ -200,7 +199,6 @@ export default function AdminDashboard() {
         );
 
         if (existingIndex !== -1) {
-            // Update existing
             const updated = [...assessments];
             updated[existingIndex] = {
                 ...updated[existingIndex],
@@ -209,7 +207,6 @@ export default function AdminDashboard() {
             };
             setAssessments(updated);
         } else {
-            // Create new record
             setAssessments([
                 {
                     id: Date.now(),
@@ -237,13 +234,38 @@ export default function AdminDashboard() {
         setNewCourseInstructor('');
     };
 
+    // Book Upload Handler (Admin books are Active immediately, Author books are Pending Approval)
     const handleAddBook = (e) => {
         e.preventDefault();
         if (!bookTitle || !bookPrice || !bookImage) return;
-        setBooks([...books, { id: Date.now(), title: bookTitle, price: bookPrice, image: bookImage }]);
+        
+        const isAdmin = currentUser.role === 'Super Admin';
+        setBooks([
+            ...books, 
+            { 
+                id: Date.now(), 
+                title: bookTitle, 
+                price: bookPrice, 
+                image: bookImage, 
+                author: currentUser.name,
+                status: isAdmin ? 'Active' : 'Pending Approval',
+                adminFeePercentage: bookAdminFee
+            }
+        ]);
         setBookTitle('');
         setBookPrice('');
         setBookImage('');
+        setBookAdminFee('10%');
+    };
+
+    // Admin Approval Handler for Author Uploaded Books
+    const handleApproveBook = (id) => {
+        setBooks(books.map(b => b.id === id ? { ...b, status: 'Active' } : b));
+    };
+
+    // Admin updates fee percentage for a specific book
+    const handleUpdateAdminFee = (id, newFee) => {
+        setBooks(books.map(b => b.id === id ? { ...b, adminFeePercentage: newFee } : b));
     };
 
     const handleSendReply = (id) => {
@@ -255,7 +277,7 @@ export default function AdminDashboard() {
     const handleAddCoupon = (e) => {
         e.preventDefault();
         if (!couponCode || !couponDiscount) return;
-        setCoupons([...coupons, { id: Date.now(), code: couponCode.toUpperCase(), discount: couponDiscount, status: 'Active' }]);
+        setCoupons([...coupons, { id: Date.now(), code: couponCode.toUpperCase(), discount: couponDiscount, status: 'Active', author: currentUser.name }]);
         setCouponCode('');
         setCouponDiscount('');
     };
@@ -366,7 +388,7 @@ export default function AdminDashboard() {
                             onClick={() => setActiveTab('bookstore')}
                             style={{ padding: '16px 4px', background: 'none', border: 'none', borderBottom: activeTab === 'bookstore' ? '3px solid #14532d' : '3px solid transparent', color: activeTab === 'bookstore' ? '#14532d' : '#64748b', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                         >
-                            📚 Bookstore & Coupons
+                            📚 Bookstore & Author Management
                         </button>
                         <button
                             onClick={() => setActiveTab('academics')}
@@ -383,12 +405,12 @@ export default function AdminDashboard() {
                     </>
                 )}
 
-                {currentUser?.role === 'Bookstore Manager' && (
+                {currentUser?.role === 'Author / Seller' && (
                     <button
                         onClick={() => setActiveTab('bookstore')}
                         style={{ padding: '16px 4px', background: 'none', border: 'none', borderBottom: activeTab === 'bookstore' ? '3px solid #14532d' : '3px solid transparent', color: activeTab === 'bookstore' ? '#14532d' : '#64748b', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     >
-                        📚 Bookstore & Coupons
+                        📚 My Books & Coupons Dashboard
                     </button>
                 )}
 
@@ -434,13 +456,13 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
                             <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                <h4 style={{ color: '#64748b', margin: '0 0 8px 0', fontSize: '13px' }}>Bookstore Inventory</h4>
-                                <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#16a34a' }}>{books.length} Books</div>
+                                <h4 style={{ color: '#64748b', margin: '0 0 8px 0', fontSize: '13px' }}>Bookstore Catalog</h4>
+                                <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#16a34a' }}>{books.filter(b => b.status === 'Active').length} Active</div>
                             </div>
                             <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                <h4 style={{ color: '#64748b', margin: '0 0 8px 0', fontSize: '13px' }}>Active Instructors</h4>
+                                <h4 style={{ color: '#64748b', margin: '0 0 8px 0', fontSize: '13px' }}>Active Staff & Authors</h4>
                                 <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#0284c7' }}>
-                                    {staffList.filter(s => s.role === 'Instructor').length}
+                                    {staffList.length}
                                 </div>
                             </div>
                         </div>
@@ -545,7 +567,6 @@ export default function AdminDashboard() {
                             <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#14532d', marginBottom: '15px' }}>📝 Grade Entry Form</div>
                             
                             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                                {/* Course Selector */}
                                 <div style={{ flex: 1, minWidth: '200px' }}>
                                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Select Course</label>
                                     <select 
@@ -558,7 +579,6 @@ export default function AdminDashboard() {
                                     </select>
                                 </div>
 
-                                {/* Student Selector */}
                                 <div style={{ flex: 1, minWidth: '180px' }}>
                                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Select Student</label>
                                     <select 
@@ -572,7 +592,6 @@ export default function AdminDashboard() {
                                     </select>
                                 </div>
 
-                                {/* Assessment Type */}
                                 <div style={{ flex: 1, minWidth: '160px' }}>
                                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Assessment Type</label>
                                     <select 
@@ -587,7 +606,6 @@ export default function AdminDashboard() {
                                     </select>
                                 </div>
 
-                                {/* Score Input */}
                                 <div style={{ width: '110px' }}>
                                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Score /20</label>
                                     <input 
@@ -602,7 +620,6 @@ export default function AdminDashboard() {
                             </div>
 
                             <div style={{ display: 'flex', gap: '15px', marginTop: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                                {/* Optional Comments */}
                                 <div style={{ flex: 1, minWidth: '280px' }}>
                                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Optional Instructor Comments</label>
                                     <input 
@@ -614,7 +631,6 @@ export default function AdminDashboard() {
                                     />
                                 </div>
 
-                                {/* Save Button */}
                                 <button 
                                     type="submit"
                                     style={{ padding: '10px 24px', backgroundColor: '#14532d', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', height: '41px' }}
@@ -737,14 +753,21 @@ export default function AdminDashboard() {
                     </section>
                 )}
 
-                {/* BOOKSTORE & COUPONS TAB */}
-                {activeTab === 'bookstore' && (currentUser?.role === 'Super Admin' || currentUser?.role === 'Bookstore Manager') && (
+                {/* BOOKSTORE & AUTHOR / SELLER MANAGEMENT TAB */}
+                {activeTab === 'bookstore' && (currentUser?.role === 'Super Admin' || currentUser?.role === 'Author / Seller') && (
                     <div>
+                        {/* Book Upload Section (Both Admin and Author can upload) */}
                         <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '40px' }}>
-                            <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Islamic Bookstore Inventory Management</h3>
-                            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Upload new literature items, define pricing, and publish book covers directly to the public store.</p>
+                            <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>
+                                {currentUser?.role === 'Super Admin' ? 'Admin Book Upload & Fee Management' : 'Author Book Upload Portal'}
+                            </h3>
+                            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>
+                                {currentUser?.role === 'Super Admin' 
+                                    ? 'Upload books directly (active immediately) or review/approve books submitted by authors.' 
+                                    : 'Upload your books to the Islamic Bookstore. Your submissions will be reviewed and activated by the Admin.'}
+                            </p>
                             
-                            <form onSubmit={handleAddBook} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px', marginBottom: '30px', background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                            <form onSubmit={handleAddBook} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '30px', background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                                 <input 
                                     type="text" 
                                     placeholder="Book Title" 
@@ -769,38 +792,103 @@ export default function AdminDashboard() {
                                     onChange={(e) => setBookImage(e.target.value)}
                                     style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
                                 />
+                                {currentUser?.role === 'Super Admin' && (
+                                    <input 
+                                        type="text" 
+                                        placeholder="Admin Commission % (e.g. 10%)" 
+                                        value={bookAdminFee}
+                                        onChange={(e) => setBookAdminFee(e.target.value)}
+                                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                                    />
+                                )}
                                 <button 
                                     type="submit"
-                                    style={{ padding: '10px', backgroundColor: '#14532d', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+                                    style={{ padding: '10px', backgroundColor: '#14532d', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', gridColumn: currentUser?.role === 'Super Admin' ? 'span 1' : '1 / -1' }}
                                 >
-                                    Upload to Bookstore
+                                    {currentUser?.role === 'Super Admin' ? 'Upload Book' : 'Submit Book for Approval'}
                                 </button>
                             </form>
 
-                            <h4 style={{ color: '#0f172a', fontSize: '16px', marginBottom: '15px' }}>Current Store Catalog</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
-                                {books.map((b) => (
-                                    <div key={b.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
-                                        <div style={{ height: '160px', width: '100%', backgroundColor: '#e2e8f0', overflow: 'hidden' }}>
-                                            <img src={b.image} alt={b.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            {/* Admin Approval Queue for Author Submissions */}
+                            {currentUser?.role === 'Super Admin' && (
+                                <div style={{ marginBottom: '35px' }}>
+                                    <h4 style={{ color: '#d97706', fontSize: '16px', marginBottom: '15px' }}>⏳ Author Submissions Awaiting Approval</h4>
+                                    {books.filter(b => b.status === 'Pending Approval').length === 0 ? (
+                                        <div style={{ fontSize: '13px', color: '#64748b', fontStyle: 'italic', padding: '15px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>No pending author book submissions at this time.</div>
+                                    ) : (
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '15px' }}>
+                                            {books.filter(b => b.status === 'Pending Approval').map((b) => (
+                                                <div key={b.id} style={{ border: '1px solid #fcd34d', borderRadius: '8px', padding: '15px', backgroundColor: '#fffbeb' }}>
+                                                    <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}>{b.title}</div>
+                                                    <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>Author / Seller: <strong>{b.author}</strong> &bull; Price: {b.price}</div>
+                                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '10px' }}>
+                                                        <button 
+                                                            onClick={() => handleApproveBook(b.id)}
+                                                            style={{ padding: '6px 14px', backgroundColor: '#16a34a', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
+                                                        >
+                                                            Approve & Activate
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => setBooks(books.filter(item => item.id !== b.id))}
+                                                            style={{ padding: '6px 14px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <div style={{ padding: '15px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
-                                            <div>
-                                                <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#0f172a', marginBottom: '6px' }}>{b.title}</div>
-                                                <div style={{ fontSize: '14px', color: '#16a34a', fontWeight: 'bold' }}>{b.price}</div>
+                                    )}
+                                </div>
+                            )}
+
+                            <h4 style={{ color: '#0f172a', fontSize: '16px', marginBottom: '15px' }}>
+                                {currentUser?.role === 'Super Admin' ? 'All Bookstore Catalog & Admin Fee Settings' : 'My Uploaded Books Status'}
+                            </h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                                {books
+                                    .filter(b => currentUser?.role === 'Super Admin' || b.author === currentUser.name)
+                                    .map((b) => (
+                                        <div key={b.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+                                            <div style={{ height: '150px', width: '100%', backgroundColor: '#e2e8f0', overflow: 'hidden', position: 'relative' }}>
+                                                <img src={b.image} alt={b.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <span style={{ position: 'absolute', top: '8px', right: '8px', background: b.status === 'Active' ? '#dcfce7' : '#fef3c7', color: b.status === 'Active' ? '#16a34a' : '#d97706', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+                                                    {b.status}
+                                                </span>
                                             </div>
-                                            <button 
-                                                onClick={() => setBooks(books.filter(item => item.id !== b.id))}
-                                                style={{ marginTop: '12px', padding: '6px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
-                                            >
-                                                Remove Book
-                                            </button>
+                                            <div style={{ padding: '15px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
+                                                <div>
+                                                    <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}>{b.title}</div>
+                                                    <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px' }}>Author: {b.author}</div>
+                                                    <div style={{ fontSize: '14px', color: '#16a34a', fontWeight: 'bold', marginBottom: '8px' }}>Price: {b.price}</div>
+                                                    
+                                                    {currentUser?.role === 'Super Admin' && (
+                                                        <div style={{ fontSize: '12px', color: '#334155', background: '#f1f5f9', padding: '6px', borderRadius: '4px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span>Admin Fee: <strong>{b.adminFeePercentage || '10%'}</strong></span>
+                                                            <input 
+                                                                type="text" 
+                                                                defaultValue={b.adminFeePercentage || '10%'} 
+                                                                onBlur={(e) => handleUpdateAdminFee(b.id, e.target.value)}
+                                                                style={{ width: '50px', padding: '2px', fontSize: '11px', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '3px' }}
+                                                                title="Edit admin percentage"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <button 
+                                                    onClick={() => setBooks(books.filter(item => item.id !== b.id))}
+                                                    style={{ marginTop: '8px', padding: '6px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
+                                                >
+                                                    Remove Book
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))
+                                }
                             </div>
                         </section>
 
+                        {/* Author / Seller Coupon Section */}
                         <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Discount Code & Coupon Generator</h3>
                             <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Create promo codes for bookstore shoppers.</p>
@@ -831,20 +919,24 @@ export default function AdminDashboard() {
                             </form>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
-                                {coupons.map((c) => (
-                                    <div key={c.id} style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#14532d', marginBottom: '4px' }}>{c.code}</div>
-                                            <div style={{ fontSize: '13px', color: '#16a34a', fontWeight: 'bold' }}>{c.discount}</div>
+                                {coupons
+                                    .filter(c => currentUser?.role === 'Super Admin' || c.author === currentUser.name)
+                                    .map((c) => (
+                                        <div key={c.id} style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#14532d', marginBottom: '4px' }}>{c.code}</div>
+                                                <div style={{ fontSize: '13px', color: '#16a34a', fontWeight: 'bold' }}>{c.discount}</div>
+                                                <div style={{ fontSize: '11px', color: '#64748b' }}>Author: {c.author}</div>
+                                            </div>
+                                            <button 
+                                                onClick={() => setCoupons(coupons.filter(item => item.id !== c.id))}
+                                                style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                                            >
+                                                Delete
+                                            </button>
                                         </div>
-                                        <button 
-                                            onClick={() => setCoupons(coupons.filter(item => item.id !== c.id))}
-                                            style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                ))}
+                                    ))
+                                }
                             </div>
                         </section>
                     </div>
@@ -905,7 +997,7 @@ export default function AdminDashboard() {
                 {activeTab === 'staff' && currentUser?.role === 'Super Admin' && (
                     <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Staff Accounts & Individual Passwords</h3>
-                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Create distinct login emails and passwords for instructors and store managers with role-based restrictions.</p>
+                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Create distinct login emails and passwords for instructors and authors/sellers with role-based restrictions.</p>
                         
                         <form onSubmit={handleAddStaff} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '25px', background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                             <input 
@@ -939,7 +1031,7 @@ export default function AdminDashboard() {
                             >
                                 <option value="Super Admin">Super Admin</option>
                                 <option value="Instructor">Instructor</option>
-                                <option value="Bookstore Manager">Bookstore Manager</option>
+                                <option value="Author / Seller">Author / Seller</option>
                             </select>
                             <button 
                                 type="submit"
