@@ -1,1 +1,14 @@
-﻿export default function Navbar() { return (<nav className='flex justify-between items-center p-4 bg-white shadow-md'><h1 className='text-xl font-bold text-emerald-800'>Ilm Hub Institute</h1><div className='flex items-center space-x-4'><a href='/' className='text-gray-700 hover:text-emerald-800 font-medium'>Study Courses</a><a href='/' className='text-gray-700 hover:text-emerald-800 font-medium'>Islamic Bookstore</a><a href='/' className='text-gray-700 hover:text-emerald-800 font-medium'>Lectures</a><a href='/login' className='text-emerald-800 font-medium px-3 py-1 border border-emerald-600 rounded-md hover:bg-emerald-50'>Login</a><a href='/signup' className='px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700'>Sign Up</a></div></nav>); }
+﻿export default function Navbar() {
+  return (
+    <nav className='flex justify-between items-center p-4 bg-white shadow-md'>
+      <h1 className='text-xl font-bold text-emerald-800'>Ilm Hub Institute</h1>
+      <div className='flex items-center space-x-4'>
+        <a href='/' className='text-gray-700 hover:text-emerald-800 font-medium'>Study Courses</a>
+        <a href='/' className='text-gray-700 hover:text-emerald-800 font-medium'>Islamic Bookstore</a>
+        <a href='/' className='text-gray-700 hover:text-emerald-800 font-medium'>Lectures</a>
+        <a href='/login' className='text-emerald-800 font-medium px-3 py-1 border border-emerald-600 rounded-md hover:bg-emerald-50'>Login</a>
+        <a href='/signup' className='px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700'>Sign Up</a>
+      </div>
+    </nav>
+  );
+}
