@@ -1,0 +1,1 @@
+﻿export const metadata = { title: 'Ilm Hub Institute', description: 'Authentic Islamic knowledge and courses' }; export default function RootLayout({ children }) { return (<html lang='en'><body className='bg-gray-50 text-gray-900'>{children}</body></html>); }
