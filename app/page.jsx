@@ -11,11 +11,18 @@ export default function Home() {
         alert(`"${title}" has been added to your cart!`);
     };
 
+    const categories = [
+        'All', 
+        'Education Programs', 
+        'Khutbah (Friday sermon)', 
+        'Mutun Al-Ilmiyyah (Scientific Texts)', 
+        'Manzumat (Didactic Poems)'
+    ];
+
     const lecturesList = [
-        { title: 'Advanced Quranic Morphology Masterclass', category: 'Qur\'anic Sciences', instructor: 'Shaykh Farid Abdul Samad', duration: '1h 45m' },
-        { title: 'Understanding the Context of Hadith Narrations', category: 'Hadith Studies', instructor: 'Shaykh Ahmad Abdullahi Dawud', duration: '2h 10m' },
-        { title: 'Principles of Islamic Financial Transactions', category: 'Fiqh & Jurisprudence', instructor: 'Imam Muhammad Jalaal Deen Umar', duration: '1h 30m' },
-        { title: 'Introduction to Classical Arabic Syntax', category: 'Qur\'anic Sciences', instructor: 'Shaykh Farid Abdul Samad', duration: '2h 00m' }
+        { title: 'Advanced Quranic Morphology Masterclass', category: 'Education Programs', instructor: 'Shaykh Farid Abdul Samad', duration: '1h 45m' },
+        { title: 'The Importance of Sincerity in Seeking Knowledge', category: 'Khutbah (Friday sermon)', instructor: 'Imam Muhammad Jalaal Deen Umar', duration: '45m' },
+        { title: 'Explanation of Matn Al-Ajrumiyyah', category: 'Mutun Al-Ilmiyyah (Scientific Texts)', instructor: 'Shaykh Ahmad Abdullahi Dawud', duration: '2h 10m' }
     ];
 
     const filteredLectures = selectedCategory === 'All' 
@@ -117,7 +124,8 @@ export default function Home() {
                 <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
                     <h3 style={{ fontSize: '26px', color: '#14532d', textAlign: 'center', marginBottom: '10px' }}>Ilm-Hub Islamic Bookstore</h3>
                     <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '40px' }}>Explore authentic classical texts, student guides, and translated commentaries available for purchase.</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '35px' }}>
                         <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                             <div>
                                 <span style={{ fontSize: '12px', background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>$35.00</span>
@@ -149,17 +157,24 @@ export default function Home() {
                             </button>
                         </div>
                     </div>
+
+                    {/* Button to View All Uploaded Admin Books */}
+                    <div style={{ textAlign: 'center' }}>
+                        <Link href="/bookstore" style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#14532d', color: '#ffffff', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
+                            View All Bookstore Inventory &rarr;
+                        </Link>
+                    </div>
                 </div>
             </section>
 
-            {/* Lectures & Media Library Section with Categories */}
+            {/* Lectures & Media Library Section */}
             <section style={{ maxWidth: '1100px', margin: '60px auto', padding: '0 20px' }}>
                 <h3 style={{ fontSize: '26px', color: '#14532d', textAlign: 'center', marginBottom: '10px' }}>Lectures & Media Library</h3>
-                <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '25px' }}>Watch and listen to recorded sessions, guest lectures, and seminar series filtered by category.</p>
+                <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '25px' }}>Watch and listen to recorded sessions filtered by category.</p>
                 
                 {/* Category Filter Buttons */}
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '35px', flexWrap: 'wrap' }}>
-                    {['All', 'Qur\'anic Sciences', 'Hadith Studies', 'Fiqh & Jurisprudence'].map((cat) => (
+                    {categories.map((cat) => (
                         <button
                             key={cat}
                             onClick={() => setSelectedCategory(cat)}
@@ -179,7 +194,7 @@ export default function Home() {
                     ))}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '25px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '25px', marginBottom: '35px' }}>
                     {filteredLectures.map((lecture, idx) => (
                         <div key={idx} style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -193,6 +208,13 @@ export default function Home() {
                             <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Instructor: {lecture.instructor}</p>
                         </div>
                     ))}
+                </div>
+
+                {/* Button to View All Media Library Videos */}
+                <div style={{ textAlign: 'center' }}>
+                    <Link href="/lectures" style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#14532d', color: '#ffffff', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
+                        View All Lectures & Media Archive &rarr;
+                    </Link>
                 </div>
             </section>
 
