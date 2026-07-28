@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import Link from 'next/link';
 
@@ -17,7 +17,7 @@ export default function AdminDashboard() {
     const [staffList, setStaffList] = useState([
         { id: 1, name: 'Imam Muhammad', email: 'admin@ilmhub.com', password: 'admin1234', role: 'Super Admin' },
         { id: 2, name: 'Shaykh Farid Abdul Samad', email: 'farid@ilmhub.com', password: 'farid123', role: 'Instructor' },
-        { id: 3, name: 'Bilal ibn Rabah', email: 'bilal@ilmhub.com', password: 'bilal123', role: 'Author / Seller' }
+        
     ]);
     const [newStaffName, setNewStaffName] = useState('');
     const [newStaffEmail, setNewStaffEmail] = useState('');

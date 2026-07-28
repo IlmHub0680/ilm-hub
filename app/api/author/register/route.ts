@@ -1,35 +1,41 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password } = await req.json();
+    const { name, email, specialty, bio, password } = await req.json();
 
+    if (!email || !name) {
+      return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
+    }
+
+    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
-      return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
+      return NextResponse.json({ error: 'User already exists with this email' }, { status: 400 });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
+    // Create user with AUTHOR role and PENDING status
+    const newAuthor = await prisma.user.create({
       data: {
         name,
         email,
-        passwordHash,
+        password, // In production, handle hashing via your auth setup
         role: 'AUTHOR',
         authorStatus: 'PENDING',
+        bio: bio || '',
+        specialty: specialty || '',
       },
     });
 
-    return NextResponse.json({ success: true, userId: user.id });
+    return NextResponse.json({ success: true, authorId: newAuthor.id }, { status: 201 });
   } catch (error) {
+    console.error('Registration error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

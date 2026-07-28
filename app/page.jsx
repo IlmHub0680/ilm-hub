@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import Link from 'next/link';
 
@@ -156,6 +156,10 @@ export default function Home() {
                     <Link href="/register" style={{ padding: '12px 24px', borderRadius: '8px', textDecoration: 'none', backgroundColor: '#16a34a', color: '#ffffff', fontWeight: 'bold', fontSize: '16px' }}>
                         Apply For Admission
                     </Link>
+
+          <Link href="/author-portal/register" style={{ padding: '12px 24px', borderRadius: '8px', textDecoration: 'none', backgroundColor: 'transparent', color: '#ffffff', border: '1px solid #ffffff', fontWeight: 'bold', fontSize: '16px' }}>
+            Sell Your Books
+          </Link>
                     <Link href="/admin" style={{ padding: '12px 24px', borderRadius: '8px', textDecoration: 'none', backgroundColor: 'transparent', color: '#ffffff', border: '1px solid #ffffff', fontWeight: 'bold', fontSize: '16px' }}>
                         Admin Portal
                     </Link>
@@ -465,3 +469,4 @@ export default function Home() {
         </div>
     );
 }
+
