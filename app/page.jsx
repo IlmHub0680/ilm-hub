@@ -134,10 +134,12 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Programs Overview */}
+            {/* Core Academic Programs */}
             <section style={{ maxWidth: '1100px', margin: '60px auto', padding: '0 20px' }}>
-                <h3 style={{ fontSize: '26px', color: '#14532d', textAlign: 'center', marginBottom: '40px' }}>Core Academic Programs</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '25px' }}>
+                <h3 style={{ fontSize: '26px', color: '#14532d', textAlign: 'center', marginBottom: '10px' }}>Core Academic Programs</h3>
+                <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '40px' }}>Explore our structured primary tracks designed for comprehensive foundational mastery.</p>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '25px', marginBottom: '35px' }}>
                     <div style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <h4 style={{ color: '#14532d', marginTop: 0, fontSize: '20px' }}>Islamic Jurisprudence (Fiqh)</h4>
                         <p style={{ color: '#64748b', lineHeight: '1.6' }}>Master the principles of modern transactions, family law, and classical madhab methodologies.</p>
@@ -151,6 +153,13 @@ export default function Home() {
                         <p style={{ color: '#64748b', lineHeight: '1.6' }}>Study narration classifications, Isnad evaluation, and classical collection structures.</p>
                     </div>
                 </div>
+
+                {/* Button to View All Core Programs */}
+                <div style={{ textAlign: 'center' }}>
+                    <Link href="/programs" style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#14532d', color: '#ffffff', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
+                        View All Core Academic Programs &rarr;
+                    </Link>
+                </div>
             </section>
 
             {/* Course Catalog */}
@@ -158,7 +167,8 @@ export default function Home() {
                 <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
                     <h3 style={{ fontSize: '26px', color: '#14532d', textAlign: 'center', marginBottom: '10px' }}>Course Catalog</h3>
                     <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '40px' }}>Explore our comprehensive curriculum featuring complimentary foundation modules and professional accredited programs.</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '35px' }}>
                         <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                 <span style={{ fontSize: '12px', fontWeight: 'bold', background: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }}>ISL-101</span>
@@ -186,6 +196,13 @@ export default function Home() {
                             <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', margin: '0 0 15px 0' }}>Rigorous examination of Isnad and narration types.</p>
                             <Link href="/register" style={{ display: 'inline-block', color: '#14532d', fontWeight: 'bold', textDecoration: 'none', fontSize: '14px' }}>Enroll Now &rarr;</Link>
                         </div>
+                    </div>
+
+                    {/* Button to View All Course Catalog */}
+                    <div style={{ textAlign: 'center' }}>
+                        <Link href="/catalog" style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#14532d', color: '#ffffff', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
+                            View Full Course Catalog &rarr;
+                        </Link>
                     </div>
                 </div>
             </section>
