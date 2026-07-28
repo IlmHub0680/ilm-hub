@@ -9,8 +9,15 @@ generator client {
 
 enum Role {
   USER
+  AUTHOR
   ADMIN
   SUPER_ADMIN
+}
+
+enum AuthorStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum OrderStatus {
@@ -50,17 +57,18 @@ enum MediaType {
 }
 
 model User {
-  id                String    @id @default(uuid())
+  id                String       @id @default(uuid())
   name              String
-  email             String    @unique
+  email             String       @unique
   emailVerified     DateTime?
   passwordHash      String
-  role              Role      @default(USER)
-  preferredLanguage Language  @default(EN)
+  role              Role         @default(USER)
+  authorStatus      AuthorStatus @default(PENDING) // Tracks "Sell Your Books" approval status
+  preferredLanguage Language     @default(EN)
   countryId         String?
-  country           Country?  @relation(fields: [countryId], references: [id])
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  country           Country?     @relation(fields: [countryId], references: [id])
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   orders                Order[]
   cart                  Cart?
@@ -69,6 +77,7 @@ model User {
   downloadLogs          DownloadLog[]
   courseProgress        CourseProgress[]
   manuscriptSubmissions ManuscriptSubmission[]
+  books                 Book[]       @relation("AuthorBooks") // Books uploaded by this author
 }
 
 model Country {
@@ -114,6 +123,10 @@ model Book {
   isNewRelease  Boolean  @default(true)
   categoryId    String
   category      Category @relation(fields: [categoryId], references: [id])
+  
+  authorId      String?  // Linked to User table (Author)
+  author        User?    @relation("AuthorBooks", fields: [authorId], references: [id])
+
   createdAt     DateTime @default(now())
 
   cartItems  CartItem[]
@@ -150,16 +163,16 @@ model CourseSection {
 }
 
 model Lecture {
-  id            String           @id @default(uuid())
+  id            String         @id @default(uuid())
   titleEn       String
   titleAr       String
-  mediaType     MediaType        @default(VIDEO)
+  mediaType     MediaType      @default(VIDEO)
   mediaUrl      String // Cloudflare Stream/R2 URL
-  durationSec   Int              @default(0)
-  isFreePreview Boolean          @default(false)
+  durationSec   Int            @default(0)
+  isFreePreview Boolean        @default(false)
   order         Int
   sectionId     String
-  section       CourseSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section       CourseSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   progress      CourseProgress[]
 }
 
@@ -297,8 +310,8 @@ model ManuscriptSubmission {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
-  user      User                 @relation(fields: [authorId], references: [id])
-  revisions ManuscriptRevision[]
+  user       User                 @relation(fields: [authorId], references: [id])
+  revisions  ManuscriptRevision[]
 }
 
 model ManuscriptRevision {
@@ -329,7 +342,3 @@ model NewsletterCampaign {
   category String
   sentAt   DateTime @default(now())
 }
-
-// ==========================================
-// PHASE 4: PUBLISHING SERVICES & AUTHOR PORTAL
-// ==========================================
