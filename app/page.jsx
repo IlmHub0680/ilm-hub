@@ -6,6 +6,10 @@ export default function Home() {
     const [cartCount, setCartCount] = useState(0);
     const [selectedCategory, setSelectedCategory] = useState('All');
     
+    // View States for "View All" Toggles
+    const [showAllPrograms, setShowAllPrograms] = useState(false);
+    const [showAllCatalog, setShowAllCatalog] = useState(false);
+
     // Checkout & Currency State
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [selectedBook, setSelectedBook] = useState(null);
@@ -66,6 +70,30 @@ export default function Home() {
     const filteredLectures = selectedCategory === 'All' 
         ? lecturesList 
         : lecturesList.filter(l => l.category === selectedCategory);
+
+    const programsList = [
+        { title: 'Islamic Jurisprudence (Fiqh)', description: 'Master the principles of modern transactions, family law, and classical madhab methodologies.' },
+        { title: "Qur'anic Arabic & Morphology", description: 'Develop deep linguistic proficiency through root tables, verb conjugations, and direct text analysis.' },
+        { title: 'Hadith Terminology (Mustalah)', description: 'Study narration classifications, Isnad evaluation, and classical collection structures.' },
+        { title: "Qur'an and Tafsir", description: 'Deep contextual analysis of Quranic revelation, causes of revelation (Asbab al-Nuzul), and classical exegesis methodologies.' },
+        { title: 'Tajwid and Aqidah', description: 'Master precise Quranic articulation rules alongside sound creedal foundations based on Ahl al-Sunnah wal-Jamaah.' }
+    ];
+
+    const catalogList = [
+        { code: 'ISL-101', title: 'Foundations of Islamic Jurisprudence', type: 'Free Foundation', price: 0, description: 'Introduction to core Fiqh concepts and methodology.' },
+        { code: 'ARA-102', title: "Quranic Arabic & Morphology", type: 'Paid Accredited', price: 150, description: 'Deep dive into verb conjugations and root systems.' },
+        { code: 'HAD-201', title: 'Hadith Terminology & Narrations', type: 'Paid Accredited', price: 200, description: 'Rigorous examination of Isnad and narration types.' },
+        { code: 'TAF-103', title: 'Introduction to Tafsir Methodologies', type: 'Free Foundation', price: 0, description: 'Understanding the principles and history of Quranic interpretation.' },
+        { code: 'AQD-104', title: 'Essentials of Islamic Creed (Aqidah)', type: 'Free Foundation', price: 0, description: 'Core articles of faith and refutation of modern misconceptions.' },
+        { code: 'TAJ-105', title: 'Advanced Tajwid Rules & Recitation', type: 'Paid Accredited', price: 120, description: 'Perfecting Makharij and Sifat of Arabic letters.' },
+        { code: 'FIQ-202', title: 'Comparative Fiqh of Transactions', type: 'Paid Accredited', price: 180, description: 'Analysis of Islamic banking, contracts, and modern commercial law.' },
+        { code: 'SIR-106', title: 'Proprietary Seerah of the Prophet', type: 'Free Foundation', price: 0, description: 'Chronological study of the Makkan and Madinan eras.' },
+        { code: 'NAR-203', title: 'Hadith Memorization & Commentary', type: 'Paid Accredited', price: 160, description: 'Detailed study of Al-Nawawis Forty Hadith.' },
+        { code: 'ARA-204', title: 'Classical Arabic Syntax (Nahw)', type: 'Paid Accredited', price: 220, description: 'Mastering I‘rab and sentence structures in classical texts.' }
+    ];
+
+    const displayedPrograms = showAllPrograms ? programsList : programsList.slice(0, 3);
+    const displayedCatalog = showAllCatalog ? catalogList : catalogList.slice(0, 3);
 
     const booksList = [
         { 
@@ -140,25 +168,22 @@ export default function Home() {
                 <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '40px' }}>Explore our structured primary tracks designed for comprehensive foundational mastery.</p>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '25px', marginBottom: '35px' }}>
-                    <div style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <h4 style={{ color: '#14532d', marginTop: 0, fontSize: '20px' }}>Islamic Jurisprudence (Fiqh)</h4>
-                        <p style={{ color: '#64748b', lineHeight: '1.6' }}>Master the principles of modern transactions, family law, and classical madhab methodologies.</p>
-                    </div>
-                    <div style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <h4 style={{ color: '#14532d', marginTop: 0, fontSize: '20px' }}>Qur'anic Arabic & Morphology</h4>
-                        <p style={{ color: '#64748b', lineHeight: '1.6' }}>Develop deep linguistic proficiency through root tables, verb conjugations, and direct text analysis.</p>
-                    </div>
-                    <div style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <h4 style={{ color: '#14532d', marginTop: 0, fontSize: '20px' }}>Hadith Terminology (Mustalah)</h4>
-                        <p style={{ color: '#64748b', lineHeight: '1.6' }}>Study narration classifications, Isnad evaluation, and classical collection structures.</p>
-                    </div>
+                    {displayedPrograms.map((prog, idx) => (
+                        <div key={idx} style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                            <h4 style={{ color: '#14532d', marginTop: 0, fontSize: '20px' }}>{prog.title}</h4>
+                            <p style={{ color: '#64748b', lineHeight: '1.6', margin: 0 }}>{prog.description}</p>
+                        </div>
+                    ))}
                 </div>
 
-                {/* Button to View All Core Programs */}
+                {/* Button to View All / Collapse Core Programs */}
                 <div style={{ textAlign: 'center' }}>
-                    <Link href="/programs" style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#14532d', color: '#ffffff', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
-                        View All Core Academic Programs &rarr;
-                    </Link>
+                    <button 
+                        onClick={() => setShowAllPrograms(!showAllPrograms)} 
+                        style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#14532d', color: '#ffffff', borderRadius: '8px', border: 'none', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}
+                    >
+                        {showAllPrograms ? 'Show Less Programs' : 'View All Core Academic Programs \u2192'}
+                    </button>
                 </div>
             </section>
 
@@ -169,40 +194,31 @@ export default function Home() {
                     <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '40px' }}>Explore our comprehensive curriculum featuring complimentary foundation modules and professional accredited programs.</p>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '35px' }}>
-                        <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                <span style={{ fontSize: '12px', fontWeight: 'bold', background: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }}>ISL-101</span>
-                                <span style={{ fontSize: '12px', fontWeight: 'bold', background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '12px' }}>Free Foundation</span>
+                        {displayedCatalog.map((course, idx) => (
+                            <div key={idx} style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                                <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                        <span style={{ fontSize: '12px', fontWeight: 'bold', background: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }}>{course.code}</span>
+                                        <span style={{ fontSize: '12px', fontWeight: 'bold', background: course.price === 0 ? '#dcfce7' : '#fef3c7', color: course.price === 0 ? '#16a34a' : '#d97706', padding: '2px 8px', borderRadius: '12px' }}>
+                                            {course.price === 0 ? course.type : `${course.type} ($${course.price})`}
+                                        </span>
+                                    </div>
+                                    <h4 style={{ color: '#14532d', margin: '0 0 8px 0', fontSize: '18px' }}>{course.title}</h4>
+                                    <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', margin: '0 0 15px 0' }}>{course.description}</p>
+                                </div>
+                                <Link href="/register" style={{ display: 'inline-block', color: '#14532d', fontWeight: 'bold', textDecoration: 'none', fontSize: '14px' }}>Enroll Now &rarr;</Link>
                             </div>
-                            <h4 style={{ color: '#14532d', margin: '0 0 8px 0', fontSize: '18px' }}>Foundations of Islamic Jurisprudence</h4>
-                            <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', margin: '0 0 15px 0' }}>Introduction to core Fiqh concepts and methodology.</p>
-                            <Link href="/register" style={{ display: 'inline-block', color: '#14532d', fontWeight: 'bold', textDecoration: 'none', fontSize: '14px' }}>Enroll Now &rarr;</Link>
-                        </div>
-                        <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                <span style={{ fontSize: '12px', fontWeight: 'bold', background: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }}>ARA-102</span>
-                                <span style={{ fontSize: '12px', fontWeight: 'bold', background: '#fef3c7', color: '#d97706', padding: '2px 8px', borderRadius: '12px' }}>Paid Accredited ($150)</span>
-                            </div>
-                            <h4 style={{ color: '#14532d', margin: '0 0 8px 0', fontSize: '18px' }}>Quranic Arabic & Morphology</h4>
-                            <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', margin: '0 0 15px 0' }}>Deep dive into verb conjugations and root systems.</p>
-                            <Link href="/register" style={{ display: 'inline-block', color: '#14532d', fontWeight: 'bold', textDecoration: 'none', fontSize: '14px' }}>Enroll Now &rarr;</Link>
-                        </div>
-                        <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                <span style={{ fontSize: '12px', fontWeight: 'bold', background: '#e2e8f0', padding: '2px 8px', borderRadius: '4px' }}>HAD-201</span>
-                                <span style={{ fontSize: '12px', fontWeight: 'bold', background: '#fef3c7', color: '#d97706', padding: '2px 8px', borderRadius: '12px' }}>Paid Accredited ($200)</span>
-                            </div>
-                            <h4 style={{ color: '#14532d', margin: '0 0 8px 0', fontSize: '18px' }}>Hadith Terminology & Narrations</h4>
-                            <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', margin: '0 0 15px 0' }}>Rigorous examination of Isnad and narration types.</p>
-                            <Link href="/register" style={{ display: 'inline-block', color: '#14532d', fontWeight: 'bold', textDecoration: 'none', fontSize: '14px' }}>Enroll Now &rarr;</Link>
-                        </div>
+                        ))}
                     </div>
 
-                    {/* Button to View All Course Catalog */}
+                    {/* Button to View All / Collapse Course Catalog */}
                     <div style={{ textAlign: 'center' }}>
-                        <Link href="/catalog" style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#14532d', color: '#ffffff', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}>
-                            View Full Course Catalog &rarr;
-                        </Link>
+                        <button 
+                            onClick={() => setShowAllCatalog(!showAllCatalog)} 
+                            style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#14532d', color: '#ffffff', borderRadius: '8px', border: 'none', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}
+                        >
+                            {showAllCatalog ? 'Show Less Courses' : 'View Full Course Catalog \u2192'}
+                        </button>
                     </div>
                 </div>
             </section>
