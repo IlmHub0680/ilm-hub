@@ -1128,7 +1128,7 @@ export default function AdminDashboard() {
                                         </div>
                                         <span style={{ 
                                             padding: '4px 10px', 
-                               5             borderRadius: '12px', 
+                                            borderRadius: '12px', 
                                             fontSize: '12px', 
                                             fontWeight: 'bold',
                                             background: t.status === 'Resolved' ? '#dcfce7' : '#fef3c7',
