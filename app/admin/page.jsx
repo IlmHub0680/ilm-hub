@@ -13,7 +13,7 @@ export default function AdminDashboard() {
     // Active Navigation Tab State
     const [activeTab, setActiveTab] = useState('overview');
 
-    // 2. Staff Accounts Database State (Updated role names: Instructor instead of Grader)
+    // 2. Staff Accounts Database State
     const [staffList, setStaffList] = useState([
         { id: 1, name: 'Imam Muhammad', email: 'admin@ilmhub.com', password: 'admin1234', role: 'Super Admin' },
         { id: 2, name: 'Shaykh Farid Abdul Samad', email: 'farid@ilmhub.com', password: 'farid123', role: 'Instructor' },
@@ -31,7 +31,7 @@ export default function AdminDashboard() {
         { id: 3, name: 'Umar ibn al-Khattab', email: 'umar@example.com', program: 'Islamic Jurisprudence (Fiqh)', status: 'Approved', date: '2026-07-25' }
     ]);
 
-    // 4. Detailed Students Database (For Admin: GPA, Transcript, Enrolled Courses)
+    // 4. Detailed Students Database (GPA, Transcript, Enrolled Courses)
     const [studentsDatabase, setStudentsDatabase] = useState([
         { 
             id: 1, 
@@ -59,20 +59,27 @@ export default function AdminDashboard() {
         }
     ]);
 
-    // 5. Announcements State (Global + Instructor Specific)
+    // 5. Announcements State
     const [announcement, setAnnouncement] = useState('');
     const [announcementsList, setAnnouncementsList] = useState([
         { id: 1, author: 'Super Admin', text: 'Semester registration closes on August 15th, 2026.', target: 'All Institute' },
         { id: 2, author: 'Shaykh Farid Abdul Samad', text: 'Quiz 1 scheduled for next Monday covers chapters 1 through 3.', target: 'Quranic Arabic & Morphology' }
     ]);
 
-    // 6. Comprehensive Student Assessments (Quiz, Assignment, Midterm, Final)
+    // 6. Comprehensive Student Assessments
     const [assessments, setAssessments] = useState([
         { id: 1, student: 'Zayd ibn Thabit', course: 'Quranic Arabic & Morphology', instructor: 'Shaykh Farid Abdul Samad', type: 'Quiz 1', score: 'Pending', maxScore: '/20', feedback: '' },
         { id: 2, student: 'Zayd ibn Thabit', course: 'Quranic Arabic & Morphology', instructor: 'Shaykh Farid Abdul Samad', type: 'Assignment 1', score: 'Pending', maxScore: '/50', feedback: '' },
         { id: 3, student: 'Fatima al-Fihriyya', course: 'Quranic Arabic & Morphology', instructor: 'Shaykh Farid Abdul Samad', type: 'Midterm Exam', score: 'Pending', maxScore: '/100', feedback: '' },
         { id: 4, student: 'Fatima al-Fihriyya', course: 'Quranic Arabic & Morphology', instructor: 'Shaykh Farid Abdul Samad', type: 'Final Exam', score: 'Pending', maxScore: '/100', feedback: '' }
     ]);
+
+    // Instructor Course Grading Selections State
+    const [selectedCourseForGrading, setSelectedCourseForGrading] = useState('Quranic Arabic & Morphology');
+    const [selectedStudentForGrading, setSelectedStudentForGrading] = useState('Zayd ibn Thabit');
+    const [selectedAssessmentType, setSelectedAssessmentType] = useState('Quiz 1');
+    const [newAssessmentScore, setNewAssessmentScore] = useState('');
+    const [newAssessmentFeedback, setNewAssessmentFeedback] = useState('');
 
     // 7. Course Schedule State
     const [schedules, setSchedules] = useState([
@@ -176,8 +183,49 @@ export default function AdminDashboard() {
         setAnnouncement('');
     };
 
-    const handleAssessmentUpdate = (id, newScore, newFeedback) => {
-        setAssessments(assessments.map(item => item.id === id ? { ...item, score: newScore, feedback: newFeedback } : item));
+    const handleSaveAssessmentGrade = (e) => {
+        e.preventDefault();
+        if (!newAssessmentScore) return;
+
+        // Determine max score text based on assessment type
+        let maxStr = '/20';
+        if (selectedAssessmentType.includes('Assignment')) maxStr = '/50';
+        if (selectedAssessmentType.includes('Exam')) maxStr = '/100';
+
+        // Check if assessment record already exists for this student/course/type
+        const existingIndex = assessments.findIndex(
+            item => item.student === selectedStudentForGrading && 
+                    item.course === selectedCourseForGrading && 
+                    item.type === selectedAssessmentType
+        );
+
+        if (existingIndex !== -1) {
+            // Update existing
+            const updated = [...assessments];
+            updated[existingIndex] = {
+                ...updated[existingIndex],
+                score: `${newAssessmentScore} ${maxStr}`,
+                feedback: newAssessmentFeedback
+            };
+            setAssessments(updated);
+        } else {
+            // Create new record
+            setAssessments([
+                {
+                    id: Date.now(),
+                    student: selectedStudentForGrading,
+                    course: selectedCourseForGrading,
+                    instructor: currentUser.name,
+                    type: selectedAssessmentType,
+                    score: `${newAssessmentScore} ${maxStr}`,
+                    maxScore: maxStr,
+                    feedback: newAssessmentFeedback
+                },
+                ...assessments
+            ]);
+        }
+        setNewAssessmentScore('');
+        setNewAssessmentFeedback('');
     };
 
     const handleAddSchedule = (e) => {
@@ -494,49 +542,108 @@ export default function AdminDashboard() {
                     </section>
                 )}
 
-                {/* 3. INSTRUCTOR: DASHBOARD (Quizzes, Assignments, Midterms, Finals for assigned students) */}
+                {/* 3. INSTRUCTOR: DASHBOARD (Course Selection, Student Selection, Horizontal Grading) */}
                 {activeTab === 'instructor_dashboard' && currentUser?.role === 'Instructor' && (
                     <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Assigned Semester Students & Assessment Grading</h3>
-                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px' }}>Grade quizzes, assignments, midterms, and final examinations for students enrolled in your courses.</p>
+                        <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Semester Course Grading & Student Assessments</h3>
+                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px' }}>Select your course, choose a registered student, and grade quizzes, assignments, midterms, or finals horizontally.</p>
                         
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        {/* Instructor Grading Form */}
+                        <form onSubmit={handleSaveAssessmentGrade} style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '30px' }}>
+                            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#14532d', marginBottom: '15px' }}>📝 Grade Entry Form</div>
+                            
+                            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                                {/* Course Selector */}
+                                <div style={{ flex: 1, minWidth: '200px' }}>
+                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Select Course</label>
+                                    <select 
+                                        value={selectedCourseForGrading}
+                                        onChange={(e) => setSelectedCourseForGrading(e.target.value)}
+                                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#ffffff' }}
+                                    >
+                                        <option value="Quranic Arabic & Morphology">Quranic Arabic & Morphology</option>
+                                        <option value="Hadith Terminology (Mustalah)">Hadith Terminology (Mustalah)</option>
+                                    </select>
+                                </div>
+
+                                {/* Student Selector */}
+                                <div style={{ flex: 1, minWidth: '180px' }}>
+                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Select Student</label>
+                                    <select 
+                                        value={selectedStudentForGrading}
+                                        onChange={(e) => setSelectedStudentForGrading(e.target.value)}
+                                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#ffffff' }}
+                                    >
+                                        {studentsDatabase.map(st => (
+                                            <option key={st.id} value={st.name}>{st.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Assessment Type */}
+                                <div style={{ flex: 1, minWidth: '160px' }}>
+                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Assessment Type</label>
+                                    <select 
+                                        value={selectedAssessmentType}
+                                        onChange={(e) => setSelectedAssessmentType(e.target.value)}
+                                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#ffffff' }}
+                                    >
+                                        <option value="Quiz 1">Quiz 1</option>
+                                        <option value="Assignment 1">Assignment 1</option>
+                                        <option value="Midterm Exam">Midterm Exam</option>
+                                        <option value="Final Exam">Final Exam</option>
+                                    </select>
+                                </div>
+
+                                {/* Score Input */}
+                                <div style={{ width: '110px' }}>
+                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Score /20</label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        value={newAssessmentScore}
+                                        onChange={(e) => setNewAssessmentScore(e.target.value)}
+                                        placeholder="e.g. 18"
+                                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 'bold', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '15px', marginTop: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                {/* Optional Comments */}
+                                <div style={{ flex: 1, minWidth: '280px' }}>
+                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Optional Instructor Comments</label>
+                                    <input 
+                                        type="text" 
+                                        value={newAssessmentFeedback}
+                                        onChange={(e) => setNewAssessmentFeedback(e.target.value)}
+                                        placeholder="Add feedback or remarks for the student..."
+                                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+
+                                {/* Save Button */}
+                                <button 
+                                    type="submit"
+                                    style={{ padding: '10px 24px', backgroundColor: '#14532d', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', height: '41px' }}
+                                >
+                                    Save Score
+                                </button>
+                            </div>
+                        </form>
+
+                        <h4 style={{ color: '#0f172a', fontSize: '16px', marginBottom: '15px' }}>Recorded Student Grades</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             {assessments.map((item) => (
-                                <div key={item.id} style={{ padding: '20px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px' }}>
-                                    <div style={{ flex: 1, minWidth: '260px' }}>
-                                        <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#16a34a', marginBottom: '4px' }}>{item.course}</div>
-                                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}>{item.type}</div>
-                                        <div style={{ fontSize: '13px', color: '#64748b' }}>Student Name: <strong>{item.student}</strong></div>
+                                <div key={item.id} style={{ padding: '16px 20px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+                                    <div>
+                                        <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#16a34a', marginBottom: '2px' }}>{item.course}</div>
+                                        <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#0f172a', marginBottom: '2px' }}>{item.student} &bull; <span style={{ color: '#0284c7' }}>{item.type}</span></div>
+                                        {item.feedback && <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>Comment: "{item.feedback}"</div>}
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '240px' }}>
-                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                            <input 
-                                                type="text" 
-                                                defaultValue={item.score === 'Pending' ? '' : item.score}
-                                                id={`score-${item.id}`}
-                                                placeholder={`Score ${item.maxScore}`}
-                                                style={{ width: '90px', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: 'bold' }}
-                                            />
-                                            <button 
-                                                onClick={() => {
-                                                    const val = document.getElementById(`score-${item.id}`).value;
-                                                    const fb = document.getElementById(`fb-${item.id}`).value;
-                                                    handleAssessmentUpdate(item.id, val ? `${val} ${item.maxScore}` : 'Pending', fb);
-                                                }}
-                                                style={{ padding: '8px 14px', backgroundColor: '#14532d', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
-                                            >
-                                                Save Score
-                                            </button>
-                                        </div>
-                                        <input 
-                                            type="text" 
-                                            id={`fb-${item.id}`}
-                                            defaultValue={item.feedback}
-                                            placeholder="Optional instructor comments..."
-                                            style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
-                                        />
-                                        <div style={{ fontSize: '12px', color: item.score === 'Pending' ? '#d97706' : '#16a34a', fontWeight: 'bold' }}>
-                                            Current Status: {item.score}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                        <div style={{ fontSize: '15px', fontWeight: 'bold', color: item.score === 'Pending' ? '#d97706' : '#16a34a', background: '#ffffff', padding: '6px 14px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                                            Score: {item.score}
                                         </div>
                                     </div>
                                 </div>
