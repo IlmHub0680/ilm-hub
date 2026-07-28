@@ -95,6 +95,18 @@ export default function StudentDashboard() {
                         <button onClick={() => setActiveTab('exams')} style={{ textAlign: 'left', background: activeTab === 'exams' ? '#16a34a' : 'transparent', color: '#ffffff', border: 'none', padding: '10px 14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Exams & Certificates</button>
                         <button onClick={() => setActiveTab('acceptance')} style={{ textAlign: 'left', background: activeTab === 'acceptance' ? '#16a34a' : 'transparent', color: '#ffffff', border: 'none', padding: '10px 14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Records & Letters</button>
                         <button onClick={() => setActiveTab('support')} style={{ textAlign: 'left', background: activeTab === 'support' ? '#16a34a' : 'transparent', color: '#ffffff', border: 'none', padding: '10px 14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Support & Helpdesk</button>
+                        
+                        {/* Logout Button */}
+                        <button 
+                            onClick={() => {
+                                localStorage.removeItem('ilm_applications');
+                                alert('You have been logged out successfully.');
+                                window.location.href = '/';
+                            }}
+                            style={{ textAlign: 'left', background: '#dc2626', color: '#ffffff', border: 'none', padding: '10px 14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop: '15px' }}
+                        >
+                            Logout
+                        </button>
                     </div>
                 </div>
                 <div>
@@ -376,17 +388,11 @@ export default function StudentDashboard() {
                             </ul>
                         </div>
                         <div style={{ background: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                            <h3 style={{ color: '#14532d', marginTop: 0 }}>Verified Certificates</h3>
-                            <p style={{ color: '#64748b', fontSize: '14px', margin: '8px 0 20px 0' }}>Download your completed course certificates.</p>
-                            <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <p style={{ fontWeight: 'bold', margin: '0 0 4px 0', color: '#0f172a' }}>Certificate in Islamic Ethics</p>
-                                    <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Issued by: {instructorsList[3]}</p>
-                                </div>
-                                <button onClick={() => alert('Downloading certificate PDF...')} style={{ backgroundColor: '#16a34a', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-                                    Download PDF
-                                </button>
-                            </div>
+                            <h3 style={{ color: '#14532d', marginTop: 0 }}>Downloadable Certificates</h3>
+                            <p style={{ color: '#64748b', fontSize: '14px', margin: '8px 0 20px 0' }}>Access your certificates and official completion transcripts.</p>
+                            <button onClick={() => alert('Downloading official transcript PDF...')} style={{ background: '#14532d', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', width: '100%' }}>
+                                Download Official Transcript
+                            </button>
                         </div>
                     </div>
                 )}
@@ -394,60 +400,44 @@ export default function StudentDashboard() {
                 {activeTab === 'acceptance' && (
                     <div style={{ background: '#ffffff', padding: '40px', borderRadius: '12px', border: '1px solid #e2e8f0', maxWidth: '800px', margin: '0 auto' }}>
                         <div style={{ textAlign: 'center', borderBottom: '2px solid #14532d', paddingBottom: '20px', marginBottom: '30px' }}>
-                            <h2 style={{ color: '#14532d', margin: '0 0 5px 0' }}>ILM HUB INSTITUTE</h2>
-                            <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>Official Office of Admissions & Academic Records</p>
+                            <h2 style={{ color: '#14532d', margin: '0 0 5px 0' }}>ILM-HUB INSTITUTE OF ISLAMIC SCIENCES</h2>
+                            <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>Official Admission & Student Record Letter</p>
                         </div>
-
-                        {myApp.status === 'Approved' ? (
+                        <p style={{ color: '#334155', lineHeight: '1.8' }}>Date: July 28, 2026</p>
+                        <p style={{ color: '#334155', lineHeight: '1.8' }}>Dear <strong>Khalid Muhammad Sulaiman</strong>,</p>
+                        <p style={{ color: '#334155', lineHeight: '1.8' }}>
+                            We are delighted to formally confirm your active enrollment status for the current academic term at Ilm-Hub. Your commitment to pursuing excellence in Islamic Studies and Qur'anic Sciences has been verified.
+                        </p>
+                        <p style={{ color: '#334155', lineHeight: '1.8' }}>
+                            You are granted full access to all virtual lecture halls, course materials, assignments, and examination sessions associated with your curriculum.
+                        </p>
+                        <div style={{ marginTop: '40px', borderTop: '1px solid #e2e8f0', paddingTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
                             <div>
-                                <p style={{ textAlign: 'right', color: '#64748b' }}>Date: July 28, 2026</p>
-                                <p>Dear <strong>Khalid Muhammad Sulaiman</strong>,</p>
-                                <p style={{ lineHeight: '1.6', color: '#334155' }}>
-                                    We are delighted to inform you that your application for admission into the Ilm Hub Institute based on your educational background in <strong>{myApp.highestQualification}</strong> from <strong>{myApp.institution}</strong> has been officially <strong>APPROVED</strong>.
-                                </p>
-                                <div style={{ margin: '30px 0', padding: '20px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                    <h4 style={{ margin: '0 0 10px 0', color: '#14532d' }}>Student Enrollment Details:</h4>
-                                    <p style={{ margin: '4px 0', color: '#475569' }}><strong>Registration ID:</strong> ILM-2026-8842</p>
-                                    <p style={{ margin: '4px 0', color: '#475569' }}><strong>Program:</strong> Advanced Islamic Studies & Qur'anic Sciences</p>
-                                    <p style={{ margin: '4px 0', color: '#475569' }}><strong>Status:</strong> Active Enrolled Student</p>
-                                </div>
-                                <p style={{ marginTop: '30px' }}>Sincerely,<br/><strong>{instructorsList[0]}</strong><br/>Director of Admissions, Ilm Hub Institute</p>
-
-                                <div style={{ textAlign: 'center', marginTop: '40px' }}>
-                                    <button 
-                                        onClick={() => window.print()}
-                                        style={{ backgroundColor: '#14532d', color: '#ffffff', border: 'none', padding: '12px 30px', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}
-                                    >
-                                        Print Acceptance Letter
-                                    </button>
-                                </div>
+                                <p style={{ margin: 0, fontWeight: 'bold', color: '#14532d' }}>Registrar's Office</p>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Ilm-Hub Academic Board</p>
                             </div>
-                        ) : (
-                            <div style={{ textAlign: 'center', padding: '30px 0' }}>
-                                <div style={{ background: '#fef3c7', color: '#92400e', padding: '16px', borderRadius: '8px', marginBottom: '20px', fontWeight: '500' }}>
-                                    Your registration status is currently <strong>Pending Admin Approval</strong>. Once the administration reviews your educational qualifications, your official acceptance letter will be generated here for printing.
-                                </div>
-                            </div>
-                        )}
+                            <button onClick={() => window.print()} style={{ background: '#14532d', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+                                Print Official Letter
+                            </button>
+                        </div>
                     </div>
                 )}
 
                 {activeTab === 'support' && (
                     <div style={{ background: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0', maxWidth: '800px' }}>
-                        <h2 style={{ fontSize: '20px', color: '#1e293b', marginBottom: '10px' }}>Support & Helpdesk</h2>
-                        <p style={{ color: '#64748b', marginBottom: '25px' }}>Need assistance with your courses, timetable, or portal access? Send a ticket to our academic support team.</p>
-                        
-                        <form onSubmit={(e) => { e.preventDefault(); alert('Support ticket submitted successfully! Our team will respond via email.'); }}>
-                            <div style={{ marginBottom: '16px' }}>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', color: '#334155', marginBottom: '6px' }}>Subject</label>
-                                <input type="text" required placeholder="Brief description of your issue..." style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                        <h2 style={{ fontSize: '20px', color: '#1e293b', marginBottom: '20px' }}>Support & Helpdesk</h2>
+                        <p style={{ color: '#64748b', marginBottom: '20px' }}>Need technical help or academic advising? Submit a ticket to our support team.</p>
+                        <form onSubmit={(e) => { e.preventDefault(); alert('Support ticket submitted successfully! Our team will respond shortly.'); e.target.reset(); }}>
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', color: '#334155', marginBottom: '6px' }}>Subject / Issue Type</label>
+                                <input type="text" placeholder="e.g., Portal Login Error or Course Fee Inquiry" required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                             </div>
                             <div style={{ marginBottom: '20px' }}>
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', color: '#334155', marginBottom: '6px' }}>Message Details</label>
-                                <textarea rows="4" required placeholder="Describe your issue in detail..." style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}></textarea>
+                                <textarea rows="4" placeholder="Describe your issue in detail..." required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}></textarea>
                             </div>
-                            <button type="submit" style={{ backgroundColor: '#16a34a', color: '#ffffff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
-                                Submit Support Ticket
+                            <button type="submit" style={{ background: '#14532d', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+                                Submit Ticket
                             </button>
                         </form>
                     </div>
