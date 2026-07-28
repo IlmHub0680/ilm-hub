@@ -14,6 +14,7 @@ export default function LoginPage() {
       return
     }
     // For now, just redirect to dashboard (demo)
+    localStorage.setItem('isAuthenticated', 'true');
     window.location.href = '/dashboard'
   }
 
@@ -136,3 +137,4 @@ export default function LoginPage() {
     </main>
   )
 }
+

@@ -1,9 +1,13 @@
-﻿'use client';
+'use client';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 
-export default function DashboardPage() {
+function OriginalDashboard DashboardPage() {
   const [activeTab, setActiveTab] = useState('courses');
   const [certModal, setCertModal] = useState(null);
 
@@ -51,7 +55,7 @@ export default function DashboardPage() {
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
             }}
           >
-            ← Back to Home
+            ? Back to Home
           </Link>
           <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
             <Link href="/courses" style={{ color: '#059669', fontWeight: '600', textDecoration: 'none' }}>Study Courses</Link>
@@ -169,7 +173,7 @@ export default function DashboardPage() {
                       cursor: 'pointer'
                     }}
                   >
-                    {c.status === 'Completed' ? 'Review Course Material' : 'Continue Learning →'}
+                    {c.status === 'Completed' ? 'Review Course Material' : 'Continue Learning ?'}
                   </button>
 
                   {c.status === 'Completed' && (
@@ -185,7 +189,7 @@ export default function DashboardPage() {
                         cursor: 'pointer'
                       }}
                     >
-                      View & Download PDF Certificate 🏆
+                      View & Download PDF Certificate ??
                     </button>
                   )}
                 </div>
@@ -205,7 +209,7 @@ export default function DashboardPage() {
                 boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
                 textAlign: 'center'
               }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>📜</div>
+                <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>??</div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#111827', margin: '0 0 6px 0' }}>Certificate of Completion</h3>
                 <p style={{ color: '#059669', fontWeight: '600', fontSize: '0.95rem', margin: '0 0 15px 0' }}>{c.title}</p>
                 <div style={{ fontSize: '0.85rem', color: '#4b5563', background: '#f9fafb', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'left' }}>
@@ -237,4 +241,23 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+}
+export default function ProtectedDashboard() {
+    const [authorized, setAuthorized] = useState(false);
+    const router = useRouter();
+
+    useEffect(() => {
+        const auth = localStorage.getItem('isAuthenticated');
+        if (!auth) {
+            router.push('/login');
+        } else {
+            setAuthorized(true);
+        }
+    }, [router]);
+
+    if (!authorized) {
+        return <div style={{ padding: '50px', textAlign: 'center' }}>Loading dashboard...</div>;
+    }
+
+    return <OriginalDashboard />;
 }
