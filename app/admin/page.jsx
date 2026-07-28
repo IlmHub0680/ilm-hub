@@ -81,6 +81,14 @@ export default function AdminDashboard() {
     const [newAssessmentScore, setNewAssessmentScore] = useState('');
     const [newAssessmentFeedback, setNewAssessmentFeedback] = useState('');
 
+    // Dynamic max score determination based on selected assessment type
+    const getMaxScoreLimit = (type) => {
+        if (type.includes('Quiz')) return '/20';
+        if (type.includes('Assignment')) return '/50';
+        if (type.includes('Midterm') || type.includes('Final')) return '/100';
+        return '/20';
+    };
+
     // 7. Course Schedule State
     const [schedules, setSchedules] = useState([
         { id: 1, course: 'Quranic Arabic & Morphology', day: 'Mondays & Wednesdays', time: '6:00 PM GMT', instructor: 'Shaykh Farid Abdul Samad' },
@@ -184,13 +192,12 @@ export default function AdminDashboard() {
         setAnnouncement('');
     };
 
+    // Save Assessment Grade & Automatically Reflect in Student's Official Transcript Record
     const handleSaveAssessmentGrade = (e) => {
         e.preventDefault();
         if (!newAssessmentScore) return;
 
-        let maxStr = '/20';
-        if (selectedAssessmentType.includes('Assignment')) maxStr = '/50';
-        if (selectedAssessmentType.includes('Exam')) maxStr = '/100';
+        const maxStr = getMaxScoreLimit(selectedAssessmentType);
 
         const existingIndex = assessments.findIndex(
             item => item.student === selectedStudentForGrading && 
@@ -221,6 +228,43 @@ export default function AdminDashboard() {
                 ...assessments
             ]);
         }
+
+        // Automatically push/update the grade into the student's official transcript record
+        const numericVal = parseFloat(newAssessmentScore);
+        const maxLimit = parseFloat(maxStr.replace('/', ''));
+        const percentage = (numericVal / maxLimit) * 100;
+        
+        let assignedGradeLetter = 'C';
+        if (percentage >= 90) assignedGradeLetter = 'A+';
+        else if (percentage >= 85) assignedGradeLetter = 'A';
+        else if (percentage >= 80) assignedGradeLetter = 'A-';
+        else if (percentage >= 75) assignedGradeLetter = 'B+';
+        else if (percentage >= 70) assignedGradeLetter = 'B';
+        else if (percentage >= 60) assignedGradeLetter = 'C';
+
+        setStudentsDatabase(studentsDatabase.map(st => {
+            if (st.name === selectedStudentForGrading) {
+                const existingTranscriptIndex = st.transcript.findIndex(t => t.course === selectedCourseForGrading);
+                let updatedTranscript = [...st.transcript];
+
+                if (existingTranscriptIndex !== -1) {
+                    updatedTranscript[existingTranscriptIndex] = {
+                        ...updatedTranscript[existingTranscriptIndex],
+                        grade: assignedGradeLetter,
+                        semester: 'Current Semester (2026)'
+                    };
+                } else {
+                    updatedTranscript.push({
+                        course: selectedCourseForGrading,
+                        grade: assignedGradeLetter,
+                        semester: 'Current Semester (2026)'
+                    });
+                }
+                return { ...st, transcript: updatedTranscript };
+            }
+            return st;
+        }));
+
         setNewAssessmentScore('');
         setNewAssessmentFeedback('');
     };
@@ -502,7 +546,7 @@ export default function AdminDashboard() {
                 {activeTab === 'student_records' && currentUser?.role === 'Super Admin' && (
                     <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Comprehensive Student Records & Transcripts</h3>
-                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px' }}>View official student profiles, cumulative GPA ratings, active semester courses, and academic transcripts.</p>
+                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px' }}>View official student profiles, cumulative GPA ratings, active semester courses, and academic transcripts updated automatically from instructor grades.</p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                             {studentsDatabase.map((student) => (
@@ -556,11 +600,11 @@ export default function AdminDashboard() {
                     </section>
                 )}
 
-                {/* 3. INSTRUCTOR: DASHBOARD (Course Selection, Student Selection, Horizontal Grading) */}
+                {/* 3. INSTRUCTOR: DASHBOARD (Course Selection, Student Selection, Dynamic Max Score & Automatic Transcript Reflection) */}
                 {activeTab === 'instructor_dashboard' && currentUser?.role === 'Instructor' && (
                     <section style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '8px', fontSize: '20px' }}>Semester Course Grading & Student Assessments</h3>
-                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px' }}>Select your course, choose a registered student, and grade quizzes, assignments, midterms, or finals horizontally.</p>
+                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '25px' }}>Select your course, choose a registered student, and grade quizzes, assignments, midterms, or finals. Scores automatically update the student's official transcript record.</p>
                         
                         {/* Instructor Grading Form */}
                         <form onSubmit={handleSaveAssessmentGrade} style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '30px' }}>
@@ -606,8 +650,8 @@ export default function AdminDashboard() {
                                     </select>
                                 </div>
 
-                                <div style={{ width: '110px' }}>
-                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Score /20</label>
+                                <div style={{ width: '120px' }}>
+                                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#334155', marginBottom: '4px' }}>Score {getMaxScoreLimit(selectedAssessmentType)}</label>
                                     <input 
                                         type="text" 
                                         required
@@ -635,7 +679,7 @@ export default function AdminDashboard() {
                                     type="submit"
                                     style={{ padding: '10px 24px', backgroundColor: '#14532d', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', height: '41px' }}
                                 >
-                                    Save Score
+                                    Save & Sync Transcript
                                 </button>
                             </div>
                         </form>
