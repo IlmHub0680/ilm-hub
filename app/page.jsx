@@ -5,10 +5,48 @@ import Link from 'next/link';
 export default function Home() {
     const [cartCount, setCartCount] = useState(0);
     const [selectedCategory, setSelectedCategory] = useState('All');
+    
+    // Checkout & Currency State
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+    const [selectedBook, setSelectedBook] = useState(null);
+    const [currency, setCurrency] = useState('USD');
+    const [paymentMethod, setPaymentMethod] = useState('card');
+    const [buyerName, setBuyerName] = useState('');
+    const [buyerEmail, setBuyerEmail] = useState('');
+    const [shippingAddress, setShippingAddress] = useState('');
+    const [isOrdered, setIsOrdered] = useState(false);
 
-    const handleBuyBook = (title) => {
+    // Currency conversion rates relative to USD
+    const currencyRates = {
+        USD: { symbol: '$', rate: 1 },
+        EUR: { symbol: '€', rate: 0.92 },
+        GBP: { symbol: '£', rate: 0.78 },
+        GHS: { symbol: 'GH₵', rate: 15.5 },
+        SAR: { symbol: 'SAR ', rate: 3.75 }
+    };
+
+    const convertPrice = (usdPrice) => {
+        const converted = usdPrice * currencyRates[currency].rate;
+        return `${currencyRates[currency].symbol}${converted.toFixed(2)}`;
+    };
+
+    const handleOpenCheckout = (book) => {
+        setSelectedBook(book);
+        setIsOrdered(false);
+        setBuyerName('');
+        setBuyerEmail('');
+        setShippingAddress('');
+        setIsCheckoutOpen(true);
+    };
+
+    const handleCompletePayment = (e) => {
+        e.preventDefault();
+        if (!buyerName || !buyerEmail) {
+            alert('Please provide your name and email.');
+            return;
+        }
         setCartCount(prev => prev + 1);
-        alert(`"${title}" has been added to your cart!`);
+        setIsOrdered(true);
     };
 
     const categories = [
@@ -28,6 +66,39 @@ export default function Home() {
     const filteredLectures = selectedCategory === 'All' 
         ? lecturesList 
         : lecturesList.filter(l => l.category === selectedCategory);
+
+    const booksList = [
+        { 
+            title: 'Bulugh al-Maram Commentary', 
+            usdPrice: 35.00, 
+            author: 'Ibn Hajar al-Asqalani', 
+            publisher: 'Ilm-Hub Academic Press', 
+            format: 'Hardcover / Digital PDF', 
+            pages: '540 pages',
+            language: 'Arabic / English Translation',
+            description: 'Comprehensive legal rulings of hadith compiled by Ibn Hajar al-Asqalani with contemporary notes.' 
+        },
+        { 
+            title: 'Al-Ajrumiyyah in Arabic Grammar', 
+            usdPrice: 20.00, 
+            author: 'Imam Al-Ajrumi', 
+            publisher: 'Ilm-Hub Publications', 
+            format: 'Softcover / Workbook', 
+            pages: '180 pages',
+            language: 'Arabic with English Explanations',
+            description: 'The foundational classical text for learning Arabic grammar and syntax with comprehensive diagrams.' 
+        },
+        { 
+            title: 'Riyad as-Salihin (Volumes 1 & 2)', 
+            usdPrice: 45.00, 
+            author: 'Imam An-Nawawi', 
+            publisher: 'Darussalam & Ilm-Hub Edition', 
+            format: 'Deluxe Hardcover Set', 
+            pages: '920 pages total',
+            language: 'Arabic / English',
+            description: 'Gardens of the Righteous: A vital collection of authentic narrations on manners, purification of the heart, and character.' 
+        }
+    ];
 
     return (
         <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', backgroundColor: '#f8fafc', color: '#0f172a' }}>
@@ -82,11 +153,11 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Course Catalog with Free / Paid Tags */}
+            {/* Course Catalog */}
             <section style={{ backgroundColor: '#ffffff', padding: '60px 20px', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
                 <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
                     <h3 style={{ fontSize: '26px', color: '#14532d', textAlign: 'center', marginBottom: '10px' }}>Course Catalog</h3>
-                    <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '40px' }}>Explore our comprehensive curriculum featuring both complimentary foundation modules and professional accredited programs.</p>
+                    <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '40px' }}>Explore our comprehensive curriculum featuring complimentary foundation modules and professional accredited programs.</p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
                         <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -122,40 +193,61 @@ export default function Home() {
             {/* Islamic Bookstore Section */}
             <section style={{ backgroundColor: '#f1f5f9', padding: '60px 20px', borderBottom: '1px solid #e2e8f0' }}>
                 <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-                    <h3 style={{ fontSize: '26px', color: '#14532d', textAlign: 'center', marginBottom: '10px' }}>Ilm-Hub Islamic Bookstore</h3>
-                    <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '40px' }}>Explore authentic classical texts, student guides, and translated commentaries available for purchase.</p>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '35px' }}>
-                        <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                            <div>
-                                <span style={{ fontSize: '12px', background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>$35.00</span>
-                                <h4 style={{ color: '#14532d', margin: '12px 0 6px 0', fontSize: '18px' }}>Bulugh al-Maram Commentary</h4>
-                                <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', marginBottom: '20px' }}>Comprehensive legal rulings of hadith compiled by Ibn Hajar al-Asqalani with contemporary notes.</p>
-                            </div>
-                            <button onClick={() => handleBuyBook('Bulugh al-Maram Commentary')} style={{ backgroundColor: '#14532d', color: '#ffffff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}>
-                                Purchase Book
-                            </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', flexWrap: 'wrap', gap: '15px' }}>
+                        <div>
+                            <h3 style={{ fontSize: '26px', color: '#14532d', margin: '0 0 8px 0' }}>Ilm-Hub Islamic Bookstore</h3>
+                            <p style={{ color: '#64748b', margin: 0, fontSize: '15px' }}>Authentic classical texts, student guides, and verified editions.</p>
                         </div>
-                        <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                            <div>
-                                <span style={{ fontSize: '12px', background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>$20.00</span>
-                                <h4 style={{ color: '#14532d', margin: '12px 0 6px 0', fontSize: '18px' }}>Al-Ajrumiyyah in Arabic Grammar</h4>
-                                <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', marginBottom: '20px' }}>The foundational classical text for learning Arabic grammar and syntax with diagrams.</p>
-                            </div>
-                            <button onClick={() => handleBuyBook('Al-Ajrumiyyah in Arabic Grammar')} style={{ backgroundColor: '#14532d', color: '#ffffff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}>
-                                Purchase Book
-                            </button>
+                        {/* Currency Switcher Bar */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#ffffff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Currency:</span>
+                            {['USD', 'EUR', 'GBP', 'GHS', 'SAR'].map((curr) => (
+                                <button
+                                    key={curr}
+                                    onClick={() => setCurrency(curr)}
+                                    style={{
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        border: 'none',
+                                        background: currency === curr ? '#14532d' : 'transparent',
+                                        color: currency === curr ? '#ffffff' : '#334155',
+                                        fontWeight: 'bold',
+                                        cursor: 'pointer',
+                                        fontSize: '12px'
+                                    }}
+                                >
+                                    {curr}
+                                </button>
+                            ))}
                         </div>
-                        <div style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                            <div>
-                                <span style={{ fontSize: '12px', background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>$45.00</span>
-                                <h4 style={{ color: '#14532d', margin: '12px 0 6px 0', fontSize: '18px' }}>Riyad as-Salihin (Volumes 1 & 2)</h4>
-                                <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', marginBottom: '20px' }}>Gardens of the Righteous: A vital collection of authentic narrations on manners and heart softening.</p>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '35px' }}>
+                        {booksList.map((book, idx) => (
+                            <div key={idx} style={{ backgroundColor: '#ffffff', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                                <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                        <span style={{ fontSize: '14px', background: '#dcfce7', color: '#16a34a', padding: '3px 10px', borderRadius: '6px', fontWeight: 'bold' }}>
+                                            {convertPrice(book.usdPrice)}
+                                        </span>
+                                        <span style={{ fontSize: '12px', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>{book.format}</span>
+                                    </div>
+                                    <h4 style={{ color: '#14532d', margin: '0 0 4px 0', fontSize: '18px' }}>{book.title}</h4>
+                                    <p style={{ color: '#334155', fontSize: '13px', fontStyle: 'italic', margin: '0 0 10px 0' }}>Author: {book.author}</p>
+                                    <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', marginBottom: '15px' }}>{book.description}</p>
+                                    <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '20px', borderTop: '1px dashed #e2e8f0', paddingTop: '10px' }}>
+                                        <div><strong>Publisher:</strong> {book.publisher}</div>
+                                        <div><strong>Details:</strong> {book.pages} &bull; {book.language}</div>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => handleOpenCheckout(book)} 
+                                    style={{ backgroundColor: '#14532d', color: '#ffffff', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', width: '100%', fontSize: '14px' }}
+                                >
+                                    Proceed to Secure Checkout
+                                </button>
                             </div>
-                            <button onClick={() => handleBuyBook('Riyad as-Salihin (Volumes 1 & 2)')} style={{ backgroundColor: '#14532d', color: '#ffffff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}>
-                                Purchase Book
-                            </button>
-                        </div>
+                        ))}
                     </div>
 
                     {/* Button to View All Uploaded Admin Books */}
@@ -217,6 +309,121 @@ export default function Home() {
                     </Link>
                 </div>
             </section>
+
+            {/* Interactive Checkout Modal */}
+            {isCheckoutOpen && selectedBook && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+                    <div style={{ backgroundColor: '#ffffff', padding: '35px', borderRadius: '16px', maxWidth: '500px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <button 
+                            onClick={() => setIsCheckoutOpen(false)}
+                            style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer', color: '#64748b' }}
+                        >
+                            &times;
+                        </button>
+
+                        {!isOrdered ? (
+                            <form onSubmit={handleCompletePayment}>
+                                <h3 style={{ color: '#14532d', marginTop: 0, marginBottom: '5px', fontSize: '22px' }}>Secure Book Checkout</h3>
+                                <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Complete your transaction for authentic publishing.</p>
+
+                                <div style={{ backgroundColor: '#f8fafc', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ fontWeight: 'bold', color: '#14532d', fontSize: '16px' }}>{selectedBook.title}</div>
+                                    <div style={{ color: '#64748b', fontSize: '13px', margin: '4px 0' }}>Author: {selectedBook.author} &bull; {selectedBook.format}</div>
+                                    <div style={{ color: '#16a34a', fontWeight: 'bold', fontSize: '16px', marginTop: '8px' }}>
+                                        Total: {convertPrice(selectedBook.usdPrice)} ({currency})
+                                    </div>
+                                </div>
+
+                                <div style={{ marginBottom: '15px' }}>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#334155', marginBottom: '5px' }}>Full Name</label>
+                                    <input 
+                                        type="text" 
+                                        required 
+                                        value={buyerName} 
+                                        onChange={(e) => setBuyerName(e.target.value)}
+                                        placeholder="Enter your full name"
+                                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+
+                                <div style={{ marginBottom: '15px' }}>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#334155', marginBottom: '5px' }}>Email Address (For digital delivery/receipt)</label>
+                                    <input 
+                                        type="email" 
+                                        required 
+                                        value={buyerEmail} 
+                                        onChange={(e) => setBuyerEmail(e.target.value)}
+                                        placeholder="name@example.com"
+                                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+
+                                <div style={{ marginBottom: '15px' }}>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#334155', marginBottom: '5px' }}>Shipping Address (For physical copies)</label>
+                                    <textarea 
+                                        rows="2"
+                                        value={shippingAddress} 
+                                        onChange={(e) => setShippingAddress(e.target.value)}
+                                        placeholder="Street address, city, country..."
+                                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                                    ></textarea>
+                                </div>
+
+                                <div style={{ marginBottom: '25px' }}>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#334155', marginBottom: '8px' }}>Payment Method</label>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        {[
+                                            { id: 'card', label: 'Credit Card' },
+                                            { id: 'momo', label: 'Mobile Money' },
+                                            { id: 'bank', label: 'Bank Transfer' }
+                                        ].map((method) => (
+                                            <button
+                                                type="button"
+                                                key={method.id}
+                                                onClick={() => setPaymentMethod(method.id)}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '10px 8px',
+                                                    borderRadius: '6px',
+                                                    border: paymentMethod === method.id ? '2px solid #14532d' : '1px solid #cbd5e1',
+                                                    background: paymentMethod === method.id ? '#f0fdf4' : '#ffffff',
+                                                    color: paymentMethod === method.id ? '#14532d' : '#334155',
+                                                    fontWeight: 'bold',
+                                                    cursor: 'pointer',
+                                                    fontSize: '13px'
+                                                }}
+                                            >
+                                                {method.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button 
+                                    type="submit"
+                                    style={{ width: '100%', padding: '12px', backgroundColor: '#14532d', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}
+                                >
+                                    Confirm & Pay {convertPrice(selectedBook.usdPrice)}
+                                </button>
+                            </form>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                                <div style={{ fontSize: '48px', marginBottom: '10px' }}>✅</div>
+                                <h3 style={{ color: '#14532d', margin: '0 0 10px 0' }}>Order Successful!</h3>
+                                <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.5', marginBottom: '25px' }}>
+                                    Jazakallahu Khairan, <strong>{buyerName}</strong>. Your payment of <strong>{convertPrice(selectedBook.usdPrice)}</strong> has been processed successfully via {paymentMethod.toUpperCase()}. A confirmation and download/tracking link has been sent to <strong>{buyerEmail}</strong>.
+                                </p>
+                                <button 
+                                    onClick={() => setIsCheckoutOpen(false)}
+                                    style={{ padding: '10px 24px', backgroundColor: '#14532d', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                                >
+                                    Close Window
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Footer */}
             <footer style={{ textAlign: 'center', padding: '30px', backgroundColor: '#0f172a', color: '#94a3b8', fontSize: '14px', marginTop: '80px' }}>
