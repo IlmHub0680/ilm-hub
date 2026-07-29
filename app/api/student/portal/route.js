@@ -1,11 +1,12 @@
 ﻿import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('studentId') || 'EP2026001';
 
-    // Mocking student profile and dashboard metrics for Ilm Hub Institute
     const studentData = {
       profile: {
         fullName: 'Khalid Muhammad',
