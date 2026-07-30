@@ -140,9 +140,6 @@ export default function Home() {
                     <Link href="/login" style={{ padding: '8px 16px', borderRadius: '6px', textDecoration: 'none', color: '#14532d', fontWeight: 'bold', border: '1px solid #14532d' }}>
                         Login
                     </Link>
-                    <Link href="/dashboard" style={{ padding: '8px 16px', borderRadius: '6px', textDecoration: 'none', backgroundColor: '#14532d', color: '#ffffff', fontWeight: 'bold' }}>
-                        Student Portal
-                    </Link>
                 </div>
             </header>
 
@@ -469,5 +466,6 @@ export default function Home() {
         </div>
     );
 }
+
 
 
