@@ -1,8 +1,21 @@
 ﻿'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function Home() {
+  const [currentTime, setCurrentTime] = useState('');
+  const [islamicDate, setIslamicDate] = useState('');
+
+  useEffect(() => {
+    const updateDateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString());
+      setIslamicDate("16th Safar, 1448 AH");
+    };
+    updateDateTime();
+    const interval = setInterval(updateDateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
     const [cartCount, setCartCount] = useState(0);
     const [selectedCategory, setSelectedCategory] = useState('All');
     
@@ -128,8 +141,12 @@ export default function Home() {
         }
     ];
 
-    return (
-        <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', backgroundColor: '#f8fafc', color: '#0f172a' }}>
+      return (
+    <div style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f8fafc', color: '#14532d', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      {/* Top tiny bar for Date & Time */}
+      <div style={{ padding: '6px 20px', backgroundColor: '#0f172a', color: '#cbd5e1', fontSize: '11px', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+        <span style={{ fontWeight: 'bold' }}>{currentTime} | {islamicDate}</span>
+      </div>
             {/* Header / Navbar */}
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 40px', backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 100 }}>
                 <h1 style={{ fontSize: '22px', color: '#14532d', margin: 0 }}>Ilm-Hub Institute</h1>
@@ -466,6 +483,8 @@ export default function Home() {
         </div>
     );
 }
+
+
 
 
 
