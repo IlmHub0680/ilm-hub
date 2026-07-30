@@ -20,7 +20,7 @@ export default function AuthorFAQPage() {
     },
     {
       question: "Can I request individual services, like cover design only?",
-      answer: "Absolutely! You can select any combination of services—whether you need individual cover design, full editorial layout, formatting, or marketing packages."
+      answer: "Absolutely! You can select any combination of serviceswhether you need individual cover design, full editorial layout, formatting, or marketing packages."
     },
   ];
 
