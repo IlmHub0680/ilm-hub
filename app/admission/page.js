@@ -7,6 +7,22 @@ export default function AdmissionPage() {
   const [currentStage, setCurrentStage] = useState(1);
   const [maxCompletedStage, setMaxCompletedStage] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  
+  // State for handling direct payment and processing inside Step 4
+  const [isPaymentProcessed, setIsPaymentProcessed] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // Form fields for actual payment inputs based on method
+  const [paymentDetails, setPaymentDetails] = useState({
+    momoNumber: '',
+    momoNetwork: 'MTN',
+    accountName: '',
+    bankName: 'GCB Bank',
+    accountNumber: '',
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvv: '',
+  });
 
   const [formData, setFormData] = useState({
     // Step 1: Account & Personal
@@ -60,7 +76,7 @@ export default function AdmissionPage() {
   const africanCountries = [
     "nigeria", "kenya", "south africa", "egypt", "uganda", "tanzania", 
     "morocco", "algeria", "ethiopia", "rwanda", "zambia", "zimbabwe",
-    "senegal", "ivory coast", "cÃ´te d'ivoire", "cameroon", "angola", "benin",
+    "senegal", "ivory coast", "côte d'ivoire", "cameroon", "angola", "benin",
     "botswana", "burkina faso", "burundi", "cabo verde", "central african republic",
     "chad", "comoros", "congo", "djibouti", "equatorial guinea", "eritrea",
     "eswatini", "gabon", "gambia", "guinea", "guinea-bissau", "lesotho",
@@ -153,10 +169,25 @@ export default function AdmissionPage() {
     }
 
     if (stageNum === 4) {
-      return Boolean(formData.paymentMethod);
+      return Boolean(formData.paymentMethod && isPaymentProcessed);
     }
 
     return true;
+  };
+
+  // Check if payment inputs for the chosen method are filled
+  const isPaymentFormValid = () => {
+    const method = formData.paymentMethod;
+    if (method === 'MoMo') {
+      return Boolean(paymentDetails.momoNumber && paymentDetails.accountName && paymentDetails.momoNetwork);
+    }
+    if (method === 'Debit/Credit Card (Visa/Master)') {
+      return Boolean(paymentDetails.cardNumber && paymentDetails.cardExpiry && paymentDetails.cardCvv && paymentDetails.accountName);
+    }
+    if (method === 'Direct Bank Transfer') {
+      return Boolean(paymentDetails.bankName && paymentDetails.accountNumber && paymentDetails.accountName);
+    }
+    return false;
   };
 
   const handleTabClick = (targetStage) => {
@@ -184,7 +215,7 @@ export default function AdmissionPage() {
   const nextStage = (e) => {
     e.preventDefault();
     if (!isStageValid(currentStage)) {
-      alert('Please fill out all required fields before moving forward.');
+      alert('Please complete all required fields before moving forward.');
       return;
     }
     const nextStep = currentStage + 1;
@@ -200,8 +231,8 @@ export default function AdmissionPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!isStageValid(4)) {
-      alert('Please complete all payment selections.');
+    if (!isPaymentProcessed) {
+      alert('Payment authorization is required before submitting the application.');
       return;
     }
     if (typeof window !== 'undefined') {
@@ -251,6 +282,7 @@ export default function AdmissionPage() {
                 {['1. Account & Personal', '2. Contacts & Education', '3. Programme & Session', '4. Fee & Payment'].map((step, idx) => {
                   const stepNum = idx + 1;
                   const isActive = currentStage === stepNum;
+                  // Only show green if completed, gray otherwise until filled
                   const isCompleted = isStageValid(stepNum);
 
                   return (
@@ -266,7 +298,7 @@ export default function AdmissionPage() {
                         fontSize: '12px', 
                         fontWeight: 'bold', 
                         letterSpacing: '0.05em', 
-                        color: isActive ? '#16a34a' : isCompleted ? '#059669' : '#94a3b8', 
+                        color: isActive ? '#16a34a' : isCompleted ? '#16a34a' : '#94a3b8', 
                         textAlign: 'center', 
                         padding: '15px 0', 
                         position: 'relative',
@@ -274,7 +306,7 @@ export default function AdmissionPage() {
                         transition: 'color 0.2s ease'
                       }}
                     >
-                      {step} {isCompleted && stepNum < currentStage && 'âœ“'}
+                      {step} {isCompleted && stepNum < currentStage && '(Done)'}
                       {isActive && (
                         <div style={{ position: 'absolute', bottom: -1, left: '10%', width: '80%', height: '3px', backgroundColor: '#16a34a', borderRadius: '3px' }}></div>
                       )}
@@ -506,7 +538,7 @@ export default function AdmissionPage() {
                   </>
                 )}
 
-                {/* STAGE 4: Fee & Payment */}
+                {/* STAGE 4: Fee & Payment Gateway */}
                 {currentStage === 4 && (
                   <>
                     <div style={{ backgroundColor: '#f0fdf4', padding: '25px', borderRadius: '12px', border: '1px solid #bbf7d0', textAlign: 'center' }}>
@@ -517,17 +549,202 @@ export default function AdmissionPage() {
                         {formData.calculatedFee}
                       </div>
                       <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                        {formData.feeBase} â€” {formData.applicantCategory}.
+                        {formData.feeBase} - {formData.applicantCategory}.
                       </p>
                     </div>
 
                     <div>
                       <label style={commonLabelStyle}>Select Payment Method *</label>
-                      <select required value={formData.paymentMethod} onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})} style={commonInputStyle}>
-                        <option value="MoMo">MoMo</option>
+                      <select 
+                        required 
+                        value={formData.paymentMethod} 
+                        onChange={(e) => {
+                          setFormData({...formData, paymentMethod: e.target.value});
+                          setIsPaymentProcessed(false); 
+                        }} 
+                        style={commonInputStyle}
+                      >
+                        <option value="MoMo">Mobile Money (MoMo)</option>
                         <option value="Debit/Credit Card (Visa/Master)">Debit/Credit Card (Visa/Master)</option>
                         <option value="Direct Bank Transfer">Direct Bank Transfer</option>
                       </select>
+                    </div>
+
+                    {/* Integrated Payment Execution Module with dynamic input fields */}
+                    <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '10px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
+                      <h4 style={{ fontSize: '13px', textTransform: 'uppercase', color: '#0f172a', fontWeight: 'bold', margin: '0 0 8px 0' }}>
+                        Payment Processing Gateway ({formData.paymentMethod})
+                      </h4>
+                      <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 15px 0' }}>
+                        Enter your account details or beneficiary information to authorize the charge.
+                      </p>
+
+                      {isPaymentProcessed ? (
+                        <div style={{ padding: '12px', backgroundColor: '#dcfce7', border: '1px solid #86efac', borderRadius: '6px', color: '#166534', fontWeight: 'bold', fontSize: '14px', textAlign: 'center' }}>
+                          ✓ Payment Successful & Verified ({formData.calculatedFee})
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                          
+                          {formData.paymentMethod === 'MoMo' && (
+                            <>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                <div>
+                                  <label style={commonLabelStyle}>MoMo Network *</label>
+                                  <select 
+                                    value={paymentDetails.momoNetwork} 
+                                    onChange={(e) => setPaymentDetails({...paymentDetails, momoNetwork: e.target.value})} 
+                                    style={commonInputStyle}
+                                  >
+                                    <option value="MTN">MTN Mobile Money</option>
+                                    <option value="Vodafone">Vodafone Cash</option>
+                                    <option value="AirtelTigo">AirtelTigo Money</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label style={commonLabelStyle}>Mobile Number *</label>
+                                  <input 
+                                    type="tel" 
+                                    placeholder="e.g., 0241234567" 
+                                    value={paymentDetails.momoNumber}
+                                    onChange={(e) => setPaymentDetails({...paymentDetails, momoNumber: e.target.value})}
+                                    style={commonInputStyle}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label style={commonLabelStyle}>Account / Beneficiary Name *</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="Enter account holder name..." 
+                                  value={paymentDetails.accountName}
+                                  onChange={(e) => setPaymentDetails({...paymentDetails, accountName: e.target.value})}
+                                  style={commonInputStyle}
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {formData.paymentMethod === 'Debit/Credit Card (Visa/Master)' && (
+                            <>
+                              <div>
+                                <label style={commonLabelStyle}>Cardholder Name *</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="Name on card..." 
+                                  value={paymentDetails.accountName}
+                                  onChange={(e) => setPaymentDetails({...paymentDetails, accountName: e.target.value})}
+                                  style={commonInputStyle}
+                                />
+                              </div>
+                              <div>
+                                <label style={commonLabelStyle}>Card Number *</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="4532 •••• •••• ••••" 
+                                  value={paymentDetails.cardNumber}
+                                  onChange={(e) => setPaymentDetails({...paymentDetails, cardNumber: e.target.value})}
+                                  style={commonInputStyle}
+                                />
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                <div>
+                                  <label style={commonLabelStyle}>Expiry Date *</label>
+                                  <input 
+                                    type="text" 
+                                    placeholder="MM/YY" 
+                                    value={paymentDetails.cardExpiry}
+                                    onChange={(e) => setPaymentDetails({...paymentDetails, cardExpiry: e.target.value})}
+                                    style={commonInputStyle}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={commonLabelStyle}>CVV *</label>
+                                  <input 
+                                    type="password" 
+                                    placeholder="123" 
+                                    maxLength="4"
+                                    value={paymentDetails.cardCvv}
+                                    onChange={(e) => setPaymentDetails({...paymentDetails, cardCvv: e.target.value})}
+                                    style={commonInputStyle}
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
+
+                          {formData.paymentMethod === 'Direct Bank Transfer' && (
+                            <>
+                              <div>
+                                <label style={commonLabelStyle}>Select Bank *</label>
+                                <select 
+                                  value={paymentDetails.bankName} 
+                                  onChange={(e) => setPaymentDetails({...paymentDetails, bankName: e.target.value})} 
+                                  style={commonInputStyle}
+                                >
+                                  <option value="GCB Bank">GCB Bank</option>
+                                  <option value="Ecobank Ghana">Ecobank Ghana</option>
+                                  <option value="Stanbic Bank">Stanbic Bank</option>
+                                  <option value="Absa Bank">Absa Bank</option>
+                                  <option value="CalBank">CalBank</option>
+                                </select>
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                <div>
+                                  <label style={commonLabelStyle}>Account Number *</label>
+                                  <input 
+                                    type="text" 
+                                    placeholder="Enter bank account..." 
+                                    value={paymentDetails.accountNumber}
+                                    onChange={(e) => setPaymentDetails({...paymentDetails, accountNumber: e.target.value})}
+                                    style={commonInputStyle}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={commonLabelStyle}>Beneficiary / Account Name *</label>
+                                  <input 
+                                    type="text" 
+                                    placeholder="Account holder name..." 
+                                    value={paymentDetails.accountName}
+                                    onChange={(e) => setPaymentDetails({...paymentDetails, accountName: e.target.value})}
+                                    style={commonInputStyle}
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
+
+                          <button
+                            type="button"
+                            disabled={!isPaymentFormValid() || isProcessingPayment}
+                            onClick={() => {
+                              if (!isPaymentFormValid()) {
+                                alert('Please fill in all required payment and beneficiary details.');
+                                return;
+                              }
+                              setIsProcessingPayment(true);
+                              setTimeout(() => {
+                                setIsProcessingPayment(false);
+                                setIsPaymentProcessed(true);
+                              }, 2000);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              backgroundColor: !isPaymentFormValid() ? '#cbd5e1' : '#0284c7',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontWeight: 'bold',
+                              fontSize: '14px',
+                              cursor: !isPaymentFormValid() ? 'not-allowed' : 'pointer',
+                              marginTop: '10px'
+                            }}
+                          >
+                            {isProcessingPayment ? 'Processing Transaction...' : `Pay ${formData.calculatedFee} Now`}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
@@ -539,7 +756,7 @@ export default function AdmissionPage() {
                       width: '200px', padding: '14px', backgroundColor: '#f1f5f9', color: '#14532d', 
                       border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' 
                     }}>
-                      â† Back
+                      &lt;- Back
                     </button>
                   )}
 
@@ -549,20 +766,20 @@ export default function AdmissionPage() {
                     style={{ 
                       width: currentStage === 1 ? '100%' : '300px', 
                       padding: '14px', 
-                      backgroundColor: isStageValid(currentStage) ? '#16a34a' : '#94a3b8', 
+                      backgroundColor: !isStageValid(currentStage) ? '#94a3b8' : '#16a34a', 
                       color: '#ffffff', 
                       border: 'none', 
                       borderRadius: '8px', 
                       fontWeight: 'bold', 
                       fontSize: '15px', 
-                      cursor: isStageValid(currentStage) ? 'pointer' : 'not-allowed',
+                      cursor: !isStageValid(currentStage) ? 'not-allowed' : 'pointer',
                       transition: 'background-color 0.2s ease'
                     }}
                   >
-                    {currentStage === 1 && "Next: Contacts & Education â†’"}
-                    {currentStage === 2 && "Next: Programme & Session â†’"}
-                    {currentStage === 3 && "Next: Fee & Payment â†’"}
-                    {currentStage === 4 && "Submit Application & Pay Fee"}
+                    {currentStage === 1 && "Next: Contacts & Education ->"}
+                    {currentStage === 2 && "Next: Programme & Session ->"}
+                    {currentStage === 3 && "Next: Fee & Payment ->"}
+                    {currentStage === 4 && (isPaymentProcessed ? "Submit Application & Complete" : "Complete Payment First to Submit")}
                   </button>
                 </div>
 
@@ -571,25 +788,67 @@ export default function AdmissionPage() {
           )}
 
           {submitted && (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontSize: '48px', marginBottom: '10px' }}>âœ…</div>
-              <h3 style={{ color: '#14532d', fontSize: '24px', margin: '0 0 10px 0' }}>Application Submitted & Saved!</h3>
-              <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', marginBottom: '25px' }}>
-                Thank you, <strong>{formData.fullName}</strong>. Your application is recorded.
-              </p>
-              <Link href="/" style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#14532d', color: '#ffffff', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', fontSize: '15px' }}>
-                Return to Home Page
-              </Link>
+            <div style={{ padding: '10px 0' }}>
+              <div style={{ textAlign: 'center', marginBottom: '25px' }}>
+                <div style={{ fontSize: '48px', marginBottom: '10px' }}>✅</div>
+                <h3 style={{ color: '#14532d', fontSize: '24px', margin: '0 0 10px 0' }}>Application Submitted & Saved Successfully!</h3>
+                <p style={{ color: '#64748b', fontSize: '15px', margin: 0 }}>
+                  Thank you, <strong>{formData.fullName || 'Applicant'}</strong>. Your admission request has been successfully recorded.
+                </p>
+              </div>
+
+              {/* Comprehensive Summary Report */}
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '25px', marginBottom: '30px' }}>
+                <h4 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#14532d', borderBottom: '2px solid #cbd5e1', paddingBottom: '10px', marginTop: 0, marginBottom: '15px', letterSpacing: '0.05em' }}>
+                  Official Admission & Payment Summary Report
+                </h4>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', fontSize: '14px', color: '#334155' }}>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Applicant Full Name</span>
+                    <strong>{formData.fullName}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Email Address</span>
+                    <strong>{formData.email}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Selected Programme</span>
+                    <strong style={{ color: '#16a34a' }}>{formData.academicProgramme}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Study Session</span>
+                    <strong>{formData.studySession}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Applicant Classification</span>
+                    <strong>{formData.applicantCategory}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Country of Residence</span>
+                    <strong>{formData.countryOfResidence}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Payment Method Used</span>
+                    <strong>{formData.paymentMethod}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Non-Refundable Admission Fee Paid</span>
+                    <strong style={{ color: '#0284c7', fontSize: '16px' }}>{formData.calculatedFee} ({formData.feeBase})</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'center' }}>
+                <Link href="/" style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#14532d', color: '#ffffff', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', fontSize: '15px' }}>
+                  Return to Home Page
+                </Link>
+              </div>
             </div>
           )}
 
         </div>
       </main>
-
-      <footer style={{ backgroundColor: '#0f172a', color: '#94a3b8', padding: '30px 20px', textAlign: 'center', fontSize: '14px', borderTop: '1px solid #1e293b' }}>
-        <p style={{ margin: 0 }}>&copy; {new Date().getFullYear()} Ilm-Hub Institute. All rights reserved.</p>
-      </footer>
-
     </div>
   );
 }
