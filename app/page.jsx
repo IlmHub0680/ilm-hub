@@ -36,9 +36,9 @@ export default function Home() {
     // Currency conversion rates relative to USD
     const currencyRates = {
         USD: { symbol: '$', rate: 1 },
-        EUR: { symbol: 'ï¿½', rate: 0.92 },
-        GBP: { symbol: 'ï¿½', rate: 0.78 },
-        GHS: { symbol: 'GH?', rate: 15.5 },
+        EUR: { symbol: '€', rate: 0.92 },
+        GBP: { symbol: '£', rate: 0.78 },
+        GHS: { symbol: 'GH₵', rate: 15.5 },
         SAR: { symbol: 'SAR ', rate: 3.75 }
     };
 
@@ -102,7 +102,7 @@ export default function Home() {
         { code: 'FIQ-202', title: 'Comparative Fiqh of Transactions', type: 'Paid Accredited', price: 180, description: 'Analysis of Islamic banking, contracts, and modern commercial law.' },
         { code: 'SIR-106', title: 'Proprietary Seerah of the Prophet', type: 'Free Foundation', price: 0, description: 'Chronological study of the Makkan and Madinan eras.' },
         { code: 'NAR-203', title: 'Hadith Memorization & Commentary', type: 'Paid Accredited', price: 160, description: 'Detailed study of Al-Nawawis Forty Hadith.' },
-        { code: 'ARA-204', title: 'Classical Arabic Syntax (Nahw)', type: 'Paid Accredited', price: 220, description: 'Mastering Iï¿½rab and sentence structures in classical texts.' }
+        { code: 'ARA-204', title: 'Classical Arabic Syntax (Nahw)', type: 'Paid Accredited', price: 220, description: 'Mastering I`rab and sentence structures in classical texts.' }
     ];
 
     const displayedPrograms = showAllPrograms ? programsList : programsList.slice(0, 3);
@@ -153,7 +153,7 @@ export default function Home() {
           <h1 style={{ fontSize: '22px', color: '#14532d', margin: 0 }}>Ilm-Hub Institute</h1>
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
               <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#334155', background: '#f1f5f9', padding: '6px 12px', borderRadius: '6px' }}>
-                  ðŸ›’ Cart: {cartCount} items
+                  🛒 Cart: {cartCount} items
               </span>
               <Link href="/login" style={{ padding: '8px 16px', borderRadius: '6px', textDecoration: 'none', color: '#14532d', fontWeight: 'bold', border: '1px solid #14532d' }}>
                   Login
@@ -207,7 +207,7 @@ export default function Home() {
               cursor: 'pointer'
             }}
           >
-            {showAllPrograms ? 'Show Less Programs' : 'View All Academic Programme \u2192'}
+            {showAllPrograms ? 'Show Less Programs' : 'View All Academic Programme →'}
           </button>
         </div>
       </section>
@@ -242,7 +242,7 @@ export default function Home() {
                             onClick={() => setShowAllCatalog(!showAllCatalog)} 
                             style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#14532d', color: '#ffffff', borderRadius: '8px', border: 'none', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}
                         >
-                            {showAllCatalog ? 'Show Less Courses' : 'View Full Course Catalog \u2192'}
+                            {showAllCatalog ? 'Show Less Courses' : 'View Full Course Catalog →'}
                         </button>
                     </div>
                 </div>
@@ -352,7 +352,7 @@ export default function Home() {
                                 <span style={{ fontSize: '12px', color: '#64748b' }}>{lecture.duration}</span>
                             </div>
                             <div style={{ backgroundColor: '#1e293b', color: '#ffffff', padding: '30px', borderRadius: '8px', textAlign: 'center', marginBottom: '15px', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => alert(`Streaming: ${lecture.title}`)}>
-                                ? Play Video Session
+                                ▶ Play Video Session
                             </div>
                             <h4 style={{ color: '#14532d', margin: '0 0 6px 0', fontSize: '18px' }}>{lecture.title}</h4>
                             <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Instructor: {lecture.instructor}</p>
@@ -466,27 +466,22 @@ export default function Home() {
                             </form>
                         ) : (
                             <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                            <div style={{ fontSize: '48px', marginBottom: '10px' }}>âœ…</div>
+                            <div style={{ fontSize: '48px', marginBottom: '10px' }}>✅</div>
                             <h3 style={{ color: '#14532d', margin: '0 0 10px 0', fontSize: '22px' }}>Payment Successful!</h3>
-                            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>
-                              Thank you, <strong>{buyerName}</strong>. Your order for <strong>{selectedBook.title}</strong> has been confirmed. A confirmation receipt has been sent to <strong>{buyerEmail}</strong>.
+                            <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.5', marginBottom: '25px' }}>
+                                JazakAllahu Khairan, <strong>{buyerName}</strong>. Your receipt and fulfillment details have been dispatched to <strong>{buyerEmail}</strong>.
                             </p>
-                            <button
-                              onClick={() => setIsCheckoutOpen(false)}
-                              style={{ padding: '10px 24px', backgroundColor: '#14532d', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+                            <button 
+                                onClick={() => setIsCheckoutOpen(false)}
+                                style={{ padding: '10px 24px', backgroundColor: '#14532d', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
                             >
-                              Done
+                                Close & Return
                             </button>
-                          </div>
+                            </div>
                         )}
                     </div>
                 </div>
             )}
-
-            {/* Footer */}
-            <footer style={{ backgroundColor: '#0f172a', color: '#94a3b8', padding: '30px 20px', textAlign: 'center', fontSize: '14px', borderTop: '1px solid #1e293b' }}>
-                <p style={{ margin: 0 }}>&copy; {new Date().getFullYear()} Ilm-Hub Institute. All rights reserved.</p>
-            </footer>
-        </div>
-    );
+    </div>
+  );
 }
