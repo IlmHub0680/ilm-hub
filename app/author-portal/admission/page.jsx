@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 
 export default function AuthorPortal() {
-  const [viewMode, setViewMode] = useState('login'); // 'login' | 'register' | 'reset' | 'dashboard' | 'add-book' | 'profile' | 'payouts'
+  const [viewMode, setViewMode] = useState('login'); // 'login' | 'register' | 'reset' | 'dashboard' | 'add-book' | 'profile' | 'payouts' | 'coupons'
   
   // Auth state
   const [formData, setFormData] = useState({
@@ -13,8 +13,11 @@ export default function AuthorPortal() {
     bio: 'Specialist in Islamic Jurisprudence and Arabic Morphology with over 15 years of academic teaching experience.',
     specialty: 'Fiqh & Arabic Language',
     password: '',
+    payoutMethod: 'Mobile Money (Momo)',
     bankAccount: '•••• •••• •••• 4892',
     bankName: 'Global Islamic Bank',
+    momoNumber: '+233 24 555 0192',
+    momoNetwork: 'MTN Mobile Money',
   });
   const [resetEmail, setResetEmail] = useState('');
   const [resetSent, setResetSent] = useState(false);
@@ -30,7 +33,7 @@ export default function AuthorPortal() {
       title: 'Foundations of Islamic Jurisprudence',
       publishDate: '2026-05-12',
       status: 'Approved',
-      price: '$18.50',
+      price: 18.50,
       category: 'Fiqh',
       sales: 142,
       coverUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80',
@@ -40,12 +43,20 @@ export default function AuthorPortal() {
       title: 'Advanced Arabic Morphology & Syntax',
       publishDate: '2026-06-20',
       status: 'Pending Review',
-      price: '$22.00',
+      price: 22.00,
       category: 'Arabic Language',
       sales: 0,
       coverUrl: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=300&q=80',
     }
   ]);
+
+  // Coupons State
+  const [coupons, setCoupons] = useState([
+    { id: 1, code: 'RAMADAN20', discount: '20%', bookTitle: 'Foundations of Islamic Jurisprudence', status: 'Active', uses: 14 },
+    { id: 2, code: 'SCHOLAR50', discount: '50%', bookTitle: 'All Books', status: 'Active', uses: 3 }
+  ]);
+  const [newCoupon, setNewCoupon] = useState({ code: '', discount: '10', bookTitle: 'Foundations of Islamic Jurisprudence' });
+  const [successCouponMsg, setSuccessCouponMsg] = useState('');
 
   // New Book Form State
   const [newBook, setNewBook] = useState({
@@ -62,9 +73,9 @@ export default function AuthorPortal() {
 
   // Payout / Earnings ledger state
   const [payoutHistory] = useState([
-    { id: 'PO-1082', date: '2026-07-01', amount: '$1,240.00', status: 'Completed', method: 'Direct Bank Transfer' },
-    { id: 'PO-1051', date: '2026-06-01', amount: '$980.50', status: 'Completed', method: 'Direct Bank Transfer' },
-    { id: 'PO-1019', date: '2026-05-01', amount: '$408.00', status: 'Completed', method: 'Direct Bank Transfer' },
+    { id: 'PO-1082', date: '2026-07-01', amount: '$1,240.00', authorCut: '$868.00 (70%)', platformCut: '$372.00 (30%)', status: 'Completed', method: 'Mobile Money (Momo)' },
+    { id: 'PO-1051', date: '2026-06-01', amount: '$980.50', authorCut: '$686.35 (70%)', platformCut: '$294.15 (30%)', status: 'Completed', method: 'Direct Bank Transfer' },
+    { id: 'PO-1019', date: '2026-05-01', amount: '$408.00', authorCut: '$285.60 (70%)', platformCut: '$122.40 (30%)', status: 'Completed', method: 'Mobile Money (Momo)' },
   ]);
 
   const handleRegisterSubmit = async (e) => {
@@ -138,7 +149,7 @@ export default function AuthorPortal() {
         title: newBook.title,
         publishDate: newBook.publishDate,
         status: 'Pending Review',
-        price: `$${parseFloat(newBook.price || 0).toFixed(2)}`,
+        price: parseFloat(newBook.price || 0),
         category: newBook.category || 'General',
         sales: 0,
         coverUrl: newBook.coverImage ? URL.createObjectURL(newBook.coverImage) : 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=300&q=80',
@@ -158,6 +169,22 @@ export default function AuthorPortal() {
         bookFile: null,
       });
     }, 1000);
+  };
+
+  const handleCouponSubmit = (e) => {
+    e.preventDefault();
+    const createdCoupon = {
+      id: coupons.length + 1,
+      code: newCoupon.code.toUpperCase(),
+      discount: `${newCoupon.discount}%`,
+      bookTitle: newCoupon.bookTitle,
+      status: 'Active',
+      uses: 0
+    };
+    setCoupons([createdCoupon, ...coupons]);
+    setSuccessCouponMsg(`Coupon ${createdCoupon.code} created successfully!`);
+    setNewCoupon({ code: '', discount: '10', bookTitle: 'Foundations of Islamic Jurisprudence' });
+    setTimeout(() => setSuccessCouponMsg(''), 4000);
   };
 
   const handleProfileSave = (e) => {
@@ -190,7 +217,7 @@ export default function AuthorPortal() {
   }
 
   // PROFESSIONAL AUTHOR DASHBOARD VIEW WITH ANALYTICS, PROFILE, & PAYOUT EXPANSIONS
-  if (['dashboard', 'add-book', 'profile', 'payouts'].includes(viewMode)) {
+  if (['dashboard', 'add-book', 'profile', 'payouts', 'coupons'].includes(viewMode)) {
     return (
       <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: 'sans-serif' }}>
         {/* Top Navigation Bar */}
@@ -209,10 +236,16 @@ export default function AuthorPortal() {
               Books & Analytics
             </button>
             <button
+              onClick={() => setViewMode('coupons')}
+              style={{ background: viewMode === 'coupons' ? '#f0fdf4' : 'transparent', border: viewMode === 'coupons' ? '1px solid #bbf7d0' : 'none', color: viewMode === 'coupons' ? '#166534' : '#475569', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+            >
+              Promo Coupons
+            </button>
+            <button
               onClick={() => setViewMode('payouts')}
               style={{ background: viewMode === 'payouts' ? '#f0fdf4' : 'transparent', border: viewMode === 'payouts' ? '1px solid #bbf7d0' : 'none', color: viewMode === 'payouts' ? '#166534' : '#475569', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
             >
-              Earnings & Payouts
+              Earnings & Payouts (70/30 Split)
             </button>
             <button
               onClick={() => setViewMode('profile')}
@@ -241,14 +274,16 @@ export default function AuthorPortal() {
               <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>
                 {viewMode === 'dashboard' && 'My Published Books'}
                 {viewMode === 'add-book' && 'Publish New Book'}
-                {viewMode === 'payouts' && 'Financial Ledger & Payouts'}
-                {viewMode === 'profile' && 'Author Profile & Bio Settings'}
+                {viewMode === 'coupons' && 'Discount & Coupon Generator'}
+                {viewMode === 'payouts' && 'Financial Ledger, 70/30 Royalty Split & Payouts'}
+                {viewMode === 'profile' && 'Author Profile, Momo & Banking Settings'}
               </h2>
               <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>
                 {viewMode === 'dashboard' && 'Manage your library, track approval statuses, and monitor performance.'}
                 {viewMode === 'add-book' && 'Upload publication assets with title, cover image, file, and publish date for admin review.'}
-                {viewMode === 'payouts' && 'Review royalty calculations, commission splits, and bank payout history.'}
-                {viewMode === 'profile' && 'Update your public scholar bio, academic specialty, and banking details.'}
+                {viewMode === 'coupons' && 'Create custom promotional discount codes for your students and followers.'}
+                {viewMode === 'payouts' && 'Review your 70% author earnings split vs. 30% platform fee and bank/momo payout history.'}
+                {viewMode === 'profile' && 'Update your public scholar bio, Mobile Money (Momo), and banking details.'}
               </p>
             </div>
             <div>
@@ -260,7 +295,7 @@ export default function AuthorPortal() {
                   + Add New Book
                 </button>
               )}
-              {['add-book', 'payouts', 'profile'].includes(viewMode) && (
+              {['add-book', 'payouts', 'profile', 'coupons'].includes(viewMode) && (
                 <button
                   onClick={() => setViewMode('dashboard')}
                   style={{ background: 'none', border: '1px solid #cbd5e1', color: '#334155', padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}
@@ -276,14 +311,14 @@ export default function AuthorPortal() {
             <div style={{ marginBottom: '32px' }}>
               <div style={{ marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>Author Analytics & Intelligence Monitor</h3>
-                <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>Monitor your book performance, revenue, and distribution metrics.</p>
+                <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>Monitor your book performance, revenue splits, and distribution metrics.</p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
                 <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', borderLeft: '4px solid #14532d' }}>
-                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#64748b' }}>Total Revenue</span>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a', marginTop: '6px' }}>$2,628.50</div>
-                  <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>+12.4% this month</span>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#64748b' }}>Your Net Revenue (70%)</span>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#14532d', marginTop: '6px' }}>$1,840.00</div>
+                  <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>From gross $2,628.50</span>
                 </div>
 
                 <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', borderLeft: '4px solid #0284c7' }}>
@@ -299,9 +334,9 @@ export default function AuthorPortal() {
                 </div>
 
                 <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', borderLeft: '4px solid #7c3aed' }}>
-                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#64748b' }}>Distribution Reach</span>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a', marginTop: '6px' }}>Global Store</div>
-                  <span style={{ fontSize: '12px', color: '#7c3aed', fontWeight: 'bold' }}>Student & Scholar Portal</span>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#64748b' }}>Active Coupons</span>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a', marginTop: '6px' }}>{coupons.length} Running</div>
+                  <span style={{ fontSize: '12px', color: '#7c3aed', fontWeight: 'bold' }}>Student discounts</span>
                 </div>
               </div>
             </div>
@@ -354,6 +389,11 @@ export default function AuthorPortal() {
                       onChange={(e) => setNewBook({ ...newBook, price: e.target.value })}
                       style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
                     />
+                    {newBook.price && !isNaN(newBook.price) && (
+                      <span style={{ display: 'block', fontSize: '12px', color: '#166534', marginTop: '4px', fontWeight: '600' }}>
+                        Your split (70%): ${(parseFloat(newBook.price) * 0.70).toFixed(2)} | Platform fee (30%): ${(parseFloat(newBook.price) * 0.30).toFixed(2)}
+                      </span>
+                    )}
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>Publish Day / Date</label>
@@ -424,12 +464,108 @@ export default function AuthorPortal() {
             </div>
           )}
 
+          {/* VIEW: COUPON & PROMO GENERATOR */}
+          {viewMode === 'coupons' && (
+            <div style={{ backgroundColor: '#ffffff', padding: '32px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
+              {successCouponMsg && (
+                <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '16px', borderRadius: '8px', fontSize: '14px', marginBottom: '20px' }}>
+                  {successCouponMsg}
+                </div>
+              )}
+
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>Create Promotional Coupon</h3>
+                <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>Generate discount codes for your students or online classes.</p>
+              </div>
+
+              <form onSubmit={handleCouponSubmit} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 2fr 1fr', gap: '16px', alignItems: 'flex-end', marginBottom: '32px', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>Coupon Code</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. FIQH30"
+                    value={newCoupon.code}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>Discount (%)</label>
+                  <select
+                    value={newCoupon.discount}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, discount: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#fff', boxSizing: 'border-box' }}
+                  >
+                    <option value="10">10% Off</option>
+                    <option value="15">15% Off</option>
+                    <option value="20">20% Off</option>
+                    <option value="25">25% Off</option>
+                    <option value="50">50% Off</option>
+                    <option value="100">100% Free</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>Applicable Book</label>
+                  <select
+                    value={newCoupon.bookTitle}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, bookTitle: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#fff', boxSizing: 'border-box' }}
+                  >
+                    {books.map(b => (
+                      <option key={b.id} value={b.title}>{b.title}</option>
+                    ))}
+                    <option value="All Books">All Catalog Books</option>
+                  </select>
+                </div>
+                <div>
+                  <button
+                    type="submit"
+                    style={{ width: '100%', backgroundColor: '#14532d', color: '#ffffff', padding: '10px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}
+                  >
+                    Generate
+                  </button>
+                </div>
+              </form>
+
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', marginBottom: '16px' }}>Active Discount Codes</h3>
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#334155' }}>
+                      <th style={{ padding: '12px 16px', fontWeight: '600' }}>Coupon Code</th>
+                      <th style={{ padding: '12px 16px', fontWeight: '600' }}>Discount</th>
+                      <th style={{ padding: '12px 16px', fontWeight: '600' }}>Target Book</th>
+                      <th style={{ padding: '12px 16px', fontWeight: '600' }}>Redemptions</th>
+                      <th style={{ padding: '12px 16px', fontWeight: '600' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {coupons.map((c) => (
+                      <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 'bold', color: '#14532d' }}>{c.code}</td>
+                        <td style={{ padding: '12px 16px', fontWeight: 'bold', color: '#0f172a' }}>{c.discount}</td>
+                        <td style={{ padding: '12px 16px', color: '#334155' }}>{c.bookTitle}</td>
+                        <td style={{ padding: '12px 16px', color: '#64748b' }}>{c.uses} uses</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{ backgroundColor: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
+                            {c.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* VIEW: DASHBOARD BOOK LIST */}
           {viewMode === 'dashboard' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Library Submissions & Status Queue</h3>
-                <span style={{ fontSize: '13px', color: '#64748b' }}>Admin review workflow active</span>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>Royalty Split: 70% Author / 30% Platform</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {books.map((b) => (
@@ -441,7 +577,8 @@ export default function AuthorPortal() {
                         <h4 style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', margin: '6px 0 4px 0' }}>{b.title}</h4>
                         <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#64748b' }}>
                           <span>Publish Day: {b.publishDate}</span>
-                          <span>Price: {b.price}</span>
+                          <span>Price: ${Number(b.price).toFixed(2)}</span>
+                          <span style={{ color: '#166534', fontWeight: '600' }}>Your Share (70%): ${(Number(b.price) * 0.70).toFixed(2)}</span>
                           <span>Sales: {b.sales}</span>
                         </div>
                       </div>
@@ -468,17 +605,36 @@ export default function AuthorPortal() {
             </div>
           )}
 
-          {/* NEW EXPANSION VIEW: FINANCIAL LEDGER & PAYOUTS */}
+          {/* NEW EXPANSION VIEW: FINANCIAL LEDGER & PAYOUTS WITH 70/30 BREAKDOWN */}
           {viewMode === 'payouts' && (
             <div style={{ backgroundColor: '#ffffff', padding: '32px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
-                  <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>Royalty & Payout History</h3>
-                  <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>Track past automated disbursements and pending balances.</p>
+                  <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>Royalty & Payout History (70% Author Split)</h3>
+                  <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>Review automated disbursements to your preferred Momo or Bank account.</p>
                 </div>
-                <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px 20px', borderRadius: '8px', textAlign: 'right' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#166534', display: 'block' }}>Next Payout Balance</span>
-                  <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#14532d' }}>$412.50</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <button
+                    onClick={() => alert('Financial ledger exported successfully as a CSV file.')}
+                    style={{ background: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+                  >
+                    📥 Export Statement (CSV)
+                  </button>
+                  <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px 20px', borderRadius: '8px', textAlign: 'right' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#166534', display: 'block' }}>Next Net Payout (70%)</span>
+                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#14532d' }}>$412.50</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 70/30 Revenue explanation banner */}
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '16px', borderRadius: '8px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <strong style={{ fontSize: '14px', color: '#0f172a' }}>Commission Agreement Structure</strong>
+                  <p style={{ fontSize: '13px', color: '#64748b', margin: '2px 0 0 0' }}>All book sales are automatically split: **70% goes directly to you (the author)** and **30% is allocated for Ilm-Hub platform hosting and payment gateway fees**.</p>
+                </div>
+                <div style={{ textAlign: 'right', fontSize: '13px', fontWeight: '600', color: '#166534' }}>
+                  Active Split: 70 / 30
                 </div>
               </div>
 
@@ -488,8 +644,10 @@ export default function AuthorPortal() {
                     <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#334155' }}>
                       <th style={{ padding: '12px 16px', fontWeight: '600' }}>Reference ID</th>
                       <th style={{ padding: '12px 16px', fontWeight: '600' }}>Date</th>
-                      <th style={{ padding: '12px 16px', fontWeight: '600' }}>Method</th>
-                      <th style={{ padding: '12px 16px', fontWeight: '600' }}>Amount</th>
+                      <th style={{ padding: '12px 16px', fontWeight: '600' }}>Payout Method</th>
+                      <th style={{ padding: '12px 16px', fontWeight: '600' }}>Gross Sales</th>
+                      <th style={{ padding: '12px 16px', fontWeight: '600' }}>Your Share (70%)</th>
+                      <th style={{ padding: '12px 16px', fontWeight: '600' }}>Platform (30%)</th>
                       <th style={{ padding: '12px 16px', fontWeight: '600' }}>Status</th>
                     </tr>
                   </thead>
@@ -499,7 +657,9 @@ export default function AuthorPortal() {
                         <td style={{ padding: '12px 16px', fontWeight: 'bold', color: '#0f172a' }}>{p.id}</td>
                         <td style={{ padding: '12px 16px', color: '#64748b' }}>{p.date}</td>
                         <td style={{ padding: '12px 16px', color: '#334155' }}>{p.method}</td>
-                        <td style={{ padding: '12px 16px', fontWeight: 'bold', color: '#166534' }}>{p.amount}</td>
+                        <td style={{ padding: '12px 16px', color: '#64748b' }}>{p.amount}</td>
+                        <td style={{ padding: '12px 16px', fontWeight: 'bold', color: '#166534' }}>{p.authorCut}</td>
+                        <td style={{ padding: '12px 16px', color: '#94a3b8' }}>{p.platformCut}</td>
                         <td style={{ padding: '12px 16px' }}>
                           <span style={{ backgroundColor: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
                             {p.status}
@@ -513,7 +673,7 @@ export default function AuthorPortal() {
             </div>
           )}
 
-          {/* NEW EXPANSION VIEW: AUTHOR PROFILE & SETTINGS */}
+          {/* NEW EXPANSION VIEW: AUTHOR PROFILE, MOMO & BANK SETTINGS */}
           {viewMode === 'profile' && (
             <div style={{ backgroundColor: '#ffffff', padding: '32px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
               {successProfileMsg && (
@@ -558,28 +718,67 @@ export default function AuthorPortal() {
 
                 <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '10px 0' }} />
 
-                <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>Banking & Payout Destination</h3>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>Bank Name</label>
-                    <input
-                      type="text"
-                      value={formData.bankName}
-                      onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>Account Number / IBAN</label>
-                    <input
-                      type="text"
-                      value={formData.bankAccount}
-                      onChange={(e) => setFormData({ ...formData, bankAccount: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
-                    />
-                  </div>
+                <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>Banking & Mobile Money (Momo) Payout Destination</h3>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 12px 0' }}>Select your primary payout destination for receiving your 70% royalty share.</p>
+
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>Preferred Payout Method</label>
+                  <select
+                    value={formData.payoutMethod}
+                    onChange={(e) => setFormData({ ...formData, payoutMethod: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#fff', boxSizing: 'border-box' }}
+                  >
+                    <option value="Mobile Money (Momo)">Mobile Money (Momo)</option>
+                    <option value="Direct Bank Transfer">Direct Bank Transfer</option>
+                  </select>
                 </div>
+
+                {formData.payoutMethod === 'Mobile Money (Momo)' ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#166534', marginBottom: '6px' }}>Momo Network Provider</label>
+                      <select
+                        value={formData.momoNetwork}
+                        onChange={(e) => setFormData({ ...formData, momoNetwork: e.target.value })}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #bbf7d0', fontSize: '14px', backgroundColor: '#fff', boxSizing: 'border-box' }}
+                      >
+                        <option value="MTN Mobile Money">MTN Mobile Money</option>
+                        <option value="Vodafone Cash / Telecel">Vodafone Cash / Telecel</option>
+                        <option value="AirtelTigo Money">AirtelTigo Money</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#166534', marginBottom: '6px' }}>Momo Phone Number</label>
+                      <input
+                        type="text"
+                        value={formData.momoNumber}
+                        onChange={(e) => setFormData({ ...formData, momoNumber: e.target.value })}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #bbf7d0', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>Bank Name</label>
+                      <input
+                        type="text"
+                        value={formData.bankName}
+                        onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>Account Number / IBAN</label>
+                      <input
+                        type="text"
+                        value={formData.bankAccount}
+                        onChange={(e) => setFormData({ ...formData, bankAccount: e.target.value })}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
                   <button
@@ -709,7 +908,7 @@ export default function AuthorPortal() {
           {viewMode === 'register' && (
             <form onSubmit={handleRegisterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>Create Author Account</h2>
-              <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 12px 0' }}>Submit your profile for admin review to begin selling books.</p>
+              <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 12px 0' }}>Submit your profile for admin review to begin selling books (70% royalty split).</p>
 
               <div>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>Full Name</label>
