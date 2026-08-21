@@ -1,10 +1,306 @@
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+generator client {
+  provider = "prisma-client"
+  output = "../generated/prisma"
+  importFileExtension = "ts"
 }
 
-generator client {
-  provider = "prisma-client-js"
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                    String                   @id @default(uuid())
+  name                  String
+  email                 String                   @unique
+  emailVerified         DateTime?
+  passwordHash          String
+  role                  Role                     @default(USER)
+  authorStatus          AuthorStatus             @default(PENDING)
+  preferredLanguage     Language                 @default(EN)
+  countryId             String?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  authoredBooks         Book[]                   @relation("BookAuthor")
+  sellingBooks          Book[]                   @relation("BookSeller")
+  reviewedBooks         Book[]                   @relation("BookReviewer")
+
+  cart                  Cart?
+  courseProgress        CourseProgress[]
+  downloadLogs          DownloadLog[]
+  enrollments           Enrollment[]
+  manuscriptSubmissions ManuscriptSubmission[]
+  notifications         Notification[]
+  orders                Order[]
+
+  country               Country?                 @relation(fields: [countryId], references: [id])
+}
+
+model Country {
+  id             String        @id @default(uuid())
+  code           String        @unique
+  name           String
+  currencyCode   String
+  currencySymbol String
+  exchangeRate   ExchangeRate?
+  users          User[]
+}
+
+model ExchangeRate {
+  id           String   @id @default(uuid())
+  currencyCode String   @unique
+  rateToUSD    Decimal  @db.Decimal(12, 6)
+  updatedAt    DateTime @updatedAt
+  countryId    String   @unique
+
+  country      Country  @relation(fields: [countryId], references: [id])
+}
+
+model Category {
+  id      String   @id @default(uuid())
+  nameEn  String
+  nameAr  String
+  slug    String   @unique
+
+  books   Book[]
+  courses Course[]
+}
+
+model Book {
+  id              String      @id @default(uuid())
+  titleEn         String
+  titleAr         String
+  slug            String      @unique
+  descriptionEn   String
+  descriptionAr   String
+  priceUSD        Decimal     @db.Decimal(10, 2)
+  coverImageUrl   String
+  r2FileKey       String
+  isFeatured      Boolean     @default(false)
+  isNewRelease    Boolean     @default(true)
+  categoryId      String
+  authorId        String?
+  sellerId        String?
+  status          BookStatus  @default(APPROVED)
+  reviewedById    String?
+  reviewedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  author          User?       @relation("BookAuthor", fields: [authorId], references: [id])
+  seller          User?       @relation("BookSeller", fields: [sellerId], references: [id])
+  reviewedBy      User?       @relation("BookReviewer", fields: [reviewedById], references: [id])
+  category        Category    @relation(fields: [categoryId], references: [id])
+
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+
+  @@index([status])
+  @@index([sellerId])
+  @@index([authorId])
+  @@index([reviewedById])
+  @@index([categoryId])
+  @@index([createdAt])
+}
+
+model Course {
+  id            String          @id @default(uuid())
+  titleEn       String
+  titleAr       String
+  slug          String          @unique
+  descriptionEn String
+  descriptionAr String
+  isPaid        Boolean         @default(false)
+  priceUSD      Decimal         @default(0.00) @db.Decimal(10, 2)
+  thumbnailUrl  String
+  isPublished   Boolean         @default(false)
+  categoryId    String
+  createdAt     DateTime        @default(now())
+
+  category      Category        @relation(fields: [categoryId], references: [id])
+  sections      CourseSection[]
+  enrollments   Enrollment[]
+}
+
+model CourseSection {
+  id       String    @id @default(uuid())
+  titleEn  String
+  titleAr  String
+  order    Int
+  courseId String
+
+  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lectures Lecture[]
+}
+
+model Lecture {
+  id            String         @id @default(uuid())
+  titleEn       String
+  titleAr       String
+  mediaType     MediaType      @default(VIDEO)
+  mediaUrl      String
+  durationSec   Int            @default(0)
+  isFreePreview Boolean        @default(false)
+  order         Int
+  sectionId     String
+
+  progress      CourseProgress[]
+  section       CourseSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+}
+
+model Enrollment {
+  id        String       @id @default(uuid())
+  userId    String
+  courseId  String
+  status    AccessStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+
+  course    Course       @relation(fields: [courseId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+model CourseProgress {
+  id          String   @id @default(uuid())
+  userId      String
+  lectureId   String
+  isCompleted Boolean  @default(true)
+  completedAt DateTime @default(now())
+
+  lecture     Lecture  @relation(fields: [lectureId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, lectureId])
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  updatedAt DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+}
+
+model CartItem {
+  id       String @id @default(uuid())
+  cartId   String
+  bookId   String
+  quantity Int    @default(1)
+
+  book     Book   @relation(fields: [bookId], references: [id])
+  cart     Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id              String        @id @default(uuid())
+  orderNumber     String        @unique
+  userId          String
+  totalUSD        Decimal       @db.Decimal(10, 2)
+  paidAmount      Decimal       @db.Decimal(10, 2)
+  currencyCode    String
+  exchangeRate    Decimal       @db.Decimal(12, 6)
+  status          OrderStatus   @default(ORDER_PLACED)
+  paymentMethod   PaymentMethod
+  paymentRef      String?
+  paymentProofUrl String?
+  rejectionReason String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  downloadLogs    DownloadLog[]
+  user            User          @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+  receipt         Receipt?
+}
+
+model OrderItem {
+  id       String  @id @default(uuid())
+  orderId  String
+  bookId   String
+  priceUSD Decimal @db.Decimal(10, 2)
+
+  book     Book    @relation(fields: [bookId], references: [id])
+  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Receipt {
+  id        String   @id @default(uuid())
+  receiptNo String   @unique
+  orderId   String   @unique
+  pdfUrl    String
+  issuedAt  DateTime @default(now())
+
+  order     Order    @relation(fields: [orderId], references: [id])
+}
+
+model DownloadLog {
+  id           String   @id @default(uuid())
+  userId       String
+  orderId      String
+  bookId       String
+  downloadedAt DateTime @default(now())
+  ipAddress    String
+
+  order        Order    @relation(fields: [orderId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model ManuscriptSubmission {
+  id             String             @id @default(uuid())
+  authorId       String
+  title          String
+  genre          String
+  description    String
+  manuscriptUrl  String
+  services       String[]
+  status         SubmissionStatus   @default(SUBMITTED)
+  quoteAmount    Float?
+  quoteDetails   String?
+  assignedEditor String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  revisions      ManuscriptRevision[]
+  user           User               @relation(fields: [authorId], references: [id])
+}
+
+model ManuscriptRevision {
+  id           String               @id @default(uuid())
+  submissionId String
+  fileUrl      String
+  notes        String?
+  createdAt    DateTime             @default(now())
+
+  submission   ManuscriptSubmission @relation(fields: [submissionId], references: [id])
+}
+
+model NewsletterSubscriber {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  isActive     Boolean  @default(true)
+  subscribedAt DateTime @default(now())
+}
+
+model NewsletterCampaign {
+  id       String   @id @default(uuid())
+  subject  String
+  content  String
+  category String
+  sentAt   DateTime @default(now())
 }
 
 enum Role {
@@ -16,6 +312,12 @@ enum Role {
 
 enum AuthorStatus {
   PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BookStatus {
+  PENDING_REVIEW
   APPROVED
   REJECTED
 }
@@ -56,262 +358,6 @@ enum MediaType {
   AUDIO
 }
 
-model User {
-  id                    String                 @id @default(uuid())
-  name                  String
-  email                 String                 @unique
-  emailVerified         DateTime?
-  passwordHash          String
-  role                  Role                   @default(USER)
-  authorStatus          AuthorStatus           @default(PENDING) // Tracks "Sell Your Books" approval status
-  preferredLanguage     Language               @default(EN)
-  countryId             String?
-  country               Country?               @relation(fields: [countryId], references: [id])
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-
-  orders                Order[]
-  cart                  Cart?
-  enrollments           Enrollment[]
-  grades                Grade[]                @relation("StudentGrades")
-  notifications         Notification[]
-  downloadLogs          DownloadLog[]
-  courseProgress        CourseProgress[]
-  manuscriptSubmissions ManuscriptSubmission[]
-  books                 Book[]                 @relation("AuthorBooks") // Books uploaded by this author
-}
-
-model Country {
-  id             String        @id @default(uuid())
-  code           String        @unique // e.g., "GH", "US"
-  name           String
-  currencyCode   String // e.g., "GHS", "USD"
-  currencySymbol String // e.g., "GH₵", "$"
-  users          User[]
-  exchangeRate   ExchangeRate?
-}
-
-model ExchangeRate {
-  id           String   @id @default(uuid())
-  currencyCode String   @unique // e.g., "GHS"
-  rateToUSD    Decimal  @db.Decimal(12, 6) // 1 USD = X Local Currency
-  updatedAt    DateTime @updatedAt
-
-  countryId String  @unique
-  country   Country @relation(fields: [countryId], references: [id])
-}
-
-model Category {
-  id      String   @id @default(uuid())
-  nameEn  String
-  nameAr  String
-  slug    String   @unique
-  books   Book[]
-  courses Course[]
-}
-
-model Book {
-  id            String   @id @default(uuid())
-  titleEn       String
-  titleAr       String
-  slug          String   @unique
-  descriptionEn String
-  descriptionAr String
-  priceUSD      Decimal  @db.Decimal(10, 2)
-  coverImageUrl String
-  r2FileKey     String // Private Cloudflare R2 Key
-  isFeatured    Boolean  @default(false)
-  isNewRelease  Boolean  @default(true)
-  categoryId    String
-  category      Category @relation(fields: [categoryId], references: [id])
-  
-  authorId      String?  // Linked to User table (Author)
-  author        User?    @relation("AuthorBooks", fields: [authorId], references: [id])
-
-  createdAt     DateTime @default(now())
-
-  cartItems  CartItem[]
-  orderItems OrderItem[]
-}
-
-model Course {
-  id            String   @id @default(uuid())
-  titleEn       String
-  titleAr       String
-  slug          String   @unique
-  descriptionEn String
-  descriptionAr String
-  isPaid        Boolean  @default(false)
-  priceUSD      Decimal  @default(0.00) @db.Decimal(10, 2)
-  thumbnailUrl  String
-  isPublished   Boolean  @default(false)
-  
-  // Grading weights configuration per course
-  quiz1Weight   Float    @default(15.0)
-  quiz2Weight   Float    @default(15.0)
-  assignWeight  Float    @default(10.0)
-  midtermWeight Float    @default(20.0)
-  finalWeight   Float    @default(40.0)
-
-  categoryId    String
-  category      Category @relation(fields: [categoryId], references: [id])
-  createdAt     DateTime @default(now())
-
-  sections      CourseSection[]
-  enrollments   Enrollment[]
-  grades        Grade[]
-}
-
-model CourseSection {
-  id       String    @id @default(uuid())
-  titleEn  String
-  titleAr  String
-  order    Int
-  courseId String
-  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lectures Lecture[]
-}
-
-model Lecture {
-  id            String         @id @default(uuid())
-  titleEn       String
-  titleAr       String
-  mediaType     MediaType      @default(VIDEO)
-  mediaUrl      String // Cloudflare Stream/R2 URL
-  durationSec   Int            @default(0)
-  isFreePreview Boolean        @default(false)
-  order         Int
-  sectionId     String
-  section       CourseSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  progress      CourseProgress[]
-}
-
-model Enrollment {
-  id        String       @id @default(uuid())
-  userId    String
-  courseId  String
-  status    AccessStatus @default(PENDING)
-  user      User         @relation(fields: [userId], references: [id])
-  course    Course       @relation(fields: [courseId], references: [id])
-  createdAt DateTime     @default(now())
-
-  @@unique([userId, courseId])
-}
-
-model Grade {
-  id         String   @id @default(uuid())
-  studentId  String
-  courseId   String
-  student    User     @relation("StudentGrades", fields: [studentId], references: [id], onDelete: Cascade)
-  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  quiz1      Float?   @default(0)
-  quiz2      Float?   @default(0)
-  assignment Float?   @default(0)
-  midterm    Float?   @default(0)
-  final      Float?   @default(0)
-  total      Float?   @default(0)
-  updatedAt  DateTime @updatedAt
-
-  @@unique([studentId, courseId])
-}
-
-model CourseProgress {
-  id          String   @id @default(uuid())
-  userId      String
-  lectureId   String
-  isCompleted Boolean  @default(true)
-  completedAt DateTime @default(now())
-
-  user    User    @relation(fields: [userId], references: [id])
-  lecture Lecture @relation(fields: [lectureId], references: [id])
-
-  @@unique([userId, lectureId])
-}
-
-model Cart {
-  id        String     @id @default(uuid())
-  userId    String     @unique
-  user      User       @relation(fields: [userId], references: [id])
-  items     CartItem[]
-  updatedAt DateTime   @updatedAt
-}
-
-model CartItem {
-  id     String @id @default(uuid())
-  cartId String
-  bookId String
-  quantity Int  @default(1)
-  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  book   Book   @relation(fields: [bookId], references: [id])
-}
-
-model Order {
-  id              String        @id @default(uuid())
-  orderNumber     String        @unique
-  userId          String
-  user            User          @relation(fields: [userId], references: [id])
-  totalUSD        Decimal       @db.Decimal(10, 2)
-  paidAmount      Decimal       @db.Decimal(10, 2)
-  currencyCode    String
-  exchangeRate    Decimal       @db.Decimal(12, 6)
-  status          OrderStatus   @default(ORDER_PLACED)
-  paymentMethod   PaymentMethod
-  paymentRef      String?
-  paymentProofUrl String?
-  rejectionReason String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  items        OrderItem[]
-  receipt      Receipt?
-  downloadLogs DownloadLog[]
-}
-
-model OrderItem {
-  id       String  @id @default(uuid())
-  orderId  String
-  bookId   String
-  priceUSD Decimal @db.Decimal(10, 2)
-  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  book     Book    @relation(fields: [bookId], references: [id])
-}
-
-model Receipt {
-  id        String   @id @default(uuid())
-  receiptNo String   @unique
-  orderId   String   @unique
-  order     Order    @relation(fields: [orderId], references: [id])
-  pdfUrl    String
-  issuedAt  DateTime @default(now())
-}
-
-model DownloadLog {
-  id           String   @id @default(uuid())
-  userId       String
-  orderId      String
-  bookId       String
-  downloadedAt DateTime @default(now())
-  ipAddress    String
-
-  user  User  @relation(fields: [userId], references: [id])
-  order Order @relation(fields: [orderId], references: [id])
-}
-
-model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  title     String
-  message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-}
-
-// ==========================================
-// PHASE 4: PUBLISHING SERVICES & AUTHOR PORTAL
-// ==========================================
-
 enum SubmissionStatus {
   SUBMITTED
   UNDER_REVIEW
@@ -320,52 +366,4 @@ enum SubmissionStatus {
   IN_PRODUCTION
   PUBLISHED
   REJECTED
-}
-
-model ManuscriptSubmission {
-  id             String           @id @default(uuid())
-  authorId       String
-  title          String
-  genre          String
-  description    String
-  manuscriptUrl  String
-  services       String[]
-  status         SubmissionStatus @default(SUBMITTED)
-  quoteAmount    Float?
-  quoteDetails   String?
-  assignedEditor String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-
-  user      User                 @relation(fields: [authorId], references: [id])
-  revisions ManuscriptRevision[]
-}
-
-model ManuscriptRevision {
-  id           String   @id @default(uuid())
-  submissionId String
-  fileUrl      String
-  notes        String?
-  createdAt    DateTime @default(now())
-
-  submission ManuscriptSubmission @relation(fields: [submissionId], references: [id])
-}
-
-// ==========================================
-// PHASE 5: NEWSLETTER & CAMPAIGNS
-// ==========================================
-
-model NewsletterSubscriber {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  isActive     Boolean  @default(true)
-  subscribedAt DateTime @default(now())
-}
-
-model NewsletterCampaign {
-  id        String   @id @default(uuid())
-  subject   String
-  content   String
-  category  String
-  sentAt    DateTime @default(now())
 }

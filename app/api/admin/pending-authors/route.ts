@@ -1,16 +1,65 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 
-const prisma = new PrismaClient();
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    await requireAdmin();
+
     const pendingAuthors = await prisma.user.findMany({
-      where: { role: 'AUTHOR', authorStatus: 'PENDING' },
-      select: { id: true, name: true, email: true, createdAt: true },
+      where: {
+        role: "AUTHOR",
+        authorStatus: "PENDING",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        authorStatus: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
     });
-    return NextResponse.json(pendingAuthors);
+
+    return NextResponse.json({
+      success: true,
+      data: pendingAuthors,
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Authentication required.",
+          },
+          { status: 401 }
+        );
+      }
+
+      if (error.message === "FORBIDDEN") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Administrator access required.",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    console.error("Pending authors error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Unable to load pending author applications.",
+      },
+      { status: 500 }
+    );
   }
 }
