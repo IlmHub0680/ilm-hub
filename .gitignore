@@ -1,7 +1,12 @@
 node_modules/
 .next/
+
 .env
 .env.local
+.env*.local
+.env.production
+.env*.production
+
 dist/
 build/
 *.log
@@ -10,3 +15,4 @@ build/
 .vercel
 
 /app/generated/prisma
+.prisma/

@@ -3,12 +3,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 
+
 // ============================================================
 // ILM HUB - STUDENT PORTAL
 // Complete Student Portal
 // ============================================================
 
 export default function LoginPage() {
+  
+  const supabase = null;
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState('');
+
   // ==========================================================
   // LOGIN
   // ==========================================================
@@ -18,8 +24,50 @@ export default function LoginPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // ==========================================================
+  // CHECK SUPABASE SESSION
+  // ==========================================================
+
+useEffect(() => {
+  let mounted = true;
+
+  const loadSession = async () => {
+    try {
+      const response = await fetch('/api/auth/me', {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      const data = await response.json();
+
+      if (!mounted) return;
+
+      setIsLoggedIn(Boolean(data?.user));
+    } catch (error) {
+      console.error('Session check error:', error);
+
+      if (mounted) {
+        setIsLoggedIn(false);
+      }
+    } finally {
+      if (mounted) {
+        setAuthLoading(false);
+      }
+    }
+  };
+
+  loadSession();
+
+  return () => {
+    mounted = false;
+  };
+}, []);
+
+
+  // ==========================================================
   // NAVIGATION
   // ==========================================================
+
 
   const [activeStudentTab, setActiveStudentTab] = useState('dashboard');
 
@@ -656,25 +704,69 @@ export default function LoginPage() {
   // LOGIN
   // ==========================================================
 
-  const handleLogin = (e) => {
-    e.preventDefault();
+const handleLogin = async (e) => {
+  e.preventDefault();
 
-    if (!email || !password) {
-      alert('Please fill in both fields.');
+  if (!email || !password) {
+    setAuthError('Please fill in both fields.');
+    return;
+  }
+
+  setAuthError('');
+  setAuthLoading(true);
+
+  try {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        email: email.trim(),
+        password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setAuthError(data?.error || 'Invalid email or password.');
+      setIsLoggedIn(false);
       return;
     }
 
     setIsLoggedIn(true);
-  };
+  } catch (error) {
+    console.error('Student login error:', error);
+    setAuthError('Unable to sign in. Please try again.');
+    setIsLoggedIn(false);
+  } finally {
+    setAuthLoading(false);
+  }
+};
+
+
 
   // ==========================================================
   // LOGOUT
   // ==========================================================
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setActiveStudentTab('dashboard');
-  };
+const handleLogout = async () => {
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
+
+  setIsLoggedIn(false);
+  setActiveStudentTab('dashboard');
+};
+
+
 
   // ==========================================================
   // COURSE REGISTRATION
@@ -1231,12 +1323,33 @@ export default function LoginPage() {
               />
             </div>
 
+{authError && (
+  <div
+    style={{
+      padding: '10px 12px',
+      backgroundColor: '#fef2f2',
+      border: '1px solid #fecaca',
+      borderRadius: '6px',
+      color: '#b91c1c',
+      fontSize: '13px',
+    }}
+  >
+    {authError}
+  </div>
+)}
+
             <button
-              type="submit"
-              style={styles.primaryButton}
-            >
-              Login as Student
-            </button>
+  type="submit"
+  disabled={authLoading}
+  style={{
+    ...styles.primaryButton,
+    opacity: authLoading ? 0.7 : 1,
+    cursor: authLoading ? 'not-allowed' : 'pointer',
+  }}
+>
+  {authLoading ? 'Signing In...' : 'Login as Student'}
+</button>
+
           </form>
 
           <div style={styles.loginFooter}>

@@ -1,14 +1,20 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { createLoginSession } from "@/lib/auth";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
     const name =
-      typeof body.name === "string" ? body.name.trim() : "";
+      typeof body.name === "string"
+        ? body.name.trim()
+        : "";
 
     const email =
       typeof body.email === "string"
@@ -24,27 +30,17 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "Name, email and password are required.",
+          error: "Name, email, and password are required.",
         },
         { status: 400 }
       );
     }
 
-    if (name.length < 2) {
+    if (password.length < 6) {
       return NextResponse.json(
         {
           success: false,
-          error: "Please provide a valid name.",
-        },
-        { status: 400 }
-      );
-    }
-
-    if (password.length < 8) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Password must be at least 8 characters.",
+          error: "Password must be at least 6 characters.",
         },
         { status: 400 }
       );
@@ -53,6 +49,9 @@ export async function POST(req: Request) {
     const existingUser = await prisma.user.findUnique({
       where: {
         email,
+      },
+      select: {
+        id: true,
       },
     });
 
@@ -68,23 +67,16 @@ export async function POST(req: Request) {
 
     const passwordHash = await bcrypt.hash(password, 12);
     const now = new Date();
-    const authorId = crypto.randomUUID();
 
-    const author = await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
-        id: authorId,
+        id: crypto.randomUUID(),
         name,
         email,
         passwordHash,
-        role: "AUTHOR",
+        role: "USER",
         authorStatus: "PENDING",
         updatedAt: now,
-
-        authorAdmission: {
-          create: {
-            status: "PENDING",
-          },
-        },
       },
       select: {
         id: true,
@@ -92,42 +84,26 @@ export async function POST(req: Request) {
         email: true,
         role: true,
         authorStatus: true,
-        createdAt: true,
-        authorAdmission: {
-          select: {
-            id: true,
-            status: true,
-            createdAt: true,
-          },
-        },
       },
     });
+
+    await createLoginSession(user.id);
 
     return NextResponse.json(
       {
         success: true,
-        message:
-          "Your author application has been submitted for review.",
-        data: {
-          authorId: author.id,
-          admissionId: author.authorAdmission?.id ?? null,
-          name: author.name,
-          email: author.email,
-          status: author.authorStatus,
-          admissionStatus:
-            author.authorAdmission?.status ?? "PENDING",
-          submittedAt: author.createdAt,
-        },
+        message: "Account created successfully.",
+        user,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error("Author registration error:", error);
+    console.error("Registration error:", error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "Unable to complete author registration.",
+        error: "Unable to create account.",
       },
       { status: 500 }
     );

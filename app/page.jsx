@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -82,12 +82,6 @@ export default function Home() {
   const [footerModal, setFooterModal] = useState(null);
 
   /* =========================================================
-     CART
-  ========================================================= */
-
-  const [cartCount] = useState(0);
-
-  /* =========================================================
      FOOTER CONTENT
   ========================================================= */
 
@@ -129,9 +123,7 @@ export default function Home() {
                 fontFamily: 'Georgia, serif',
                 fontSize: '21px',
               }}
-            >
-              وَقُلْ رَبِّ زِدْنِي عِلْمًا
-            </span>
+            >وَقُلْ رَبِّ زِدْنِي عِلْمًا</span>
 
             <br />
 
@@ -148,8 +140,8 @@ export default function Home() {
                 fontSize: '14px',
               }}
             >
-              Knowledge is a religion. We seek to learn it sincerely, understand
-              it responsibly, and share it beneficially.
+              Knowledge is a religion. We seek to learn it sincerely,
+              understand it responsibly, and share it beneficially.
             </span>
           </div>
         </>
@@ -187,7 +179,7 @@ export default function Home() {
             />
 
             <ResourceCard
-              icon="📝"
+              icon="📚"
               title="Academic Support"
               text="Contact the institute for questions relating to programmes, admissions or academic matters."
               action={() => setFooterModal('contact')}
@@ -369,7 +361,7 @@ export default function Home() {
 
           <div style={contactGridStyle}>
             <ContactItem
-              icon="📍"
+              icon="📚"
               title="Institute Address"
               text="Ilm-Hub Institute, [Street / Building Name], [Accra], [Ghana]"
             />
@@ -463,26 +455,12 @@ export default function Home() {
       ===================================================== */}
 
       <div style={topBar}>
-        <div
-          style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '15px',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div style={topBarInner}>
+
           <div>
             <strong>{currentDate}</strong>
 
-            <span
-              style={{
-                margin: '0 8px',
-                opacity: 0.5,
-              }}
-            >
+            <span style={topBarDivider}>
               |
             </span>
 
@@ -506,6 +484,7 @@ export default function Home() {
               (Umm al-Qura)
             </span>
           </div>
+
         </div>
       </div>
 
@@ -532,6 +511,8 @@ export default function Home() {
             </div>
           </Link>
 
+          {/* DESKTOP NAVIGATION */}
+
           <nav style={navStyle}>
 
             <NavLink href="/">
@@ -556,14 +537,9 @@ export default function Home() {
 
           </nav>
 
-          <div style={headerActions}>
+          {/* HEADER ACTIONS */}
 
-            <Link
-              href="/bookstore"
-              style={cartButton}
-            >
-              🛒 {cartCount}
-            </Link>
+          <div style={headerActions}>
 
             <Link
               href="/login"
@@ -576,38 +552,75 @@ export default function Home() {
 
         </div>
 
+        {/* MOBILE MENU BUTTON */}
+
+        <div className="mobile-menu-button-container">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={mobileMenuButton}
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
+          >
+            {mobileMenuOpen ? '✕' : '☰'}
+          </button>
+        </div>
+
         {/* MOBILE NAVIGATION */}
 
-        <div
-          style={{
-            display: 'none',
-          }}
-          className="mobile-menu-placeholder"
-        >
-          {mobileMenuOpen && (
-            <div>
-              <Link href="/" style={mobileNavLink}>
-                Home
-              </Link>
+        {mobileMenuOpen && (
+          <div style={mobileMenuContainer}>
 
-              <Link href="/programs" style={mobileNavLink}>
-                Academics
-              </Link>
+            <Link
+              href="/"
+              style={mobileNavLink}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Home
+            </Link>
 
-              <Link href="/bookstore" style={mobileNavLink}>
-                Bookstore
-              </Link>
+            <Link
+              href="/programs"
+              style={mobileNavLink}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Academics
+            </Link>
 
-              <Link href="/lectures" style={mobileNavLink}>
-                Lectures
-              </Link>
+            <Link
+              href="/bookstore"
+              style={mobileNavLink}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Bookstore
+            </Link>
 
-              <Link href="/admission" style={mobileNavLink}>
-                Admissions
-              </Link>
-            </div>
-          )}
-        </div>
+            <Link
+              href="/lectures"
+              style={mobileNavLink}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Lectures
+            </Link>
+
+            <Link
+              href="/admission"
+              style={mobileNavLink}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Admissions
+            </Link>
+
+            <Link
+              href="/login"
+              style={mobileNavLink}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Login
+            </Link>
+
+          </div>
+        )}
       </header>
 
       {/* =====================================================
@@ -631,22 +644,11 @@ export default function Home() {
           <p style={heroText}>
             A structured environment for students seeking authentic,
             beneficial and disciplined Islamic knowledge through qualified
-            instruction, classical texts, modern learning resources and academic programmes.
+            instruction, classical texts, modern learning resources and
+            academic programmes.
           </p>
 
-          {/* HERO BUTTONS */}
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '20px',
-              flexWrap: 'wrap',
-              width: '100%',
-              marginTop: '10px',
-            }}
-          >
+          <div style={heroButtonRow}>
 
             <Link
               href="/admission"
@@ -656,36 +658,15 @@ export default function Home() {
             </Link>
 
             <Link
-              href="/author-portal/admission"
-              style={heroSecondaryButton}
-            >
-              📚 Purchase & Sell Your Books
-            </Link>
-
-            <Link
               href="/admin"
               style={heroSecondaryButton}
             >
-              ⚙ Admin Portal
+⚙ Admin Portal
             </Link>
 
           </div>
 
-          {/* HERO FEATURES UNDER BUTTONS */}
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '21px',
-              flexWrap: 'wrap',
-              marginTop: '29px',
-              color: '#c4d4cb',
-              fontSize: '14px',
-              textAlign: 'center',
-            }}
-          >
+          <div style={heroFeatures}>
 
             <span>✓ Structured curriculum</span>
             <span>✓ Online learning</span>
@@ -698,7 +679,7 @@ export default function Home() {
       </section>
 
       {/* =====================================================
-          WELCOME / INSTITUTE INTRODUCTION
+          WELCOME
       ===================================================== */}
 
       <section style={sectionStyle}>
@@ -743,7 +724,7 @@ export default function Home() {
           />
 
           <FeatureCard
-            icon="🌍"
+            icon="🌐"
             title="Learning Without Borders"
             text="Access educational opportunities and digital resources designed to support students wherever they are."
           />
@@ -752,7 +733,7 @@ export default function Home() {
       </section>
 
       {/* =====================================================
-          ACADEMICS / PROGRAMMES
+          ACADEMICS
       ===================================================== */}
 
       <section style={greenSection}>
@@ -786,7 +767,7 @@ export default function Home() {
             />
 
             <MiniFeature
-              icon="📜"
+              icon="📚"
               text="Hadith Studies"
             />
 
@@ -806,7 +787,7 @@ export default function Home() {
             />
 
             <MiniFeature
-              icon="☝️"
+              icon="☪️"
               text="Tauheed (Monotheism)"
             />
 
@@ -814,6 +795,7 @@ export default function Home() {
               icon="🌱"
               text="Tarbiyah (Education)"
             />
+
           </div>
 
           <Link
@@ -845,6 +827,7 @@ export default function Home() {
               style={{
                 ...sectionTitle,
                 textAlign: 'left',
+                whiteSpace: 'normal',
               }}
             >
               Academic Bookstore
@@ -928,8 +911,7 @@ export default function Home() {
             href="/lectures"
             style={mainButton}
           >
-            Open Lectures & Media →
-          </Link>
+            Open →</Link>
 
         </div>
 
@@ -1022,7 +1004,6 @@ export default function Home() {
           </div>
 
         </div>
-
       </section>
 
       {/* =====================================================
@@ -1046,6 +1027,7 @@ export default function Home() {
                 </div>
 
                 <div>
+
                   <div style={footerBrandName}>
                     Ilm-Hub Institute
                   </div>
@@ -1053,6 +1035,7 @@ export default function Home() {
                   <div style={footerBrandTagline}>
                     SEEK • LEARN • BENEFIT
                   </div>
+
                 </div>
 
               </div>
@@ -1064,47 +1047,19 @@ export default function Home() {
               </p>
 
               <p style={footerArabic}>
-                وَقُلْ رَبِّ زِدْنِي عِلْمًا
-              </p>
+                وَقُلْ رَبِّ زِدْنِي عِلْمًا</p>
 
-              <p
-                style={{
-                  color: '#94a3b8',
-                  fontSize: '13px',
-                  lineHeight: 1.7,
-                  margin: '8px 0 0',
-                  maxWidth: '390px',
-                }}
-              >
+              <p style={footerQuote}>
                 “And say: My Lord, increase me in knowledge.”
               </p>
 
-              <div
-                style={{
-                  marginTop: '16px',
-                  paddingTop: '16px',
-                  borderTop: '1px solid #1e293b',
-                  maxWidth: '390px',
-                }}
-              >
+              <div style={footerPrinciple}>
 
-                <strong
-                  style={{
-                    color: '#f8fafc',
-                    fontSize: '13px',
-                  }}
-                >
+                <strong style={footerPrincipleTitle}>
                   Our guiding principle
                 </strong>
 
-                <p
-                  style={{
-                    margin: '7px 0 0',
-                    color: '#94a3b8',
-                    fontSize: '12px',
-                    lineHeight: 1.7,
-                  }}
-                >
+                <p style={footerPrincipleText}>
                   Knowledge is a trust. We seek to learn it sincerely,
                   understand it responsibly, and share it beneficially.
                 </p>
@@ -1147,10 +1102,6 @@ export default function Home() {
 
               <FooterLink href="/bookstore">
                 Bookstore
-              </FooterLink>
-
-              <FooterLink href="/author-portal/admission">
-                Purchase & Sell Your Books
               </FooterLink>
 
               <FooterLink href="/bookstore">
@@ -1241,7 +1192,7 @@ export default function Home() {
           <div style={footerContactStrip}>
 
             <div>
-              <span>📍</span>
+              <span>📚</span>
               <strong> Address:</strong> [Accra-Ghana]
             </div>
 
@@ -1283,7 +1234,7 @@ export default function Home() {
       </footer>
 
       {/* =====================================================
-          MODAL
+          FOOTER MODAL
       ===================================================== */}
 
       {footerModal && footerContent[footerModal] && (
@@ -1308,9 +1259,9 @@ export default function Home() {
                 onClick={() => setFooterModal(null)}
                 style={closeButton}
                 aria-label="Close"
+                type="button"
               >
-                ×
-              </button>
+                ✕</button>
 
             </div>
 
@@ -1323,6 +1274,41 @@ export default function Home() {
         </div>
 
       )}
+
+      {/* =====================================================
+          RESPONSIVE STYLES
+      ===================================================== */}
+
+      <style jsx>{`
+
+        .mobile-menu-button-container {
+          display: none;
+          padding: 0 24px 15px;
+        }
+
+        @media (max-width: 900px) {
+
+          nav {
+            display: none !important;
+          }
+
+          .mobile-menu-button-container {
+            display: flex;
+            justify-content: flex-end;
+          }
+
+        }
+
+        @media (max-width: 700px) {
+
+          .mobile-menu-button-container {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+
+        }
+
+      `}</style>
 
     </div>
   );
@@ -1343,6 +1329,7 @@ function NavLink({ href, children }) {
 function FooterColumn({ title, children }) {
   return (
     <div>
+
       <h3 style={footerHeading}>
         {title}
       </h3>
@@ -1350,6 +1337,7 @@ function FooterColumn({ title, children }) {
       <div style={footerColumnLinks}>
         {children}
       </div>
+
     </div>
   );
 }
@@ -1467,8 +1455,7 @@ function ResourceCard({
           href={link}
           style={resourceLink}
         >
-          Open →
-        </Link>
+          Open →</Link>
       )}
 
       {action && (
@@ -1477,8 +1464,7 @@ function ResourceCard({
           style={resourceAction}
           type="button"
         >
-          Contact Institute →
-        </button>
+          Contact Institute →</button>
       )}
 
     </div>
@@ -1553,6 +1539,21 @@ const topBar = {
   color: '#e2e8f0',
   padding: '9px 20px',
   fontSize: '12px',
+};
+
+const topBarInner = {
+  maxWidth: '1200px',
+  margin: '0 auto',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: '15px',
+  flexWrap: 'wrap',
+};
+
+const topBarDivider = {
+  margin: '0 8px',
+  opacity: 0.5,
 };
 
 const headerStyle = {
@@ -1631,24 +1632,33 @@ const mobileNavLink = {
   display: 'block',
   color: '#334155',
   textDecoration: 'none',
-  padding: '10px 15px',
+  padding: '12px 15px',
+  borderBottom: '1px solid #e2e8f0',
+  fontWeight: '700',
+};
+
+const mobileMenuButton = {
+  border: '1px solid #dbe4e8',
+  background: '#f8fafc',
+  color: '#14532d',
+  width: '42px',
+  height: '42px',
+  borderRadius: '9px',
+  cursor: 'pointer',
+  fontSize: '21px',
+  fontWeight: '800',
+};
+
+const mobileMenuContainer = {
+  borderTop: '1px solid #e2e8f0',
+  background: '#fff',
+  padding: '5px 0',
 };
 
 const headerActions = {
   display: 'flex',
   gap: '8px',
   alignItems: 'center',
-};
-
-const cartButton = {
-  textDecoration: 'none',
-  background: '#f8fafc',
-  border: '1px solid #e2e8f0',
-  color: '#334155',
-  padding: '9px 13px',
-  borderRadius: '8px',
-  fontWeight: '800',
-  fontSize: '13px',
 };
 
 const loginButton = {
@@ -1697,11 +1707,6 @@ const heroBadge = {
   marginBottom: '22px',
 };
 
-/* ============================================================
-   ONLY CHANGE #1:
-   Reduced the hero title so it fits in one line.
-============================================================ */
-
 const heroTitle = {
   fontFamily: 'Georgia,serif',
   fontSize: 'clamp(29px,4.2vw,50px)',
@@ -1718,6 +1723,16 @@ const heroText = {
   fontSize: '19px',
   lineHeight: 1.85,
   color: '#dbeafe',
+};
+
+const heroButtonRow = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  gap: '20px',
+  flexWrap: 'wrap',
+  width: '100%',
+  marginTop: '10px',
 };
 
 const heroPrimaryButton = {
@@ -1741,6 +1756,18 @@ const heroSecondaryButton = {
   border: '1px solid rgba(255,255,255,.6)',
   fontWeight: '800',
   fontSize: '14px',
+};
+
+const heroFeatures = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  gap: '21px',
+  flexWrap: 'wrap',
+  marginTop: '29px',
+  color: '#c4d4cb',
+  fontSize: '14px',
+  textAlign: 'center',
 };
 
 const sectionStyle = {
@@ -1980,11 +2007,6 @@ const ctaInner = {
   textAlign: 'center',
 };
 
-/* ============================================================
-   ONLY CHANGE #2:
-   Smaller, more elegant font for the BISMILLAH line.
-============================================================ */
-
 const arabic = {
   fontFamily: 'Georgia, "Times New Roman", serif',
   color: '#f4d58d',
@@ -2068,6 +2090,33 @@ const footerArabic = {
   color: '#c59d5f',
   fontSize: '18px',
   marginBottom: '0',
+};
+
+const footerQuote = {
+  color: '#94a3b8',
+  fontSize: '13px',
+  lineHeight: 1.7,
+  margin: '8px 0 0',
+  maxWidth: '390px',
+};
+
+const footerPrinciple = {
+  marginTop: '16px',
+  paddingTop: '16px',
+  borderTop: '1px solid #1e293b',
+  maxWidth: '390px',
+};
+
+const footerPrincipleTitle = {
+  color: '#f8fafc',
+  fontSize: '13px',
+};
+
+const footerPrincipleText = {
+  margin: '7px 0 0',
+  color: '#94a3b8',
+  fontSize: '12px',
+  lineHeight: 1.7,
 };
 
 const footerHeading = {
@@ -2282,3 +2331,23 @@ const faqAnswer = {
   color: '#64748b',
   lineHeight: 1.7,
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

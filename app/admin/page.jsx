@@ -2,12 +2,14 @@
 
 'use client';
 
+
 // ==========================================
 // ACADEMIC & CURRICULUM MANAGEMENT SYSTEM
 // (Multi-Portal Login, Staff & Instructor Management, LMS, Finance & Governance)
 // ==========================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+
 
 // ==========================================
 // 1. MOCK DATA & DEFAULT STRUCTURES
@@ -1077,7 +1079,112 @@ function AdminPortal({
   // STATE
   // ==========================================
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+const [activeTab, setActiveTab] = useState('dashboard');
+
+const [pendingAuthors, setPendingAuthors] = useState([]);
+const [authorsLoading, setAuthorsLoading] = useState(false);
+const [authorActionLoading, setAuthorActionLoading] = useState(null);
+const [authorError, setAuthorError] = useState('');
+const [authorSuccess, setAuthorSuccess] = useState('');
+
+const loadPendingAuthors = async () => {
+    setAuthorsLoading(true);
+    setAuthorError('');
+
+    try {
+      const res = await fetch('/api/admin/pending-authors', {
+        method: 'GET',
+        cache: 'no-store'
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.success) {
+        throw new Error(
+          data?.error ||
+            'Unable to load pending author applications.'
+        );
+      }
+
+      setPendingAuthors(
+        Array.isArray(data.data) ? data.data : []
+      );
+    } catch (error) {
+      console.error(
+        'Load pending authors error:',
+        error
+      );
+
+      setAuthorError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to load pending author applications.'
+      );
+    } finally {
+      setAuthorsLoading(false);
+    }
+  };
+
+
+  const approveAuthor = async (userId) => {
+    setAuthorActionLoading(userId);
+    setAuthorError('');
+    setAuthorSuccess('');
+
+    try {
+      const res = await fetch(
+        '/api/admin/approve-author',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userId
+          })
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.success) {
+        throw new Error(
+          data?.error ||
+            'Unable to approve author.'
+        );
+      }
+
+      setPendingAuthors(current =>
+        current.filter(
+          author => author.id !== userId
+        )
+      );
+
+      setAuthorSuccess(
+        `${data?.data?.name || 'Author'} has been approved successfully.`
+      );
+    } catch (error) {
+      console.error(
+        'Approve author error:',
+        error
+      );
+
+      setAuthorError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to approve author.'
+      );
+    } finally {
+      setAuthorActionLoading(null);
+    }
+  };
+
+
+  useEffect(() => {
+    if (activeTab === 'authors') {
+      loadPendingAuthors();
+    }
+  }, [activeTab]);
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -2384,7 +2491,7 @@ function AdminPortal({
   // NAVIGATION
   // ==========================================
 
-  const navigationGroups = [
+      const navigationGroups = [
     {
       label: 'Overview',
       items: [
@@ -2417,13 +2524,14 @@ function AdminPortal({
     {
       label: 'Institutional Control',
       items: [
+        ['authors', 'Authors & Admissions'],
         ['settings', 'Academic Settings'],
         ['reports', 'Reports & Audit Logs']
       ]
     }
   ];
 
-  const pageMeta = {
+      const pageMeta = {
     dashboard: {
       title: 'Administrator Dashboard',
       description:
@@ -2466,6 +2574,12 @@ function AdminPortal({
         'Review curriculum proposals and instructor grade submissions.'
     },
 
+    authors: {
+      title: 'Authors & Admissions',
+      description:
+        'Review author applications, approve authors and manage the institutional author admission pipeline.'
+    },
+
     private: {
       title: 'Private Courses',
       description:
@@ -2502,6 +2616,7 @@ function AdminPortal({
         'Generate institutional reports and review the system audit trail.'
     }
   };
+
 
   // ==========================================
   // RENDER
@@ -4514,7 +4629,245 @@ function AdminPortal({
 
             </div>
 
+                  )}
+
+                    {/* ====================================
+              AUTHORS & ADMISSIONS
+          ==================================== */}
+
+          {activeTab === 'authors' && (
+
+            <div style={adminStyles.section}>
+
+              <h3 style={adminStyles.sectionTitle}>
+                Authors & Admissions
+              </h3>
+
+              <p style={adminStyles.sectionSubtitle}>
+                Review author applications, approve qualified authors,
+                and manage access to the institutional publishing system.
+              </p>
+
+              {authorError && (
+                <div
+                  style={{
+                    marginBottom: '16px',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    background: '#FDEDEC',
+                    border: '1px solid #E6B0AA',
+                    color: '#922B21',
+                    fontWeight: 600
+                  }}
+                >
+                  {authorError}
+                </div>
+              )}
+
+              {authorSuccess && (
+                <div
+                  style={{
+                    marginBottom: '16px',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    background: '#EAF7F0',
+                    border: '1px solid #A9D8BE',
+                    color: '#075C35',
+                    fontWeight: 600
+                  }}
+                >
+                  {authorSuccess}
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '16px',
+                  flexWrap: 'wrap',
+                  marginBottom: '20px'
+                }}
+              >
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: '14px',
+                      color: adminTheme.muted
+                    }}
+                  >
+                    Pending Applications
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: '28px',
+                      fontWeight: 800,
+                      color: adminTheme.deepGreen
+                    }}
+                  >
+                    {pendingAuthors.length}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  style={adminStyles.primaryButton}
+                  onClick={loadPendingAuthors}
+                  disabled={authorsLoading}
+                >
+                  {authorsLoading
+                    ? 'Refreshing...'
+                    : 'Refresh Applications'}
+                </button>
+
+              </div>
+
+              {authorsLoading ? (
+
+                <div
+                  style={{
+                    padding: '30px',
+                    textAlign: 'center',
+                    color: adminTheme.muted
+                  }}
+                >
+                  Loading author applications...
+                </div>
+
+              ) : pendingAuthors.length === 0 ? (
+
+                <div
+                  style={{
+                    padding: '30px',
+                    textAlign: 'center',
+                    background: adminTheme.lightGreen,
+                    border: `1px solid ${adminTheme.border}`,
+                    borderRadius: '10px',
+                    color: adminTheme.text
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '18px',
+                      fontWeight: 700,
+                      marginBottom: '6px'
+                    }}
+                  >
+                    No Pending Author Applications
+                  </div>
+
+                  <div
+                    style={{
+                      color: adminTheme.muted
+                    }}
+                  >
+                    There are currently no author applications
+                    waiting for administrator review.
+                  </div>
+                </div>
+
+              ) : (
+
+                <div style={adminStyles.tableWrapper}>
+
+                  <table style={adminStyles.table}>
+
+                    <thead>
+                      <tr>
+
+                        <th style={adminStyles.th}>
+                          Author
+                        </th>
+
+                        <th style={adminStyles.th}>
+                          Email
+                        </th>
+
+                        <th style={adminStyles.th}>
+                          Application Status
+                        </th>
+
+                        <th style={adminStyles.th}>
+                          Submitted
+                        </th>
+
+                        <th style={adminStyles.th}>
+                          Actions
+                        </th>
+
+                      </tr>
+                    </thead>
+
+                    <tbody>
+
+                      {pendingAuthors.map(author => (
+
+                        <tr key={author.id}>
+
+                          <td style={adminStyles.td}>
+                            <strong>
+                              {author.name || 'Unnamed Author'}
+                            </strong>
+                          </td>
+
+                          <td style={adminStyles.td}>
+                            {author.email}
+                          </td>
+
+                          <td style={adminStyles.td}>
+                            {renderStatus(
+                              author.authorStatus || 'PENDING'
+                            )}
+                          </td>
+
+                          <td style={adminStyles.td}>
+                            {author.createdAt
+                              ? new Date(
+                                  author.createdAt
+                                ).toLocaleDateString()
+                              : '—'}
+                          </td>
+
+                          <td style={adminStyles.td}>
+
+                            <button
+                              type="button"
+                              style={adminStyles.smallButton}
+                              disabled={
+                                authorActionLoading ===
+                                author.id
+                              }
+                              onClick={() =>
+                                approveAuthor(author.id)
+                              }
+                            >
+                              {authorActionLoading ===
+                              author.id
+                                ? 'Approving...'
+                                : 'Approve Author'}
+                            </button>
+
+                          </td>
+
+                        </tr>
+
+                      ))}
+
+                    </tbody>
+
+                  </table>
+
+                </div>
+
+              )}
+
+            </div>
+
           )}
+
 
 
           {/* ====================================
@@ -4522,6 +4875,7 @@ function AdminPortal({
           ==================================== */}
 
           {activeTab === 'approvals' && (
+
 
             <div style={adminStyles.section}>
 

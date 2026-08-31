@@ -1,43 +1,160 @@
 generator client {
-  provider = "prisma-client"
-  output = "../generated/prisma"
-  importFileExtension = "ts"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id                    String                   @id @default(uuid())
-  name                  String
-  email                 String                   @unique
-  emailVerified         DateTime?
-  passwordHash          String
-  role                  Role                     @default(USER)
-  authorStatus          AuthorStatus             @default(PENDING)
-  preferredLanguage     Language                 @default(EN)
-  countryId             String?
-  createdAt             DateTime                 @default(now())
-  updatedAt             DateTime                 @updatedAt
+model Book {
+  id            String       @id @default(cuid())
+  titleEn       String
+  titleAr       String
+  slug          String       @unique
+  descriptionEn String
+  descriptionAr String
+  priceUSD      Decimal      @db.Decimal(10, 2)
+  coverImageUrl String
+  r2FileKey     String
+  isFeatured    Boolean      @default(false)
+  isNewRelease  Boolean      @default(true)
+  categoryId    String
+  authorId      String?
+  createdAt     DateTime     @default(now())
+  author        User?        @relation(fields: [authorId], references: [id])
+  category      Category     @relation(fields: [categoryId], references: [id])
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  bookAccess    BookAccess[]
 
-  authoredBooks         Book[]                   @relation("BookAuthor")
-  sellingBooks          Book[]                   @relation("BookSeller")
-  reviewedBooks         Book[]                   @relation("BookReviewer")
+  @@index([authorId])
+  @@index([categoryId])
+}
 
-  cart                  Cart?
-  courseProgress        CourseProgress[]
-  downloadLogs          DownloadLog[]
-  enrollments           Enrollment[]
-  manuscriptSubmissions ManuscriptSubmission[]
-  notifications         Notification[]
-  orders                Order[]
+model Order {
+  id              String          @id @default(cuid())
+  orderNumber     String          @unique
+  userId          String
+  totalUSD        Decimal         @db.Decimal(10, 2)
+  paidAmount      Decimal         @db.Decimal(10, 2)
+  currencyCode    String
+  exchangeRate    Decimal         @db.Decimal(12, 6)
+  status          OrderStatus     @default(ORDER_PLACED)
+  paymentMethod   PaymentMethod
+  paymentRef      String?         @unique
+  paymentProofUrl String?
+  rejectionReason String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  approvedAt      DateTime?
+  paidAt          DateTime?
+  paymentGateway  PaymentGateway?
+  paymentStatus   PaymentStatus   @default(PENDING)
+  rejectedAt      DateTime?
+  downloads       DownloadLog[]
+  user            User            @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+  payments        Payment[]
+  receipt         Receipt?
+  bookAccess      BookAccess[]
 
-  country               Country?                 @relation(fields: [countryId], references: [id])
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([paymentGateway])
+  @@index([createdAt])
+}
+
+model Payment {
+  id                String         @id @default(cuid())
+  orderId           String
+  gateway           PaymentGateway
+  method            PaymentMethod
+  status            PaymentStatus  @default(PENDING)
+  amount            Decimal        @db.Decimal(10, 2)
+  currencyCode      String
+  exchangeRate      Decimal        @db.Decimal(12, 6)
+  gatewayReference  String?
+  checkoutReference String?
+  transactionId     String?
+  authorizationUrl  String?
+  paidAt            DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  order             Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([gateway])
+  @@index([status])
+  @@index([gatewayReference])
+  @@index([transactionId])
+}
+
+model OrderItem {
+  id       String  @id @default(cuid())
+  orderId  String
+  bookId   String
+  priceUSD Decimal @db.Decimal(10, 2)
+  quantity Int     @default(1)
+  book     Book    @relation(fields: [bookId], references: [id])
+  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([bookId])
+}
+
+model BookAccess {
+  id         String    @id @default(cuid())
+  userId     String
+  bookId     String
+  orderId    String
+  approvedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book  Book  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId, orderId])
+  @@index([userId])
+  @@index([bookId])
+  @@index([orderId])
+}
+
+model Cart {
+  id        String     @id
+  userId    String     @unique
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
+  id       String @id
+  cartId   String
+  bookId   String
+  quantity Int    @default(1)
+  book     Book   @relation(fields: [bookId], references: [id])
+  cart     Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, bookId])
+  @@index([cartId])
+  @@index([bookId])
+}
+
+model Category {
+  id      String   @id
+  nameEn  String
+  nameAr  String
+  slug    String   @unique
+  books   Book[]
+  courses Course[]
 }
 
 model Country {
-  id             String        @id @default(uuid())
+  id             String        @id
   code           String        @unique
   name           String
   currencyCode   String
@@ -47,65 +164,16 @@ model Country {
 }
 
 model ExchangeRate {
-  id           String   @id @default(uuid())
+  id           String   @id
   currencyCode String   @unique
   rateToUSD    Decimal  @db.Decimal(12, 6)
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime
   countryId    String   @unique
-
-  country      Country  @relation(fields: [countryId], references: [id])
-}
-
-model Category {
-  id      String   @id @default(uuid())
-  nameEn  String
-  nameAr  String
-  slug    String   @unique
-
-  books   Book[]
-  courses Course[]
-}
-
-model Book {
-  id              String      @id @default(uuid())
-  titleEn         String
-  titleAr         String
-  slug            String      @unique
-  descriptionEn   String
-  descriptionAr   String
-  priceUSD        Decimal     @db.Decimal(10, 2)
-  coverImageUrl   String
-  r2FileKey       String
-  isFeatured      Boolean     @default(false)
-  isNewRelease    Boolean     @default(true)
-  categoryId      String
-  authorId        String?
-  sellerId        String?
-  status          BookStatus  @default(APPROVED)
-  reviewedById    String?
-  reviewedAt      DateTime?
-  rejectionReason String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-
-  author          User?       @relation("BookAuthor", fields: [authorId], references: [id])
-  seller          User?       @relation("BookSeller", fields: [sellerId], references: [id])
-  reviewedBy      User?       @relation("BookReviewer", fields: [reviewedById], references: [id])
-  category        Category    @relation(fields: [categoryId], references: [id])
-
-  cartItems       CartItem[]
-  orderItems      OrderItem[]
-
-  @@index([status])
-  @@index([sellerId])
-  @@index([authorId])
-  @@index([reviewedById])
-  @@index([categoryId])
-  @@index([createdAt])
+  country      Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
 }
 
 model Course {
-  id            String          @id @default(uuid())
+  id            String          @id
   titleEn       String
   titleAr       String
   slug          String          @unique
@@ -117,209 +185,209 @@ model Course {
   isPublished   Boolean         @default(false)
   categoryId    String
   createdAt     DateTime        @default(now())
-
   category      Category        @relation(fields: [categoryId], references: [id])
   sections      CourseSection[]
   enrollments   Enrollment[]
-}
 
-model CourseSection {
-  id       String    @id @default(uuid())
-  titleEn  String
-  titleAr  String
-  order    Int
-  courseId String
-
-  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lectures Lecture[]
-}
-
-model Lecture {
-  id            String         @id @default(uuid())
-  titleEn       String
-  titleAr       String
-  mediaType     MediaType      @default(VIDEO)
-  mediaUrl      String
-  durationSec   Int            @default(0)
-  isFreePreview Boolean        @default(false)
-  order         Int
-  sectionId     String
-
-  progress      CourseProgress[]
-  section       CourseSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-}
-
-model Enrollment {
-  id        String       @id @default(uuid())
-  userId    String
-  courseId  String
-  status    AccessStatus @default(PENDING)
-  createdAt DateTime     @default(now())
-
-  course    Course       @relation(fields: [courseId], references: [id])
-  user      User         @relation(fields: [userId], references: [id])
-
-  @@unique([userId, courseId])
+  @@index([categoryId])
 }
 
 model CourseProgress {
-  id          String   @id @default(uuid())
+  id          String   @id
   userId      String
   lectureId   String
   isCompleted Boolean  @default(true)
   completedAt DateTime @default(now())
-
-  lecture     Lecture  @relation(fields: [lectureId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  lecture     Lecture  @relation(fields: [lectureId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lectureId])
+  @@index([userId])
+  @@index([lectureId])
 }
 
-model Cart {
-  id        String     @id @default(uuid())
-  userId    String     @unique
-  updatedAt DateTime   @updatedAt
+model CourseSection {
+  id       String    @id
+  titleEn  String
+  titleAr  String
+  order    Int
+  courseId String
+  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lectures Lecture[]
 
-  user      User       @relation(fields: [userId], references: [id])
-  items     CartItem[]
+  @@index([courseId])
 }
 
-model CartItem {
-  id       String @id @default(uuid())
-  cartId   String
-  bookId   String
-  quantity Int    @default(1)
+model Lecture {
+  id            String           @id
+  titleEn       String
+  titleAr       String
+  mediaType     MediaType        @default(VIDEO)
+  mediaUrl      String
+  durationSec   Int              @default(0)
+  isFreePreview Boolean          @default(false)
+  order         Int
+  sectionId     String
+  progress      CourseProgress[]
+  section       CourseSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
-  book     Book   @relation(fields: [bookId], references: [id])
-  cart     Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
-}
-
-model Order {
-  id              String        @id @default(uuid())
-  orderNumber     String        @unique
-  userId          String
-  totalUSD        Decimal       @db.Decimal(10, 2)
-  paidAmount      Decimal       @db.Decimal(10, 2)
-  currencyCode    String
-  exchangeRate    Decimal       @db.Decimal(12, 6)
-  status          OrderStatus   @default(ORDER_PLACED)
-  paymentMethod   PaymentMethod
-  paymentRef      String?
-  paymentProofUrl String?
-  rejectionReason String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  downloadLogs    DownloadLog[]
-  user            User          @relation(fields: [userId], references: [id])
-  items           OrderItem[]
-  receipt         Receipt?
-}
-
-model OrderItem {
-  id       String  @id @default(uuid())
-  orderId  String
-  bookId   String
-  priceUSD Decimal @db.Decimal(10, 2)
-
-  book     Book    @relation(fields: [bookId], references: [id])
-  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-}
-
-model Receipt {
-  id        String   @id @default(uuid())
-  receiptNo String   @unique
-  orderId   String   @unique
-  pdfUrl    String
-  issuedAt  DateTime @default(now())
-
-  order     Order    @relation(fields: [orderId], references: [id])
+  @@index([sectionId])
 }
 
 model DownloadLog {
-  id           String   @id @default(uuid())
+  id           String   @id
   userId       String
   orderId      String
   bookId       String
   downloadedAt DateTime @default(now())
   ipAddress    String
-
   order        Order    @relation(fields: [orderId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([bookId])
 }
 
-model Notification {
-  id        String   @id @default(uuid())
+model Enrollment {
+  id        String       @id
   userId    String
-  title     String
-  message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  courseId  String
+  status    AccessStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  course    Course       @relation(fields: [courseId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
 
-  user      User     @relation(fields: [userId], references: [id])
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+model ManuscriptRevision {
+  id           String               @id
+  submissionId String
+  fileUrl      String
+  notes        String?
+  createdAt    DateTime             @default(now())
+  submission   ManuscriptSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
 }
 
 model ManuscriptSubmission {
-  id             String             @id @default(uuid())
+  id             String               @id
   authorId       String
   title          String
   genre          String
   description    String
   manuscriptUrl  String
   services       String[]
-  status         SubmissionStatus   @default(SUBMITTED)
+  status         SubmissionStatus     @default(SUBMITTED)
   quoteAmount    Float?
   quoteDetails   String?
   assignedEditor String?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
   revisions      ManuscriptRevision[]
-  user           User               @relation(fields: [authorId], references: [id])
-}
+  author         User                 @relation(fields: [authorId], references: [id])
 
-model ManuscriptRevision {
-  id           String               @id @default(uuid())
-  submissionId String
-  fileUrl      String
-  notes        String?
-  createdAt    DateTime             @default(now())
-
-  submission   ManuscriptSubmission @relation(fields: [submissionId], references: [id])
-}
-
-model NewsletterSubscriber {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  isActive     Boolean  @default(true)
-  subscribedAt DateTime @default(now())
+  @@index([authorId])
+  @@index([status])
 }
 
 model NewsletterCampaign {
-  id       String   @id @default(uuid())
+  id       String   @id
   subject  String
   content  String
   category String
   sentAt   DateTime @default(now())
 }
 
-enum Role {
-  USER
-  AUTHOR
-  ADMIN
-  SUPER_ADMIN
+model NewsletterSubscriber {
+  id           String   @id
+  email        String   @unique
+  isActive     Boolean  @default(true)
+  subscribedAt DateTime @default(now())
 }
 
-enum AuthorStatus {
-  PENDING
-  APPROVED
-  REJECTED
+model Notification {
+  id        String   @id
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
 }
 
-enum BookStatus {
-  PENDING_REVIEW
-  APPROVED
-  REJECTED
+model Receipt {
+  id        String   @id
+  receiptNo String   @unique
+  orderId   String   @unique
+  pdfUrl    String
+  issuedAt  DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                String                 @id
+  name              String
+  email             String                 @unique
+  emailVerified     DateTime?
+  passwordHash      String
+  role              Role                   @default(USER)
+  authorStatus      AuthorStatus           @default(PENDING)
+  preferredLanguage Language               @default(EN)
+  countryId         String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  authorAdmission   AuthorAdmission?
+  books             Book[]
+  cart              Cart?
+  bookAccess        BookAccess[]
+  courseProgress    CourseProgress[]
+  downloads         DownloadLog[]
+  enrollments       Enrollment[]
+  manuscripts       ManuscriptSubmission[]
+  notifications     Notification[]
+  orders            Order[]
+  country           Country?               @relation(fields: [countryId], references: [id])
+
+  @@index([countryId])
+  @@index([role])
+}
+
+model AuthorAdmission {
+  id        String          @id @default(cuid())
+  userId    String          @unique
+  status    AdmissionStatus @default(PENDING)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment   AuthorPayment?
+}
+
+model AuthorPayment {
+  id                String          @id @default(cuid())
+  admissionId       String          @unique
+  gateway           PaymentGateway
+  status            PaymentStatus   @default(PENDING)
+  amount            Decimal         @db.Decimal(10, 2)
+  currencyCode      String
+  exchangeRate      Decimal         @db.Decimal(12, 6)
+  gatewayReference  String?
+  checkoutReference String?
+  checkoutUrl       String?
+  paidAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  admission         AuthorAdmission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+
+  @@index([gateway])
+  @@index([status])
+  @@index([gatewayReference])
 }
 
 enum OrderStatus {
@@ -333,10 +401,46 @@ enum OrderStatus {
   REJECTED
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum PaymentGateway {
+  STRIPE
+  PAYSTACK
+}
+
 enum AccessStatus {
   PENDING
   APPROVED
   REVOKED
+}
+
+enum AuthorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AdmissionStatus {
+  PENDING
+  PAID
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum Language {
+  EN
+  AR
+}
+
+enum MediaType {
+  VIDEO
+  AUDIO
 }
 
 enum PaymentMethod {
@@ -348,14 +452,11 @@ enum PaymentMethod {
   BANK_TRANSFER
 }
 
-enum Language {
-  EN
-  AR
-}
-
-enum MediaType {
-  VIDEO
-  AUDIO
+enum Role {
+  USER
+  AUTHOR
+  ADMIN
+  SUPER_ADMIN
 }
 
 enum SubmissionStatus {

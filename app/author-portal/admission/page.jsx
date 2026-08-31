@@ -540,7 +540,9 @@ function StatCard({ label, value, description, icon, color }) {
 }
 
 export default function AuthorPortal() {
-  const [viewMode, setViewMode] = useState("login");
+ const [viewMode, setViewMode] = useState("login");
+const [currentUser, setCurrentUser] = useState(null);
+
   const [mobileMenu, setMobileMenu] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -679,31 +681,93 @@ export default function AuthorPortal() {
     }
   };
 
-  const handleLoginSubmit = async (e) => {
+    const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg("");
 
     try {
-      /*
-       * Replace this with your real authentication endpoint.
-       *
-       * Example:
-       * const res = await fetch("/api/author/login", {...})
-       */
+      const email = String(formData.email || "").trim().toLowerCase();
+      const password = String(formData.password || "");
 
-      if (!formData.email || !formData.password) {
+      if (!email || !password) {
         setErrorMsg("Please enter both email and password.");
         return;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.success) {
+        setErrorMsg(
+          data?.error || "Invalid email or password."
+        );
+        return;
+      }
+
+      const loggedInUser = data?.user;
+
+      if (!loggedInUser) {
+        setErrorMsg(
+          "Login succeeded, but no user account was returned."
+        );
+        return;
+      }
+
+      if (loggedInUser.role !== "AUTHOR") {
+        setErrorMsg(
+          "This account is not registered as an author."
+        );
+        return;
+      }
+
+      if (loggedInUser.authorStatus !== "APPROVED") {
+        if (loggedInUser.authorStatus === "PENDING") {
+          setErrorMsg(
+            "Your author application is still under review."
+          );
+        } else if (loggedInUser.authorStatus === "REJECTED") {
+          setErrorMsg(
+            "Your author application has not been approved."
+          );
+        } else {
+          setErrorMsg(
+            "Your author account is not currently approved."
+          );
+        }
+
+        return;
+      }
+
+      setFormData((current) => ({
+        ...current,
+        email: loggedInUser.email || current.email,
+        name: loggedInUser.name || current.name,
+        password: "",
+      }));
 
       navigate("dashboard");
+    } catch (err) {
+      console.error("Author login error:", err);
+
+      setErrorMsg(
+        "Unable to sign in. Please check your connection and try again."
+      );
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleResetSubmit = async (e) => {
     e.preventDefault();
@@ -829,14 +893,58 @@ export default function AuthorPortal() {
     showSuccess("Your author profile and payout settings have been updated.");
   };
 
-  const signOut = () => {
+const signOut = async () => {
+  setLoading(true);
+  setErrorMsg("");
+  setSuccessMsg("");
+
+  try {
+    const res = await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    let data = null;
+
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+
+    if (!res.ok || !data?.success) {
+      setErrorMsg(
+        data?.error || "Unable to sign out. Please try again."
+      );
+      return;
+    }
+
+    // Reset the local author-portal state after the
+    // server-side session cookie has been cleared.
     setViewMode("login");
     setMobileMenu(false);
+
     setFormData((current) => ({
       ...current,
       password: "",
     }));
-  };
+
+    setSuccessMsg("You have been signed out successfully.");
+  } catch (err) {
+    console.error("Author logout error:", err);
+
+    setErrorMsg(
+      "Unable to sign out. Please check your connection and try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   if (submitted) {
     return (
