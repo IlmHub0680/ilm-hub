@@ -115,7 +115,7 @@ useEffect(() => {
 
   const [programmes] = useState([
     {
-      id: 'prog-1',
+      id: 'prog-01',
       name: 'Foundation Programme',
       level: 'Foundation Level',
       curriculum: [

@@ -10,7 +10,7 @@ type SessionUser = {
   id: string;
   name: string;
   email: string;
-  role: "USER" | "AUTHOR" | "ADMIN" | "SUPER_ADMIN";
+  role: "USER" | "STUDENT" | "AUTHOR" | "ADMIN" | "SUPER_ADMIN";
   authorStatus: "PENDING" | "APPROVED" | "REJECTED";
 };
 
@@ -70,8 +70,12 @@ function verifySessionToken(token: string): string | null {
       .update(`${userId}.${timestamp}`)
       .digest("hex");
 
-    const providedBuffer = Buffer.from(signature, "hex");
-    const expectedBuffer = Buffer.from(expectedSignature, "hex");
+    const providedBuffer = new Uint8Array(
+      Buffer.from(signature, "hex")
+    );
+    const expectedBuffer = new Uint8Array(
+      Buffer.from(expectedSignature, "hex")
+    );
 
     if (providedBuffer.length !== expectedBuffer.length) {
       return null;

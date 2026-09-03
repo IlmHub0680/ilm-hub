@@ -21,14 +21,20 @@ model Book {
   categoryId    String
   authorId      String?
   createdAt     DateTime     @default(now())
-  author        User?        @relation(fields: [authorId], references: [id])
+  sellerId      String?
+  status        BookStatus   @default(PENDING_REVIEW)
+  updatedAt     DateTime     @default(now()) @updatedAt
+  author        User?        @relation("BookAuthor", fields: [authorId], references: [id])
   category      Category     @relation(fields: [categoryId], references: [id])
+  seller        User?        @relation("BookSeller", fields: [sellerId], references: [id])
+  bookAccess    BookAccess[]
   cartItems     CartItem[]
   orderItems    OrderItem[]
-  bookAccess    BookAccess[]
 
   @@index([authorId])
+  @@index([sellerId])
   @@index([categoryId])
+  @@index([status])
 }
 
 model Order {
@@ -51,12 +57,12 @@ model Order {
   paymentGateway  PaymentGateway?
   paymentStatus   PaymentStatus   @default(PENDING)
   rejectedAt      DateTime?
+  bookAccess      BookAccess[]
   downloads       DownloadLog[]
   user            User            @relation(fields: [userId], references: [id])
   items           OrderItem[]
   payments        Payment[]
   receipt         Receipt?
-  bookAccess      BookAccess[]
 
   @@index([userId])
   @@index([status])
@@ -112,10 +118,9 @@ model BookAccess {
   revokedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book  Book  @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  book       Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, bookId, orderId])
   @@index([userId])
@@ -331,6 +336,90 @@ model Receipt {
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
+model AdmissionFeeSettings {
+  id                  String   @id @default(cuid())
+  juniorGhana         Decimal  @db.Decimal(10, 2)
+  seniorGhana         Decimal  @db.Decimal(10, 2)
+  matureGhana         Decimal  @db.Decimal(10, 2)
+  juniorInternational Decimal  @db.Decimal(10, 2)
+  seniorInternational Decimal  @db.Decimal(10, 2)
+  matureInternational Decimal  @db.Decimal(10, 2)
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
+}
+
+model AdmissionApplication {
+  id                    String                 @id @default(cuid())
+  applicationNumber     String                 @unique
+  email                 String
+  passwordHash          String?
+  fullName              String
+  dateOfBirth           DateTime
+  gender                String
+  nationality           String
+  countryOfResidence    String
+  phoneNumber           String
+  idNumber              String
+  residentialAddress    String
+  applicantCategory     String
+  guardianName          String
+  guardianPhone         String
+  guardianRelationship  String
+  emergencyName         String
+  emergencyPhone        String
+  emergencyRelationship String
+  highestEducation      String
+  institutionName       String
+  programId             String
+  programName           String
+  programLevel          String
+  studySession          String
+  identityDocType       String
+  identityDocumentUrl   String?
+  passportPictureUrl    String?
+  transcriptsUrl        String?
+  certificateUrl        String?
+  testimonialUrl        String?
+  recommendationUrl     String?
+  admissionFee          Decimal                @db.Decimal(10, 2)
+  currencyCode          String
+  feeBasis              String
+  status                StudentAdmissionStatus @default(PENDING_PAYMENT)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  paidAt                DateTime?
+  payment               AdmissionPayment?
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@index([countryOfResidence])
+  @@index([programId])
+}
+
+model AdmissionPayment {
+  id                String               @id @default(cuid())
+  applicationId     String               @unique
+  gateway           PaymentGateway
+  method            PaymentMethod
+  status            PaymentStatus        @default(PENDING)
+  amount            Decimal              @db.Decimal(10, 2)
+  currencyCode      String
+  gatewayReference  String?
+  checkoutReference String?
+  transactionId     String?
+  authorizationUrl  String?
+  paidAt            DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  application       AdmissionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([gateway])
+  @@index([status])
+  @@index([gatewayReference])
+  @@index([transactionId])
+}
+
 model User {
   id                String                 @id
   name              String
@@ -344,9 +433,10 @@ model User {
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
   authorAdmission   AuthorAdmission?
-  books             Book[]
-  cart              Cart?
+  books             Book[]                 @relation("BookAuthor")
+  soldBooks         Book[]                 @relation("BookSeller")
   bookAccess        BookAccess[]
+  cart              Cart?
   courseProgress    CourseProgress[]
   downloads         DownloadLog[]
   enrollments       Enrollment[]
@@ -388,6 +478,22 @@ model AuthorPayment {
   @@index([gateway])
   @@index([status])
   @@index([gatewayReference])
+}
+
+enum StudentAdmissionStatus {
+  PENDING_PAYMENT
+  PAID
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum BookStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  PUBLISHED
+  DRAFT
 }
 
 enum OrderStatus {
@@ -457,6 +563,7 @@ enum Role {
   AUTHOR
   ADMIN
   SUPER_ADMIN
+  STUDENT
 }
 
 enum SubmissionStatus {

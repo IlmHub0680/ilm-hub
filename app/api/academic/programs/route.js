@@ -1,48 +1,86 @@
-import { NextResponse } from 'next/server';
+import {
+  getAcademicProgrammes,
+} from '@/lib/academic-programmes';
 
-// In-memory or database handler placeholder for Ilm Hub Institute Academic Management
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+    },
+  });
+}
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'programs';
 
     if (type === 'programs') {
-      const defaultPrograms = [
-        { id: 'prog-01', name: 'Junior Learners Programme', level: 'Junior', duration: '1 Year', status: 'Active', coordinator: 'Unassigned' },
-        { id: 'prog-02', name: 'Foundation Programme', level: 'Foundation', duration: '1 Year', status: 'Active', coordinator: 'Unassigned' },
-        { id: 'prog-03', name: 'Intermediate Programme', level: 'Intermediate', duration: '1 Year', status: 'Active', coordinator: 'Unassigned' },
-        { id: 'prog-04', name: 'Certificate Programme (Specialised Studies)', level: 'Certificate', duration: 'Flexible (Max 6 courses)', status: 'Active', coordinator: 'Unassigned' },
-        { id: 'prog-05', name: 'Diploma in Islamic Sciences', level: 'Diploma', duration: '2 Years', status: 'Active', coordinator: 'Unassigned' }
-      ];
-      return NextResponse.json({ success: true, data: defaultPrograms });
+      return jsonResponse({
+        success: true,
+        data: getAcademicProgrammes(),
+      });
     }
 
-    return NextResponse.json({ success: false, error: 'Invalid resource type requested' }, { status: 400 });
+    return jsonResponse(
+      {
+        success: false,
+        error: 'Invalid resource type requested',
+      },
+      400
+    );
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return jsonResponse(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      500
+    );
   }
 }
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { action, programName, level, description, courses } = body;
 
-    // Handle curriculum submission or program creation workflow
+    const {
+      action,
+      programName,
+      level,
+      description,
+      courses,
+    } = body;
+
     if (action === 'submit_curriculum') {
-      return NextResponse.json({
+      return jsonResponse({
         success: true,
-        message: 'Curriculum proposal submitted successfully and set to Pending Approval.',
-        status: 'Pending Approval'
+        message:
+          'Curriculum proposal submitted successfully and set to Pending Approval.',
+        status: 'Pending Approval',
       });
     }
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       message: 'Academic program created successfully.',
-      data: { programName, level, description, status: 'Active' }
+      data: {
+        programName,
+        level,
+        description,
+        courses,
+        status: 'Active',
+      },
     });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return jsonResponse(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      500
+    );
   }
 }

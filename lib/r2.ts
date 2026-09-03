@@ -1,6 +1,8 @@
 import {
   S3Client,
   GetObjectCommand,
+  PutObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import {
   getSignedUrl,
@@ -47,10 +49,7 @@ function getR2Client() {
   });
 }
 
-export async function getR2PresignedUrl(
-  key: string,
-  expiresInSeconds: number = 60
-) {
+function getBucket() {
   const bucket =
     process.env.R2_BUCKET_NAME;
 
@@ -60,6 +59,59 @@ export async function getR2PresignedUrl(
     );
   }
 
+  return bucket;
+}
+
+export async function uploadToR2(
+  key: string,
+  body: Buffer,
+  contentType: string
+) {
+  const cleanKey = key.trim();
+
+  if (!cleanKey) {
+    throw new Error(
+      "R2 file key is missing."
+    );
+  }
+
+  const client = getR2Client();
+
+  const command = new PutObjectCommand({
+    Bucket: getBucket(),
+    Key: cleanKey,
+    Body: body,
+    ContentType: contentType,
+  });
+
+  await client.send(command);
+
+  return cleanKey;
+}
+
+export async function deleteFromR2(
+  key: string
+) {
+  const cleanKey = key.trim();
+
+  if (!cleanKey) {
+    return;
+  }
+
+  const client = getR2Client();
+
+  const command = new DeleteObjectCommand({
+    Bucket: getBucket(),
+    Key: cleanKey,
+  });
+
+  await client.send(command);
+}
+
+export async function getR2PresignedUrl(
+  key: string,
+  expiresInSeconds: number = 60
+) {
   const cleanKey =
     key.trim();
 
@@ -74,7 +126,7 @@ export async function getR2PresignedUrl(
 
   const command =
     new GetObjectCommand({
-      Bucket: bucket,
+      Bucket: getBucket(),
       Key: cleanKey,
     });
 

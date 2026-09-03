@@ -1,0 +1,76 @@
+import { NextResponse } from 'next/server';
+import {
+  getAcademicProgrammes,
+} from '@/lib/academic-programmes';
+
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type') || 'programs';
+
+    if (type === 'programs') {
+      return NextResponse.json({
+        success: true,
+        data: getAcademicProgrammes(),
+      });
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Invalid resource type requested',
+      },
+      { status: 400 }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const {
+      action,
+      programName,
+      level,
+      description,
+      courses,
+    } = body;
+
+    if (action === 'submit_curriculum') {
+      return NextResponse.json({
+        success: true,
+        message:
+          'Curriculum proposal submitted successfully and set to Pending Approval.',
+        status: 'Pending Approval',
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Academic program created successfully.',
+      data: {
+        programName,
+        level,
+        description,
+        courses,
+        status: 'Active',
+      },
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}

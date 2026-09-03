@@ -7,9 +7,10 @@ import './book-detail.css';
 export const dynamic = 'force-dynamic';
 
 async function getBook(id) {
-  return prisma.book.findUnique({
+  return prisma.book.findFirst({
     where: {
       id,
+      status: "PUBLISHED",
     },
     include: {
       category: true,

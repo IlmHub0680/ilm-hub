@@ -25,7 +25,7 @@ const DEFAULT_ACADEMIC_SETTINGS = {
 
 const INITIAL_PROGRAMMES = [
   {
-    id: 'prog-1',
+    id: 'prog-01',
     name: 'Junior Learners Programme',
     description: 'Foundational Islamic studies and basic literacy for young learners.',
     level: 'Elementary',
@@ -87,7 +87,7 @@ const INITIAL_PROGRAMMES = [
     ]
   },
   {
-    id: 'prog-2',
+    id: 'prog-02',
     name: 'Foundation Programme',
     description: 'Core introductory Islamic jurisprudence, texts, and Qur\'anic portions.',
     level: 'Foundation',
@@ -149,7 +149,7 @@ const INITIAL_PROGRAMMES = [
     ]
   },
   {
-    id: 'prog-3',
+    id: 'prog-03',
     name: 'Intermediate Programme',
     description: 'Intermediate studies expanding on Quranic sections, Maliki/General Fiqh, and creed.',
     level: 'Intermediate',
@@ -211,7 +211,7 @@ const INITIAL_PROGRAMMES = [
     ]
   },
   {
-    id: 'prog-4',
+    id: 'prog-04',
     name: 'Certificate Programme (Specialised Studies)',
     description: 'Specialised certificate studies where students select up to six elective/required core courses.',
     level: 'Specialised Certificate',
@@ -273,7 +273,7 @@ const INITIAL_PROGRAMMES = [
     ]
   },
   {
-    id: 'prog-5',
+    id: 'prog-05',
     name: 'Diploma in Islamic Sciences',
     description: 'Comprehensive multi-year diploma covering Tafsir, Qur\'an, Fiqh, Arabic Language, Hadith, and Aqidah.',
     level: 'Diploma',
@@ -339,7 +339,7 @@ const INITIAL_PROGRAMMES = [
 const INITIAL_PROPOSALS = [
   {
     id: 'prop-01',
-    programmeId: 'prog-1',
+    programmeId: 'prog-01',
     programmeName: 'Junior Learners Programme',
     submittedBy: 'Imam Muhammad Jalaal Deen Umar (Programme Coordinator)',
     date: '2026-08-01',
@@ -847,7 +847,7 @@ function PortalSelector({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
 
     if (!username || !password) {
@@ -855,15 +855,82 @@ function PortalSelector({
       return;
     }
 
-    let roleName = '';
-
+    /*
+     * Super Administrator uses the real application
+     * authentication system.
+     *
+     * This creates the memo_session cookie that protected
+     * admin APIs such as /api/admin/publishing/books require.
+     */
     if (loginRole === 'admin') {
-      roleName = 'Super Administrator';
-    } else if (loginRole === 'coordinator') {
-      roleName = username;
-    } else if (loginRole === 'instructor') {
-      roleName = username;
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            email: username,
+            password,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.error || 'Unable to log in.'
+          );
+        }
+
+        const user = result.user;
+
+        if (
+          user?.role !== 'ADMIN' &&
+          user?.role !== 'SUPER_ADMIN'
+        ) {
+          alert(
+            'This account does not have administrator access.'
+          );
+          return;
+        }
+
+        setCurrentUser({
+          role: 'admin',
+          name: user.name || 'Super Administrator',
+        });
+
+        logAction(
+          user.name || 'Super Administrator',
+          'Successfully logged into ADMIN portal'
+        );
+
+        setUsername('');
+        setPassword('');
+
+        return;
+      } catch (error) {
+        console.error('Administrator login error:', error);
+
+        alert(
+          error instanceof Error
+            ? error.message
+            : 'Unable to log in.'
+        );
+
+        return;
+      }
     }
+
+    /*
+     * Preserve the existing frontend behavior for
+     * coordinator and instructor portals.
+     */
+    const roleName =
+      loginRole === 'coordinator'
+        ? username
+        : username;
 
     setCurrentUser({
       role: loginRole,
@@ -1081,6 +1148,324 @@ function AdminPortal({
 
 const [activeTab, setActiveTab] = useState('dashboard');
 
+const [students, setStudents] = useState([]);
+const [studentsLoading, setStudentsLoading] = useState(false);
+const [studentsError, setStudentsError] = useState('');
+
+const [admissionApplications, setAdmissionApplications] = useState([]);
+const [admissionsLoading, setAdmissionsLoading] = useState(false);
+const [admissionsError, setAdmissionsError] = useState('');
+const [admissionStatusFilter, setAdmissionStatusFilter] = useState('');
+const [selectedAdmission, setSelectedAdmission] = useState(null);
+const [admissionDetailLoading, setAdmissionDetailLoading] = useState(false);
+const [admissionActionLoading, setAdmissionActionLoading] = useState(false);
+const [admissionActionError, setAdmissionActionError] = useState('');
+const [admissionActionSuccess, setAdmissionActionSuccess] = useState('');
+const [admissionDocumentLoading, setAdmissionDocumentLoading] =
+  useState(null);
+const [admissionDecision, setAdmissionDecision] = useState('');
+const [admissionDecisionMessage, setAdmissionDecisionMessage] = useState('');
+
+const loadAdmissions = async () => {
+  setAdmissionsLoading(true);
+  setAdmissionsError('');
+
+  try {
+    const query = admissionStatusFilter
+      ? `?status=${encodeURIComponent(admissionStatusFilter)}`
+      : '';
+
+    const res = await fetch(
+      `/api/admin/admissions${query}`,
+      {
+        method: 'GET',
+        cache: 'no-store'
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok || !data?.success) {
+      throw new Error(
+        data?.error ||
+          'Unable to load admission applications.'
+      );
+    }
+
+    setAdmissionApplications(
+      Array.isArray(data.data) ? data.data : []
+    );
+  } catch (error) {
+    console.error(
+      'Load admission applications error:',
+      error
+    );
+
+    setAdmissionsError(
+      error instanceof Error
+        ? error.message
+        : 'Unable to load admission applications.'
+    );
+  } finally {
+    setAdmissionsLoading(false);
+  }
+};
+
+const loadAdmissionDetail = async id => {
+  if (!id) return;
+
+  setAdmissionDetailLoading(true);
+  setAdmissionActionError('');
+  setAdmissionActionSuccess('');
+
+  try {
+    const res = await fetch(
+      `/api/admin/admissions/${encodeURIComponent(id)}`,
+      {
+        method: 'GET',
+        cache: 'no-store'
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok || !data?.success) {
+      throw new Error(
+        data?.error ||
+          'Unable to load admission application.'
+      );
+    }
+
+    setSelectedAdmission(data.data);
+    setAdmissionDecision('');
+    setAdmissionDecisionMessage('');
+  } catch (error) {
+    console.error(
+      'Load admission detail error:',
+      error
+    );
+
+    setAdmissionActionError(
+      error instanceof Error
+        ? error.message
+        : 'Unable to load admission application.'
+    );
+  } finally {
+    setAdmissionDetailLoading(false);
+  }
+};
+
+
+const startAdmissionReview = async () => {
+  if (!selectedAdmission?.id) return;
+
+  setAdmissionActionLoading(true);
+  setAdmissionActionError('');
+  setAdmissionActionSuccess('');
+
+  try {
+    const res = await fetch(
+      `/api/admin/admissions/${encodeURIComponent(
+        selectedAdmission.id
+      )}/review`,
+      {
+        method: 'POST'
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok || !data?.success) {
+      throw new Error(
+        data?.error ||
+          'Unable to start admission review.'
+      );
+    }
+
+    setSelectedAdmission(
+      data?.data || {
+        ...selectedAdmission,
+        status: 'UNDER_REVIEW'
+      }
+    );
+
+    setAdmissionActionSuccess(
+      data?.message ||
+        'Application is now under review.'
+    );
+
+    await loadAdmissions();
+  } catch (error) {
+    console.error(
+      'Start admission review error:',
+      error
+    );
+
+    setAdmissionActionError(
+      error instanceof Error
+        ? error.message
+        : 'Unable to start admission review.'
+    );
+  } finally {
+    setAdmissionActionLoading(false);
+  }
+};
+
+const openAdmissionDocument = async field => {
+  if (!selectedAdmission?.id || !field) return;
+
+  setAdmissionDocumentLoading(field);
+  setAdmissionActionError('');
+
+  try {
+    const res = await fetch(
+      `/api/admin/admissions/${encodeURIComponent(
+        selectedAdmission.id
+      )}/document?field=${encodeURIComponent(field)}`,
+      {
+        method: 'GET',
+        cache: 'no-store'
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok || !data?.success || !data?.data?.url) {
+      throw new Error(
+        data?.error ||
+          'Unable to open this document.'
+      );
+    }
+
+    window.open(
+      data.data.url,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  } catch (error) {
+    console.error(
+      'Open admission document error:',
+      error
+    );
+
+    setAdmissionActionError(
+      error instanceof Error
+        ? error.message
+        : 'Unable to open this document.'
+    );
+  } finally {
+    setAdmissionDocumentLoading(null);
+  }
+};
+
+const makeAdmissionDecision = async decision => {
+  if (!selectedAdmission?.id) return;
+
+  setAdmissionActionLoading(true);
+  setAdmissionActionError('');
+  setAdmissionActionSuccess('');
+
+  try {
+    const res = await fetch(
+      `/api/admin/admissions/${encodeURIComponent(
+        selectedAdmission.id
+      )}/decision`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          decision,
+          message: admissionDecisionMessage.trim()
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok || !data?.success) {
+      throw new Error(
+        data?.error ||
+          'Unable to update admission decision.'
+      );
+    }
+
+    setAdmissionActionSuccess(
+      data?.message ||
+        `Application ${decision.toLowerCase()} successfully.`
+    );
+
+    setSelectedAdmission(
+      data?.data?.application || selectedAdmission
+    );
+
+    setAdmissionApplications(current =>
+      current.map(application =>
+        application.id === selectedAdmission.id
+          ? {
+              ...application,
+              ...(data?.data?.application || {}),
+              status: decision
+            }
+          : application
+      )
+    );
+
+    setAdmissionDecision('');
+    setAdmissionDecisionMessage('');
+
+    await loadAdmissions();
+  } catch (error) {
+    console.error(
+      'Admission decision error:',
+      error
+    );
+
+    setAdmissionActionError(
+      error instanceof Error
+        ? error.message
+        : 'Unable to update admission decision.'
+    );
+  } finally {
+    setAdmissionActionLoading(false);
+  }
+};
+
+const loadStudents = async () => {
+  setStudentsLoading(true);
+  setStudentsError('');
+
+  try {
+    const res = await fetch('/api/admin/students', {
+      method: 'GET',
+      cache: 'no-store'
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data?.success) {
+      throw new Error(
+        data?.error || 'Unable to load students.'
+      );
+    }
+
+    setStudents(
+      Array.isArray(data.data) ? data.data : []
+    );
+  } catch (error) {
+    console.error('Load students error:', error);
+
+    setStudentsError(
+      error instanceof Error
+        ? error.message
+        : 'Unable to load students.'
+    );
+  } finally {
+    setStudentsLoading(false);
+  }
+};
+
 const [pendingAuthors, setPendingAuthors] = useState([]);
 const [authorsLoading, setAuthorsLoading] = useState(false);
 const [authorActionLoading, setAuthorActionLoading] = useState(null);
@@ -1181,6 +1566,14 @@ const loadPendingAuthors = async () => {
 
 
   useEffect(() => {
+    if (activeTab === 'students') {
+      loadStudents();
+    }
+
+    if (activeTab === 'admissions') {
+      loadAdmissions();
+    }
+
     if (activeTab === 'authors') {
       loadPendingAuthors();
     }
@@ -1670,7 +2063,7 @@ const loadPendingAuthors = async () => {
   const instructorsList = safeArray(instructors);
   const proposalsList = safeArray(proposals);
   const gradesList = safeArray(gradeSubmissions);
-  const studentsList = safeArray(studentRegistrations);
+  const studentsList = safeArray(students);
   const feesList = safeArray(feeRecords);
   const privateList = safeArray(privateRequests);
   const eventsList = safeArray(calendarEvents);
@@ -2497,8 +2890,11 @@ const loadPendingAuthors = async () => {
       items: [
         ['dashboard', 'Dashboard'],
         ['students', 'Student Management'],
+        ['admissions', 'Student Admissions'],
         ['finance', 'Fees & Finance'],
-        ['payroll', 'Finance & Payroll']
+        ['payroll', 'Finance & Payroll'],
+        ['bookstore', 'Bookstore Management'],
+        ['orders', 'Book Orders']
       ]
     },
 
@@ -2542,6 +2938,12 @@ const loadPendingAuthors = async () => {
       title: 'Student Management',
       description:
         'Monitor registrations, student records and enrolment activity.'
+    },
+
+    admissions: {
+      title: 'Student Admissions',
+      description:
+        'Review submitted student applications, verify admission payments and make admission decisions.'
     },
 
     finance: {
@@ -2679,9 +3081,19 @@ const loadPendingAuthors = async () => {
                       ? adminStyles.activeNavButton
                       : adminStyles.navButton
                   }
-                  onClick={() =>
-                    setActiveTab(id)
-                  }
+                  onClick={() => {
+                    if (id === 'orders') {
+                      window.location.href = '/admin/bookstore/orders';
+                      return;
+                    }
+
+                    if (id === 'bookstore') {
+                      window.location.href = '/admin/bookstore';
+                      return;
+                    }
+
+                    setActiveTab(id);
+                  }}
                 >
 
                   {label}
@@ -3089,6 +3501,1288 @@ const loadPendingAuthors = async () => {
               </div>
 
             </>
+
+          )}
+
+
+
+          {/* ====================================
+              STUDENT ADMISSIONS
+          ==================================== */}
+
+          {activeTab === 'admissions' && (
+
+            <div style={adminStyles.section}>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '18px',
+                  gap: '15px',
+                  flexWrap: 'wrap'
+                }}
+              >
+
+                <div>
+                  <h3 style={adminStyles.sectionTitle}>
+                    Student Admissions
+                  </h3>
+
+                  <p style={adminStyles.sectionSubtitle}>
+                    Review submitted applications, verify payments and make admission decisions.
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '8px',
+                    alignItems: 'center',
+                    flexWrap: 'wrap'
+                  }}
+                >
+
+                  <select
+                    value={admissionStatusFilter}
+                    onChange={e =>
+                      setAdmissionStatusFilter(e.target.value)
+                    }
+                    style={{
+                      ...adminStyles.searchBox,
+                      minWidth: '170px',
+                      background: '#fff'
+                    }}
+                  >
+                    <option value="">All applications</option>
+                    <option value="PENDING_PAYMENT">Pending Payment</option>
+                    <option value="PAID">Paid</option>
+                    <option value="UNDER_REVIEW">Under Review</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="REJECTED">Rejected</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    style={adminStyles.smallButton}
+                    onClick={loadAdmissions}
+                    disabled={admissionsLoading}
+                  >
+                    {admissionsLoading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+
+                </div>
+
+              </div>
+
+
+              {admissionsError && (
+
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    marginBottom: '15px',
+                    background: '#FDECEC',
+                    color: '#9B1C1C',
+                    border: '1px solid #F3B7B7',
+                    borderRadius: '8px'
+                  }}
+                >
+                  {admissionsError}
+                </div>
+
+              )}
+
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns:
+                    'repeat(auto-fit, minmax(150px, 1fr))',
+                  gap: '10px',
+                  marginBottom: '18px'
+                }}
+              >
+
+                {[
+                  {
+                    label: 'Total',
+                    value: admissionApplications.length
+                  },
+                  {
+                    label: 'Pending Payment',
+                    value: admissionApplications.filter(
+                      item => item.status === 'PENDING_PAYMENT'
+                    ).length
+                  },
+                  {
+                    label: 'Paid',
+                    value: admissionApplications.filter(
+                      item => item.status === 'PAID'
+                    ).length
+                  },
+                  {
+                    label: 'Under Review',
+                    value: admissionApplications.filter(
+                      item => item.status === 'UNDER_REVIEW'
+                    ).length
+                  },
+                  {
+                    label: 'Approved',
+                    value: admissionApplications.filter(
+                      item => item.status === 'APPROVED'
+                    ).length
+                  },
+                  {
+                    label: 'Rejected',
+                    value: admissionApplications.filter(
+                      item => item.status === 'REJECTED'
+                    ).length
+                  }
+                ].map(card => (
+
+                  <div
+                    key={card.label}
+                    style={{
+                      padding: '14px',
+                      background: '#F8F6F0',
+                      border: '1px solid #E7E0D2',
+                      borderRadius: '9px'
+                    }}
+                  >
+
+                    <div
+                      style={{
+                        fontSize: '22px',
+                        fontWeight: '700',
+                        color: adminTheme.primary
+                      }}
+                    >
+                      {card.value}
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: '4px',
+                        fontSize: '11px',
+                        color: adminTheme.muted
+                      }}
+                    >
+                      {card.label}
+                    </div>
+
+                  </div>
+
+                ))}
+
+              </div>
+
+
+              {admissionsLoading && admissionApplications.length === 0 && (
+
+                <div
+                  style={{
+                    padding: '40px',
+                    textAlign: 'center',
+                    color: adminTheme.muted
+                  }}
+                >
+                  Loading admission applications...
+                </div>
+
+              )}
+
+
+              {!admissionsLoading &&
+                admissionApplications.length === 0 &&
+                !admissionsError && (
+
+                <div
+                  style={{
+                    padding: '45px 20px',
+                    textAlign: 'center',
+                    border: '1px dashed #D8D0C0',
+                    borderRadius: '10px',
+                    background: '#FCFBF8'
+                  }}
+                >
+
+                  <div
+                    style={{
+                      fontSize: '16px',
+                      fontWeight: '700',
+                      color: adminTheme.primary,
+                      marginBottom: '6px'
+                    }}
+                  >
+                    No admission applications found
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: adminTheme.muted
+                    }}
+                  >
+                    Submitted student applications will appear here.
+                  </div>
+
+                </div>
+
+              )}
+
+
+              {admissionApplications.length > 0 && (
+
+                <div
+                  style={{
+                    overflowX: 'auto',
+                    border: '1px solid #E7E0D2',
+                    borderRadius: '10px',
+                    background: '#fff'
+                  }}
+                >
+
+                  <table
+                    style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      minWidth: '1050px'
+                    }}
+                  >
+
+                    <thead>
+
+                      <tr
+                        style={{
+                          background: '#F8F6F0'
+                        }}
+                      >
+
+                        {[
+                          'Application',
+                          'Applicant',
+                          'Programme',
+                          'Session',
+                          'Fee',
+                          'Payment',
+                          'Payment Reference',
+                          'Application Status',
+                          'Submitted',
+                          'Action'
+                        ].map(header => (
+
+                          <th
+                            key={header}
+                            style={{
+                              padding: '11px 10px',
+                              textAlign: 'left',
+                              fontSize: '10px',
+                              color: adminTheme.muted,
+                              borderBottom: '1px solid #E7E0D2',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {header}
+                          </th>
+
+                        ))}
+
+                      </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                      {admissionApplications.map(application => {
+
+                        const payment = application.payment;
+
+                        const paymentStatus =
+                          payment?.status || 'PENDING';
+
+                        const paymentReference =
+                          payment?.gatewayReference ||
+                          payment?.transactionId ||
+                          payment?.checkoutReference ||
+                          '—';
+
+                        const fee =
+                          application.admissionFee !== undefined &&
+                          application.admissionFee !== null
+                            ? `${application.currencyCode || payment?.currencyCode || ''} ${application.admissionFee}`
+                            : '—';
+
+                        const programme =
+                          application.programName ||
+                          application.programId ||
+                          '—';
+
+                        const submittedDate =
+                          application.createdAt
+                            ? new Date(
+                                application.createdAt
+                              ).toLocaleDateString()
+                            : '—';
+
+                        const statusColor =
+                          application.status === 'APPROVED'
+                            ? '#18794E'
+                            : application.status === 'REJECTED'
+                              ? '#B42318'
+                              : application.status === 'UNDER_REVIEW'
+                                ? '#9A6700'
+                                : application.status === 'PAID'
+                                  ? '#1769AA'
+                                  : '#667085';
+
+                        const paymentColor =
+                          paymentStatus === 'PAID'
+                            ? '#18794E'
+                            : '#9A6700';
+
+                        return (
+
+                          <tr
+                            key={application.id}
+                            style={{
+                              borderBottom:
+                                '1px solid #EEE8DC'
+                            }}
+                          >
+
+                            <td
+                              style={{
+                                padding: '12px 10px',
+                                fontSize: '11px',
+                                fontWeight: '700'
+                              }}
+                            >
+                              {application.applicationNumber}
+                            </td>
+
+                            <td
+                              style={{
+                                padding: '12px 10px'
+                              }}
+                            >
+
+                              <div
+                                style={{
+                                  fontWeight: '600',
+                                  fontSize: '12px'
+                                }}
+                              >
+                                {application.fullName || '—'}
+                              </div>
+
+                              <div
+                                style={{
+                                  marginTop: '3px',
+                                  fontSize: '10px',
+                                  color: adminTheme.muted
+                                }}
+                              >
+                                {application.email || '—'}
+                              </div>
+
+                            </td>
+
+                            <td
+                              style={{
+                                padding: '12px 10px',
+                                fontSize: '11px'
+                              }}
+                            >
+                              {programme}
+                            </td>
+
+                            <td
+                              style={{
+                                padding: '12px 10px',
+                                fontSize: '11px'
+                              }}
+                            >
+                              {application.studySession || '—'}
+                            </td>
+
+                            <td
+                              style={{
+                                padding: '12px 10px',
+                                fontSize: '11px',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {fee}
+                            </td>
+
+                            <td
+                              style={{
+                                padding: '12px 10px'
+                              }}
+                            >
+
+                              <div
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: '700',
+                                  color: paymentColor
+                                }}
+                              >
+                                {paymentStatus}
+                              </div>
+
+                              <div
+                                style={{
+                                  marginTop: '3px',
+                                  fontSize: '9px',
+                                  color: adminTheme.muted
+                                }}
+                              >
+                                {payment?.gateway || '—'} / {payment?.method || '—'}
+                              </div>
+
+                            </td>
+
+                            <td
+                              style={{
+                                padding: '12px 10px',
+                                fontSize: '9px',
+                                maxWidth: '150px',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                              title={paymentReference}
+                            >
+                              {paymentReference}
+                            </td>
+
+                            <td
+                              style={{
+                                padding: '12px 10px'
+                              }}
+                            >
+
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '4px 8px',
+                                  borderRadius: '20px',
+                                  background: `${statusColor}15`,
+                                  color: statusColor,
+                                  fontSize: '9px',
+                                  fontWeight: '700',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {String(
+                                  application.status || ''
+                                ).replaceAll('_', ' ')}
+                              </span>
+
+                            </td>
+
+                            <td
+                              style={{
+                                padding: '12px 10px',
+                                fontSize: '10px',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {submittedDate}
+                            </td>
+
+                            <td
+                              style={{
+                                padding: '12px 10px'
+                              }}
+                            >
+
+                              <button
+                                type="button"
+                                style={adminStyles.smallButton}
+                                onClick={() =>
+                                  loadAdmissionDetail(
+                                    application.id
+                                  )
+                                }
+                              >
+                                Review
+                              </button>
+
+                            </td>
+
+                          </tr>
+
+                        );
+
+                      })}
+
+                    </tbody>
+
+                  </table>
+
+                </div>
+
+              )}
+
+
+              {selectedAdmission && (
+
+                <div
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 1000,
+                    background: 'rgba(0,0,0,0.45)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px'
+                  }}
+                  onClick={() =>
+                    setSelectedAdmission(null)
+                  }
+                >
+
+                  <div
+                    style={{
+                      width: '100%',
+                      maxWidth: '1000px',
+                      maxHeight: '92vh',
+                      overflowY: 'auto',
+                      background: '#fff',
+                      borderRadius: '12px',
+                      boxShadow:
+                        '0 20px 60px rgba(0,0,0,0.25)',
+                      padding: '22px'
+                    }}
+                    onClick={e => e.stopPropagation()}
+                  >
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        gap: '15px',
+                        marginBottom: '20px'
+                      }}
+                    >
+
+                      <div>
+
+                        <h3
+                          style={{
+                            margin: 0,
+                            color: adminTheme.primary
+                          }}
+                        >
+                          Admission Application
+                        </h3>
+
+                        <div
+                          style={{
+                            marginTop: '5px',
+                            fontSize: '12px',
+                            color: adminTheme.muted
+                          }}
+                        >
+                          {selectedAdmission.applicationNumber}
+                        </div>
+
+                      </div>
+
+                      <button
+                        type="button"
+                        style={adminStyles.smallButton}
+                        onClick={() =>
+                          setSelectedAdmission(null)
+                        }
+                      >
+                        Close
+                      </button>
+
+                    </div>
+
+
+                    {admissionDetailLoading ? (
+
+                      <div
+                        style={{
+                          padding: '35px',
+                          textAlign: 'center',
+                          color: adminTheme.muted
+                        }}
+                      >
+                        Loading application...
+                      </div>
+
+                    ) : (
+
+                      <>
+
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns:
+                              'repeat(auto-fit, minmax(220px, 1fr))',
+                            gap: '12px',
+                            marginBottom: '18px'
+                          }}
+                        >
+
+                          {[
+                            [
+                              'Applicant',
+                              selectedAdmission.fullName
+                            ],
+                            [
+                              'Email',
+                              selectedAdmission.email
+                            ],
+                            [
+                              'Phone',
+                              selectedAdmission.phoneNumber
+                            ],
+                            [
+                              'Nationality',
+                              selectedAdmission.nationality
+                            ],
+                            [
+                              'Country of Residence',
+                              selectedAdmission.countryOfResidence
+                            ],
+                            [
+                              'Gender',
+                              selectedAdmission.gender
+                            ],
+                            [
+                              'Date of Birth',
+                              selectedAdmission.dateOfBirth
+                                ? new Date(
+                                    selectedAdmission.dateOfBirth
+                                  ).toLocaleDateString()
+                                : '—'
+                            ],
+                            [
+                              'ID Number',
+                              selectedAdmission.idNumber
+                            ],
+                            [
+                              'Applicant Category',
+                              selectedAdmission.applicantCategory
+                            ],
+                            [
+                              'Highest Education',
+                              selectedAdmission.highestEducation
+                            ],
+                            [
+                              'Institution',
+                              selectedAdmission.institutionName
+                            ],
+                            [
+                              'Programme',
+                              selectedAdmission.programName
+                            ],
+                            [
+                              'Programme Level',
+                              selectedAdmission.programLevel
+                            ],
+                            [
+                              'Study Session',
+                              selectedAdmission.studySession
+                            ],
+                            [
+                              'Admission Fee',
+                              `${selectedAdmission.currencyCode || ''} ${selectedAdmission.admissionFee || ''}`
+                            ],
+                            [
+                              'Fee Basis',
+                              selectedAdmission.feeBasis
+                            ],
+                            [
+                              'Application Status',
+                              selectedAdmission.status
+                            ]
+                          ].map(([label, value]) => (
+
+                            <div
+                              key={label}
+                              style={{
+                                padding: '12px',
+                                background: '#F8F6F0',
+                                borderRadius: '8px'
+                              }}
+                            >
+
+                              <div
+                                style={{
+                                  fontSize: '9px',
+                                  color: adminTheme.muted,
+                                  marginBottom: '4px'
+                                }}
+                              >
+                                {label}
+                              </div>
+
+                              <div
+                                style={{
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  wordBreak: 'break-word'
+                                }}
+                              >
+                                {value || '—'}
+                              </div>
+
+                            </div>
+
+                          ))}
+
+                        </div>
+
+
+                        <div
+                          style={{
+                            marginBottom: '18px',
+                            padding: '15px',
+                            border:
+                              '1px solid #E7E0D2',
+                            borderRadius: '9px'
+                          }}
+                        >
+
+                          <h4
+                            style={{
+                              margin: '0 0 12px',
+                              color: adminTheme.primary
+                            }}
+                          >
+                            Guardian & Emergency Contact
+                          </h4>
+
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns:
+                                'repeat(auto-fit, minmax(220px, 1fr))',
+                              gap: '10px'
+                            }}
+                          >
+
+                            {[
+                              [
+                                'Guardian',
+                                selectedAdmission.guardianName
+                              ],
+                              [
+                                'Guardian Phone',
+                                selectedAdmission.guardianPhone
+                              ],
+                              [
+                                'Guardian Relationship',
+                                selectedAdmission.guardianRelationship
+                              ],
+                              [
+                                'Emergency Contact',
+                                selectedAdmission.emergencyName
+                              ],
+                              [
+                                'Emergency Phone',
+                                selectedAdmission.emergencyPhone
+                              ],
+                              [
+                                'Emergency Relationship',
+                                selectedAdmission.emergencyRelationship
+                              ],
+                              [
+                                'Residential Address',
+                                selectedAdmission.residentialAddress
+                              ]
+                            ].map(([label, value]) => (
+
+                              <div key={label}>
+
+                                <div
+                                  style={{
+                                    fontSize: '9px',
+                                    color: adminTheme.muted
+                                  }}
+                                >
+                                  {label}
+                                </div>
+
+                                <div
+                                  style={{
+                                    fontSize: '11px',
+                                    marginTop: '3px'
+                                  }}
+                                >
+                                  {value || '—'}
+                                </div>
+
+                              </div>
+
+                            ))}
+
+                          </div>
+
+                        </div>
+
+
+                        <div
+                          style={{
+                            marginBottom: '18px',
+                            padding: '15px',
+                            border:
+                              '1px solid #E7E0D2',
+                            borderRadius: '9px'
+                          }}
+                        >
+
+                          <h4
+                            style={{
+                              margin: '0 0 12px',
+                              color: adminTheme.primary
+                            }}
+                          >
+                            Payment Verification
+                          </h4>
+
+                          {selectedAdmission.payment ? (
+
+                            <div
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns:
+                                  'repeat(auto-fit, minmax(180px, 1fr))',
+                                gap: '12px'
+                              }}
+                            >
+
+                              {[
+                                [
+                                  'Payment Status',
+                                  selectedAdmission.payment.status
+                                ],
+                                [
+                                  'Gateway',
+                                  selectedAdmission.payment.gateway
+                                ],
+                                [
+                                  'Method',
+                                  selectedAdmission.payment.method
+                                ],
+                                [
+                                  'Amount',
+                                  `${selectedAdmission.payment.currencyCode || ''} ${selectedAdmission.payment.amount || ''}`
+                                ],
+                                [
+                                  'Gateway Reference',
+                                  selectedAdmission.payment.gatewayReference
+                                ],
+                                [
+                                  'Transaction ID',
+                                  selectedAdmission.payment.transactionId
+                                ],
+                                [
+                                  'Checkout Reference',
+                                  selectedAdmission.payment.checkoutReference
+                                ],
+                                [
+                                  'Paid At',
+                                  selectedAdmission.payment.paidAt
+                                    ? new Date(
+                                        selectedAdmission.payment.paidAt
+                                      ).toLocaleString()
+                                    : '—'
+                                ]
+                              ].map(([label, value]) => (
+
+                                <div key={label}>
+
+                                  <div
+                                    style={{
+                                      fontSize: '9px',
+                                      color: adminTheme.muted
+                                    }}
+                                  >
+                                    {label}
+                                  </div>
+
+                                  <div
+                                    style={{
+                                      marginTop: '3px',
+                                      fontSize: '11px',
+                                      fontWeight:
+                                        label === 'Payment Status'
+                                          ? '700'
+                                          : '400',
+                                      color:
+                                        label === 'Payment Status' &&
+                                        value === 'PAID'
+                                          ? '#18794E'
+                                          : undefined,
+                                      wordBreak: 'break-word'
+                                    }}
+                                  >
+                                    {value || '—'}
+                                  </div>
+
+                                </div>
+
+                              ))}
+
+                            </div>
+
+                          ) : (
+
+                            <div
+                              style={{
+                                color: '#9A6700',
+                                fontSize: '12px'
+                              }}
+                            >
+                              No admission payment record is attached to this application.
+                            </div>
+
+                          )}
+
+                        </div>
+
+
+                        <div
+                          style={{
+                            marginBottom: '18px',
+                            padding: '15px',
+                            border:
+                              '1px solid #E7E0D2',
+                            borderRadius: '9px'
+                          }}
+                        >
+
+                          <h4
+                            style={{
+                              margin: '0 0 5px',
+                              color: adminTheme.primary
+                            }}
+                          >
+                            Submitted Documents
+                          </h4>
+
+                          <div
+                            style={{
+                              marginBottom: '12px',
+                              fontSize: '10px',
+                              color: adminTheme.muted
+                            }}
+                          >
+                            Documents are opened through a temporary secure link.
+                          </div>
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '8px',
+                              flexWrap: 'wrap'
+                            }}
+                          >
+
+                            {[
+                              [
+                                'Identity Document',
+                                'identityDocumentUrl'
+                              ],
+                              [
+                                'Passport Picture',
+                                'passportPictureUrl'
+                              ],
+                              [
+                                'Transcripts',
+                                'transcriptsUrl'
+                              ],
+                              [
+                                'Certificate',
+                                'certificateUrl'
+                              ],
+                              [
+                                'Testimonial',
+                                'testimonialUrl'
+                              ],
+                              [
+                                'Recommendation',
+                                'recommendationUrl'
+                              ]
+                            ].map(([label, field]) => {
+
+                              const documentUrl =
+                                selectedAdmission[field];
+
+                              if (!documentUrl) {
+                                return null;
+                              }
+
+                              const loading =
+                                admissionDocumentLoading === field;
+
+                              return (
+
+                                <button
+                                  key={field}
+                                  type="button"
+                                  disabled={loading}
+                                  onClick={() =>
+                                    openAdmissionDocument(field)
+                                  }
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '8px 11px',
+                                    borderRadius: '7px',
+                                    background: loading
+                                      ? '#E5E5E5'
+                                      : '#F8F6F0',
+                                    border:
+                                      '1px solid #D8D0C0',
+                                    color: adminTheme.primary,
+                                    fontSize: '10px',
+                                    fontWeight: '600',
+                                    cursor: loading
+                                      ? 'wait'
+                                      : 'pointer'
+                                  }}
+                                >
+                                  {loading
+                                    ? 'Opening...'
+                                    : `View ${label}`}
+                                </button>
+
+                              );
+
+                            })}
+
+                          </div>
+
+                          {![
+                            selectedAdmission.identityDocumentUrl,
+                            selectedAdmission.passportPictureUrl,
+                            selectedAdmission.transcriptsUrl,
+                            selectedAdmission.certificateUrl,
+                            selectedAdmission.testimonialUrl,
+                            selectedAdmission.recommendationUrl
+                          ].some(Boolean) && (
+
+                            <div
+                              style={{
+                                fontSize: '11px',
+                                color: adminTheme.muted
+                              }}
+                            >
+                              No uploaded documents found.
+                            </div>
+
+                          )}
+
+                        </div>
+
+
+                        {admissionActionError && (
+
+                          <div
+                            style={{
+                              padding: '11px 13px',
+                              marginBottom: '12px',
+                              background: '#FDECEC',
+                              color: '#9B1C1C',
+                              border:
+                                '1px solid #F3B7B7',
+                              borderRadius: '8px',
+                              fontSize: '12px'
+                            }}
+                          >
+                            {admissionActionError}
+                          </div>
+
+                        )}
+
+
+                        {admissionActionSuccess && (
+
+                          <div
+                            style={{
+                              padding: '11px 13px',
+                              marginBottom: '12px',
+                              background: '#ECFDF3',
+                              color: '#18794E',
+                              border:
+                                '1px solid #A7E3C2',
+                              borderRadius: '8px',
+                              fontSize: '12px'
+                            }}
+                          >
+                            {admissionActionSuccess}
+                          </div>
+
+                        )}
+
+
+                        {selectedAdmission.status === 'UNDER_REVIEW' && (
+
+                          <div
+                            style={{
+                              padding: '16px',
+                              background: '#FFFBEB',
+                              border:
+                                '1px solid #F1D48A',
+                              borderRadius: '9px'
+                            }}
+                          >
+
+                            <h4
+                              style={{
+                                margin: '0 0 8px',
+                                color: adminTheme.primary
+                              }}
+                            >
+                              Admission Decision
+                            </h4>
+
+                            <p
+                              style={{
+                                margin: '0 0 12px',
+                                fontSize: '11px',
+                                color: adminTheme.muted
+                              }}
+                            >
+                              The application can only be decided after its admission payment has been verified as PAID.
+                            </p>
+
+                            <textarea
+                              value={admissionDecisionMessage}
+                              onChange={e =>
+                                setAdmissionDecisionMessage(
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Optional approval or rejection message/reason..."
+                              rows={4}
+                              style={{
+                                width: '100%',
+                                boxSizing: 'border-box',
+                                padding: '10px',
+                                border:
+                                  '1px solid #D8D0C0',
+                                borderRadius: '7px',
+                                resize: 'vertical',
+                                marginBottom: '10px',
+                                fontFamily: 'inherit',
+                                fontSize: '12px'
+                              }}
+                            />
+
+                            <div
+                              style={{
+                                display: 'flex',
+                                gap: '9px',
+                                flexWrap: 'wrap'
+                              }}
+                            >
+
+                              <button
+                                type="button"
+                                disabled={
+                                  admissionActionLoading ||
+                                  selectedAdmission.payment?.status !== 'PAID'
+                                }
+                                style={{
+                                  ...adminStyles.smallButton,
+                                  background:
+                                    selectedAdmission.payment?.status === 'PAID'
+                                      ? '#18794E'
+                                      : '#B8B8B8',
+                                  color: '#fff',
+                                  border: 'none',
+                                  cursor:
+                                    selectedAdmission.payment?.status === 'PAID'
+                                      ? 'pointer'
+                                      : 'not-allowed'
+                                }}
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      'Approve this student admission?'
+                                    )
+                                  ) {
+                                    makeAdmissionDecision(
+                                      'APPROVED'
+                                    );
+                                  }
+                                }}
+                              >
+                                {admissionActionLoading
+                                  ? 'Processing...'
+                                  : 'Approve Admission'}
+                              </button>
+
+                              <button
+                                type="button"
+                                disabled={admissionActionLoading}
+                                style={{
+                                  ...adminStyles.smallButton,
+                                  background: '#B42318',
+                                  color: '#fff',
+                                  border: 'none'
+                                }}
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      'Reject this student admission?'
+                                    )
+                                  ) {
+                                    makeAdmissionDecision(
+                                      'REJECTED'
+                                    );
+                                  }
+                                }}
+                              >
+                                {admissionActionLoading
+                                  ? 'Processing...'
+                                  : 'Reject Admission'}
+                              </button>
+
+                            </div>
+
+                            {selectedAdmission.payment?.status !== 'PAID' && (
+
+                              <div
+                                style={{
+                                  marginTop: '9px',
+                                  fontSize: '10px',
+                                  color: '#9A6700'
+                                }}
+                              >
+                                Approval is disabled until the verified admission payment status is PAID.
+                              </div>
+
+                            )}
+
+                          </div>
+
+                        )}
+
+                      </>
+
+                    )}
+
+                  </div>
+
+                </div>
+
+              )}
+
+            </div>
 
           )}
 

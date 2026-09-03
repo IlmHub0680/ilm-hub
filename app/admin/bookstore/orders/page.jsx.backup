@@ -1,0 +1,77 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
+export default function OrdersPage() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const response = await fetch(
+          '/api/admin/orders',
+          { cache: 'no-store' }
+        );
+
+        if (!response.ok) {
+          setOrders([]);
+          return;
+        }
+
+        const result = await response.json();
+        setOrders(result.data || result.orders || []);
+      } catch {
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, []);
+
+  return (
+    <main style={{ padding: 32 }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+        <h1>Bookstore Orders</h1>
+        <p style={{ color: '#6b7280' }}>
+          Monitor payment, approval and access for bookstore purchases.
+        </p>
+
+        <div
+          style={{
+            marginTop: 24,
+            background: '#fff',
+            borderRadius: 14,
+            padding: 24,
+          }}
+        >
+          {loading ? (
+            <p>Loading orders...</p>
+          ) : orders.length === 0 ? (
+            <p>No bookstore orders found.</p>
+          ) : (
+            orders.map((order) => (
+              <div
+                key={order.id}
+                style={{
+                  padding: 16,
+                  borderBottom: '1px solid #e5e7eb',
+                }}
+              >
+                <strong>
+                  {order.orderNumber || order.id}
+                </strong>
+
+                <div style={{ color: '#6b7280', marginTop: 5 }}>
+                  {order.status || '—'}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}

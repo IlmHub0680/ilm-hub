@@ -1,32 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 export default function AdmissionPage() {
   const [currentStage, setCurrentStage] = useState(1);
+  const [academicProgrammes, setAcademicProgrammes] = useState([]);
+  const [programmesLoading, setProgrammesLoading] = useState(true);
+  const [programmesError, setProgrammesError] = useState('');
+
+  // Keep only active programmes and avoid recalculating on every render.
+  const activeProgrammes = useMemo(
+    () => academicProgrammes.filter((programme) => programme.status === 'Active'),
+    [academicProgrammes]
+  );
+
   const [maxCompletedStage, setMaxCompletedStage] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+
+  // Prevent Step 1 from flashing while returning from Paystack or Stripe.
+  const [isPaymentReturn, setIsPaymentReturn] = useState(false);
   
   // State for handling direct payment and processing inside Step 4
   const [isPaymentProcessed, setIsPaymentProcessed] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // Form fields for actual payment inputs based on method
-  const [paymentDetails, setPaymentDetails] = useState({
-    momoNumber: '',
-    momoNetwork: 'MTN',
-    accountName: '',
-    bankName: 'GCB Bank',
-    accountNumber: '',
-    cardNumber: '',
-    cardExpiry: '',
-    cardCvv: '',
-  });
-
   const [formData, setFormData] = useState({
     // Step 1: Account & Personal
-    email: 'admin@ilmhub.com',
+    email: '',
     password: '',
     fullName: '',
     dateOfBirth: '',
@@ -36,7 +37,7 @@ export default function AdmissionPage() {
     phoneNumber: '',
     idNumber: '',
     residentialAddress: '',
-    applicantCategory: 'Senior Learner (15-20)',
+    applicantCategory: 'Senior Learner (15-20 years)',
 
     // Step 2: Contacts & Education
     guardianName: '',
@@ -49,7 +50,8 @@ export default function AdmissionPage() {
     institutionName: '',
 
     // Step 3: Programme, Session & Documents
-    academicProgramme: 'Academic Programme',
+    programId: '',
+    academicProgramme: '',
     studySession: 'Morning Session',
     identityDocType: 'Ghana Card',
     documents: {
@@ -62,10 +64,15 @@ export default function AdmissionPage() {
     },
 
     // Step 4: Fee & Payment
-    paymentMethod: 'MoMo',
-    calculatedFee: 'GHS 150',
-    feeBase: 'Ghanaian Resident Rate',
+    paymentMethod: 'ADMISSION_PAYSTACK',
+    calculatedFee: 'Calculating...',
+    feeBase: 'Based on country of residence and learner category',
   });
+
+  const selectedProgramme = useMemo(
+    () => activeProgrammes.find((programme) => programme.id === formData.programId),
+    [activeProgrammes, formData.programId]
+  );
 
   const countryList = [
     "Ghana", "Nigeria", "Kenya", "South Africa", "Egypt", "Uganda", "Tanzania",
@@ -85,43 +92,553 @@ export default function AdmissionPage() {
     "seychelles", "sierra leone", "somalia", "south sudan", "sudan", "togo", "tunisia"
   ];
 
-  // Dynamic Fee Logic Engine
+  // Admission pricing comes from the admin-configured database settings.
+  // IMPORTANT: fee is determined ONLY by:
+  //   1. Date of birth -> learner category
+  //   2. Country of residence -> Ghana or International
+  // Nationality does NOT determine the fee.
+
   useEffect(() => {
-    const country = formData.countryOfResidence.trim().toLowerCase();
-    const category = formData.applicantCategory;
+    let cancelled = false;
 
-    let fee = '';
-    let base = '';
+    async function loadAcademicProgrammes() {
+      try {
+        setProgrammesLoading(true);
+        setProgrammesError('');
 
-    if (country === 'ghana') {
-      base = 'Ghanaian Resident Rate';
-      if (category.includes('Junior')) fee = 'GHS 100';
-      else if (category.includes('Senior')) fee = 'GHS 150';
-      else fee = 'GHS 200'; // Mature
-    } else if (africanCountries.includes(country)) {
-      base = 'African Regional Rate';
-      if (category.includes('Junior')) fee = 'USD 12';
-      else if (category.includes('Senior')) fee = 'USD 20';
-      else fee = 'USD 30'; // Mature
-    } else {
-      base = 'Rest of World International Rate';
-      if (category.includes('Junior')) fee = 'USD 20';
-      else if (category.includes('Senior')) fee = 'USD 35';
-      else fee = 'USD 50'; // Mature
+        const response = await fetch('/api/academic/programs?type=programs');
+
+        if (!response.ok) {
+          throw new Error('Unable to load academic programmes.');
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(
+            result.error || 'Unable to load academic programmes.'
+          );
+        }
+
+        if (!cancelled) {
+          setAcademicProgrammes(result.data || []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setProgrammesError(
+            error?.message || 'Unable to load academic programmes.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setProgrammesLoading(false);
+        }
+      }
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      calculatedFee: fee,
-      feeBase: base,
-    }));
-  }, [formData.countryOfResidence, formData.applicantCategory]);
+    loadAcademicProgrammes();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAdmissionFee() {
+      if (!formData.dateOfBirth || !formData.countryOfResidence) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admissions/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fullName: formData.fullName || 'Applicant',
+            dob: formData.dateOfBirth,
+            nationality: formData.nationality,
+            countryOfResidence: formData.countryOfResidence,
+            studySession: formData.studySession,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok || !result.success || !result.data) {
+          console.error(
+            'Admission fee calculation failed:',
+            result.error || 'Unknown error'
+          );
+          return;
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          calculatedFee: `${result.data.currency} ${Number(
+            result.data.admissionFee
+          ).toFixed(2)}`,
+          feeBase: result.data.feeBasis,
+        }));
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Unable to load admission fee:', error);
+        }
+      }
+    }
+
+    loadAdmissionFee();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    formData.dateOfBirth,
+    formData.countryOfResidence,
+  ]);
 
   const handleFileChange = (docKey, file) => {
-    setFormData({
-      ...formData,
-      documents: { ...formData.documents, [docKey]: file ? file.name : null },
-    });
+    setFormData((prev) => ({
+      ...prev,
+      documents: {
+        ...prev.documents,
+        [docKey]: file || null,
+      },
+    }));
+  };
+
+  // Restore the admission form after returning from Paystack.
+  // sessionStorage keeps the draft in the same browser session without
+  // permanently storing the applicant's password in localStorage.
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const hasPaymentReturn =
+        params.has('reference') ||
+        params.has('stripe_session_id') ||
+        params.get('payment') === 'cancelled';
+
+      if (hasPaymentReturn) {
+        setIsPaymentReturn(true);
+      }
+
+      const savedDraft = sessionStorage.getItem('ilm_admission_payment_draft');
+
+      if (!savedDraft) {
+        return;
+      }
+
+      const parsedDraft = JSON.parse(savedDraft);
+
+      if (parsedDraft && typeof parsedDraft === 'object') {
+        setFormData((prev) => ({
+          ...prev,
+          ...parsedDraft,
+          documents: {
+            ...prev.documents,
+            ...(parsedDraft.documents || {}),
+          },
+        }));
+      }
+    } catch (error) {
+      console.error(
+        'Unable to restore admission payment draft:',
+        error
+      );
+    }
+  }, []);
+
+  // Verify the Paystack transaction when Paystack redirects
+  // the applicant back to /admission?reference=...
+  useEffect(() => {
+    let cancelled = false;
+
+    async function verifyReturnedPayment() {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const reference = params.get('reference');
+
+      if (!reference) {
+        return;
+      }
+
+      try {
+        setIsProcessingPayment(true);
+
+        const response = await fetch('/api/admissions/paystack/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            reference,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok || !result.success || !result.data) {
+          throw new Error(
+            result.error || 'Unable to verify your Paystack payment.'
+          );
+        }
+
+        setIsPaymentProcessed(true);
+
+        const applicationId =
+          result.data.applicationId ||
+          localStorage.getItem(
+            'ilm_admission_application_id'
+          );
+
+        if (!applicationId) {
+          throw new Error(
+            'Payment was verified, but the admission application ID could not be found.'
+          );
+        }
+
+        localStorage.setItem(
+          'ilm_admission_application_id',
+          String(applicationId)
+        );
+
+        if (result.data.applicationNumber) {
+          localStorage.setItem(
+            'ilm_admission_application_number',
+            String(
+              result.data.applicationNumber
+            )
+          );
+        }
+
+        localStorage.setItem(
+          'ilm_admission_payment_reference',
+          result.data.reference || reference
+        );
+
+        /*
+         * Payment verification is NOT final application submission.
+         *
+         * The applicant must return to the admission form and
+         * explicitly click Final Submit. Only Final Submit moves
+         * the application to UNDER_REVIEW.
+         *
+         * Keep the applicant on the payment/review stage after
+         * returning from the gateway so they can review the
+         * application and explicitly submit it.
+         */
+        setCurrentStage(4);
+        setMaxCompletedStage((previous) => Math.max(previous, 4));
+
+        // Remove the Paystack reference from the address bar after
+        // successful verification so a refresh does not re-trigger it.
+        const cleanUrl = `${window.location.pathname}${window.location.hash || ''}`;
+        window.history.replaceState({}, document.title, cleanUrl);
+      } catch (error) {
+        if (!cancelled) {
+          console.error(
+            'Admission Paystack return verification failed:',
+            error
+          );
+
+          alert(
+            error?.message ||
+              'We could not verify your Paystack payment. Please contact admissions if money was deducted.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsProcessingPayment(false);
+        }
+      }
+    }
+
+    verifyReturnedPayment();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Verify Stripe Checkout when Stripe redirects
+  // the applicant back to /admission?stripe_session_id=...
+  useEffect(() => {
+    let cancelled = false;
+
+    async function verifyReturnedStripePayment() {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get('stripe_session_id');
+
+      if (!sessionId) {
+        return;
+      }
+
+      try {
+        setIsProcessingPayment(true);
+
+        const response = await fetch(
+          '/api/admissions/stripe/verify',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              sessionId,
+            }),
+          }
+        );
+
+        const result = await response.json();
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok || !result.success || !result.data) {
+          throw new Error(
+            result.error ||
+              'Unable to verify your Stripe payment.'
+          );
+        }
+
+        setIsPaymentProcessed(true);
+
+        const applicationId =
+          result.data.applicationId ||
+          localStorage.getItem(
+            'ilm_admission_application_id'
+          );
+
+        if (!applicationId) {
+          throw new Error(
+            'Payment was verified, but the admission application ID could not be found.'
+          );
+        }
+
+        localStorage.setItem(
+          'ilm_admission_application_id',
+          String(applicationId)
+        );
+
+        if (result.data.applicationNumber) {
+          localStorage.setItem(
+            'ilm_admission_application_number',
+            String(
+              result.data.applicationNumber
+            )
+          );
+        }
+
+        localStorage.setItem(
+          'ilm_admission_payment_reference',
+          sessionId
+        );
+
+        /*
+         * Payment verification is NOT final application submission.
+         *
+         * The applicant must return to the admission form and
+         * explicitly click Final Submit. Only Final Submit moves
+         * the application to UNDER_REVIEW.
+         *
+         * Keep the applicant on the payment/review stage after
+         * returning from the gateway so they can review the
+         * application and explicitly submit it.
+         */
+        setCurrentStage(4);
+        setMaxCompletedStage((previous) => Math.max(previous, 4));
+
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+      } catch (error) {
+        if (!cancelled) {
+          console.error(
+            'Admission Stripe return verification failed:',
+            error
+          );
+
+          alert(
+            error?.message ||
+              'We could not verify your Stripe payment. Please contact admissions if money was deducted.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsProcessingPayment(false);
+        }
+      }
+    }
+
+    verifyReturnedStripePayment();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const initializeAdmissionPayment = async () => {
+    if (isProcessingPayment || isPaymentProcessed) {
+      return;
+    }
+
+    const paymentMethod = formData.paymentMethod;
+
+    if (
+      paymentMethod !== 'ADMISSION_PAYSTACK' &&
+      paymentMethod !== 'STRIPE'
+    ) {
+      alert('Please select a valid online payment method.');
+      return;
+    }
+
+    if (
+      !formData.fullName ||
+      !formData.email ||
+      !formData.dateOfBirth ||
+      !formData.countryOfResidence ||
+      !formData.programId
+    ) {
+      alert(
+        'Please complete your personal information, country of residence and programme before starting payment.'
+      );
+      return;
+    }
+
+    try {
+      setIsProcessingPayment(true);
+
+      const endpoint =
+        paymentMethod === 'ADMISSION_PAYSTACK'
+          ? '/api/admissions/paystack/initialize'
+          : '/api/admissions/stripe/initialize';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          email: formData.email,
+          dob: formData.dateOfBirth,
+          nationality: formData.nationality,
+          countryOfResidence: formData.countryOfResidence,
+          programId: formData.programId,
+          studySession: formData.studySession,
+          gender: formData.gender,
+          phoneNumber: formData.phoneNumber,
+          idNumber: formData.idNumber,
+          residentialAddress: formData.residentialAddress,
+          applicantCategory: formData.applicantCategory,
+          guardianName: formData.guardianName,
+          guardianPhone: formData.guardianPhone,
+          guardianRelationship: formData.guardianRelationship,
+          emergencyName: formData.emergencyName,
+          emergencyPhone: formData.emergencyPhone,
+          emergencyRelationship: formData.emergencyRelationship,
+          highestEducation: formData.highestEducation,
+          institutionName: formData.institutionName,
+          identityDocType: formData.identityDocType,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success || !result.data) {
+        throw new Error(
+          result.error ||
+            `Unable to initialize ${
+              paymentMethod === 'ADMISSION_PAYSTACK'
+                ? 'Paystack'
+                : 'Stripe'
+            } payment.`
+        );
+      }
+
+      const paymentUrl =
+        result.data.authorizationUrl ||
+        result.data.checkoutUrl;
+
+      if (!paymentUrl) {
+        throw new Error(
+          `${
+            paymentMethod === 'ADMISSION_PAYSTACK'
+              ? 'Paystack'
+              : 'Stripe'
+          } did not return a payment URL.`
+        );
+      }
+
+      const applicationId = result.data.applicationId;
+
+      if (!applicationId) {
+        throw new Error(
+          'Payment was initialized, but the admission application ID is missing.'
+        );
+      }
+
+      /*
+       * File objects cannot survive the payment-provider redirect,
+       * so upload the admission documents to R2 before leaving the site.
+       */
+      saveAdmissionPaymentDraft();
+
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(
+          'ilm_admission_payment_application_id',
+          String(applicationId)
+        );
+
+        if (result.data.applicationNumber) {
+          sessionStorage.setItem(
+            'ilm_admission_payment_application_number',
+            String(result.data.applicationNumber)
+          );
+        }
+      }
+
+      await uploadAdmissionDocuments(applicationId);
+
+      window.location.href = paymentUrl;
+    } catch (error) {
+      console.error(
+        'Admission payment initialization failed:',
+        error
+      );
+
+      alert(
+        error?.message ||
+          'Unable to start payment. Please try again.'
+      );
+
+      setIsProcessingPayment(false);
+    }
   };
 
   const isStageValid = (stageNum) => {
@@ -169,25 +686,18 @@ export default function AdmissionPage() {
     }
 
     if (stageNum === 4) {
-      return Boolean(formData.paymentMethod && isPaymentProcessed);
+      if (formData.paymentMethod === 'ADMISSION_PAYSTACK') {
+        return isPaymentProcessed;
+      }
+
+      if (formData.paymentMethod === 'STRIPE') {
+        return isPaymentProcessed;
+      }
+
+      return false;
     }
 
     return true;
-  };
-
-  // Check if payment inputs for the chosen method are filled
-  const isPaymentFormValid = () => {
-    const method = formData.paymentMethod;
-    if (method === 'MoMo') {
-      return Boolean(paymentDetails.momoNumber && paymentDetails.accountName && paymentDetails.momoNetwork);
-    }
-    if (method === 'Debit/Credit Card (Visa/Master)') {
-      return Boolean(paymentDetails.cardNumber && paymentDetails.cardExpiry && paymentDetails.cardCvv && paymentDetails.accountName);
-    }
-    if (method === 'Direct Bank Transfer') {
-      return Boolean(paymentDetails.bankName && paymentDetails.accountNumber && paymentDetails.accountName);
-    }
-    return false;
   };
 
   const handleTabClick = (targetStage) => {
@@ -229,16 +739,334 @@ export default function AdmissionPage() {
     if (currentStage > 1) setCurrentStage(currentStage - 1);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!isPaymentProcessed) {
-      alert('Payment authorization is required before submitting the application.');
+  const uploadAdmissionDocuments = async (applicationId) => {
+    if (!applicationId) {
+      throw new Error('Admission application ID is missing.');
+    }
+
+    const uploadFormData = new FormData();
+
+    uploadFormData.append(
+      'applicationId',
+      String(applicationId)
+    );
+
+    const documentFields = [
+      'identityDocument',
+      'passportPicture',
+      'transcripts',
+      'certificate',
+      'testimonial',
+      'recommendation',
+    ];
+
+    let fileCount = 0;
+
+    for (const field of documentFields) {
+      const file = formData.documents[field];
+
+      if (typeof File !== 'undefined' && file instanceof File) {
+        uploadFormData.append(field, file);
+        fileCount += 1;
+      }
+    }
+
+    if (fileCount === 0) {
+      throw new Error(
+        'Please select the required admission documents before continuing.'
+      );
+    }
+
+    const response = await fetch(
+      '/api/admissions/documents',
+      {
+        method: 'POST',
+        body: uploadFormData,
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.error ||
+          'Unable to upload admission documents.'
+      );
+    }
+
+    return result;
+  };
+
+  const submitAdmissionApplication = async (applicationId) => {
+    if (!applicationId) {
+      throw new Error(
+        'Admission application ID is missing.'
+      );
+    }
+
+    const response = await fetch(
+      '/api/admissions/submit',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          applicationId: String(applicationId),
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.error ||
+          'Unable to submit admission application.'
+      );
+    }
+
+    return result;
+  };
+
+  const saveAdmissionPaymentDraft = () => {
+    if (typeof window === 'undefined') {
       return;
     }
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('ilm_student_profile', JSON.stringify(formData));
+
+    const draft = {
+      ...formData,
+      documents: {
+        identityDocument: null,
+        passportPicture: null,
+        transcripts: null,
+        certificate: null,
+        testimonial: null,
+        recommendation: null,
+      },
+    };
+
+    sessionStorage.setItem(
+      'ilm_admission_payment_draft',
+      JSON.stringify(draft)
+    );
+  };
+
+  const initializeAdmissionPaymentAndUpload = async ({
+    initializeUrl,
+    body,
+    checkoutUrlFromResult,
+  }) => {
+    try {
+      setIsProcessingPayment(true);
+
+      const response = await fetch(
+        initializeUrl,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        }
+      );
+
+      const result = await response.json();
+
+      if (
+        !response.ok ||
+        !result.success ||
+        !result.data
+      ) {
+        throw new Error(
+          result.error ||
+            'Unable to initialize admission payment.'
+        );
+      }
+
+      const applicationId =
+        result.data.applicationId;
+
+      if (!applicationId) {
+        throw new Error(
+          'Payment was initialized but no application ID was returned.'
+        );
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'ilm_admission_application_id',
+          String(applicationId)
+        );
+
+        if (result.data.applicationNumber) {
+          localStorage.setItem(
+            'ilm_admission_application_number',
+            String(
+              result.data.applicationNumber
+            )
+          );
+        }
+
+        if (result.data.reference) {
+          localStorage.setItem(
+            'ilm_admission_payment_reference',
+            String(result.data.reference)
+          );
+        }
+
+        if (result.data.sessionId) {
+          localStorage.setItem(
+            'ilm_admission_payment_reference',
+            String(result.data.sessionId)
+          );
+        }
+      }
+
+      /*
+       * Save the non-file portion of the form before
+       * leaving the site. The actual File objects cannot
+       * survive a payment-provider redirect, so upload
+       * them to R2 first.
+       */
+      saveAdmissionPaymentDraft();
+
+      await uploadAdmissionDocuments(
+        applicationId
+      );
+
+      const checkoutUrl =
+        checkoutUrlFromResult(result.data);
+
+      if (!checkoutUrl) {
+        throw new Error(
+          'Payment gateway did not return a checkout URL.'
+        );
+      }
+
+      window.location.href = checkoutUrl;
+    } catch (error) {
+      console.error(
+        'Admission payment initialization failed:',
+        error
+      );
+
+      alert(
+        error?.message ||
+          'Unable to start payment. Please try again.'
+      );
+
+      setIsProcessingPayment(false);
     }
-    setSubmitted(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!formData.paymentMethod) {
+      alert('Please select a payment method.');
+      return;
+    }
+
+    if (
+      (
+        formData.paymentMethod === 'ADMISSION_PAYSTACK' ||
+        formData.paymentMethod === 'STRIPE'
+      ) &&
+      !isPaymentProcessed
+    ) {
+      alert(
+        'Please complete and verify your payment before submitting.'
+      );
+      return;
+    }
+
+    const applicationId =
+      typeof window !== 'undefined'
+        ? localStorage.getItem(
+            'ilm_admission_application_id'
+          )
+        : null;
+
+    if (!applicationId) {
+      alert(
+        'Your admission application could not be identified. Please contact admissions.'
+      );
+      return;
+    }
+
+    try {
+      setIsProcessingPayment(true);
+
+      const result =
+        await submitAdmissionApplication(
+          applicationId
+        );
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'ilm_student_profile',
+          JSON.stringify({
+            ...formData,
+            documents: {
+              identityDocument:
+                formData.documents.identityDocument
+                  ? formData.documents.identityDocument.name
+                  : null,
+              passportPicture:
+                formData.documents.passportPicture
+                  ? formData.documents.passportPicture.name
+                  : null,
+              transcripts:
+                formData.documents.transcripts
+                  ? formData.documents.transcripts.name
+                  : null,
+              certificate:
+                formData.documents.certificate
+                  ? formData.documents.certificate.name
+                  : null,
+              testimonial:
+                formData.documents.testimonial
+                  ? formData.documents.testimonial.name
+                  : null,
+              recommendation:
+                formData.documents.recommendation
+                  ? formData.documents.recommendation.name
+                  : null,
+            },
+          })
+        );
+
+        if (
+          result?.data?.applicationNumber
+        ) {
+          localStorage.setItem(
+            'ilm_admission_application_number',
+            String(
+              result.data.applicationNumber
+            )
+          );
+        }
+      }
+
+      sessionStorage.removeItem(
+        'ilm_admission_payment_draft'
+      );
+
+      setSubmitted(true);
+    } catch (error) {
+      console.error(
+        'Admission final submission failed:',
+        error
+      );
+
+      alert(
+        error?.message ||
+          'Unable to submit your admission application.'
+      );
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   const commonInputStyle = {
@@ -275,7 +1103,7 @@ export default function AdmissionPage() {
             </p>
           </div>
 
-          {!submitted && (
+          {!submitted && !isPaymentReturn && (
             <>
               {/* Stepper navigation bar */}
               <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '40px' }}>
@@ -330,11 +1158,35 @@ export default function AdmissionPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                       <div>
                         <label style={commonLabelStyle}>Email Address *</label>
-                        <input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} style={{...commonInputStyle, backgroundColor: '#f0f9ff', border: '1px solid #bae6fd'}} />
+                        <input
+                          type="email"
+                          name="email"
+                          id="applicant-email"
+                          autoComplete="off"
+                          required
+                          value={formData.email}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              email: e.target.value,
+                            })
+                          }
+                          placeholder="Enter your email address"
+                          style={{
+                            ...commonInputStyle,
+                            backgroundColor: '#f0f9ff',
+                            border: '1px solid #bae6fd',
+                          }}
+                        />
                       </div>
                       <div>
                         <label style={commonLabelStyle}>Password *</label>
-                        <input type="password" required value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} style={{...commonInputStyle, backgroundColor: '#f0f9ff', border: '1px solid #bae6fd'}} />
+                        <input
+                          type="password"
+                          name="admission-password"
+                          autoComplete="new-password"
+                          required
+                          value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} style={{...commonInputStyle, backgroundColor: '#f0f9ff', border: '1px solid #bae6fd'}} />
                       </div>
                     </div>
                     
@@ -392,9 +1244,9 @@ export default function AdmissionPage() {
                     <div>
                       <label style={commonLabelStyle}>Applicant Classification *</label>
                       <select required value={formData.applicantCategory} onChange={(e) => setFormData({...formData, applicantCategory: e.target.value})} style={{...commonInputStyle, border: '1px solid #16a34a', fontWeight: 'bold'}}>
-                        <option value="Junior Learner (4-14years)">Junior Learner (4-14 years)</option>
-                        <option value="Senior Learner (15-20)">Senior Learner (15-20 years)</option>
-                        <option value="Mature Learner (20years and above)">Mature Learner (20 years and above)</option>
+                        <option value="Junior Learner (4-13 years)">Junior Learner (4-13 years)</option>
+                        <option value="Senior Learner (15-20 years)">Senior Learner (15-20 years)</option>
+                        <option value="Mature Learner (21 years and above)">Mature Learner (21 years and above)</option>
                       </select>
                     </div>
                   </>
@@ -458,13 +1310,291 @@ export default function AdmissionPage() {
                 {/* STAGE 3: Programme, Session & Document Uploads */}
                 {currentStage === 3 && (
                   <>
-                    <div>
-                      <label style={commonLabelStyle}>Academic Programme *</label>
-                      <select required value={formData.academicProgramme} onChange={(e) => setFormData({...formData, academicProgramme: e.target.value})} style={commonInputStyle}>
-                        <option value="Academic Programme">Academic Programme</option>
-                        <option value="Certificate Programme (Specialised Studies)">Certificate Programme (Specialised Studies)</option>
-                        <option value="Diploma in Islamic Sciences">Diploma in Islamic Sciences</option>
-                      </select>
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 55%, #fffbeb 100%)',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '18px',
+                        padding: '22px',
+                        marginBottom: '22px',
+                        boxShadow: '0 8px 25px rgba(20, 83, 45, 0.07)',
+                      }}
+                    >
+                      <div style={{ marginBottom: '18px' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            marginBottom: '7px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '38px',
+                              height: '38px',
+                              borderRadius: '12px',
+                              background: '#14532d',
+                              color: '#facc15',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '18px',
+                              fontWeight: '800',
+                            }}
+                          >
+                            🎓
+                          </div>
+
+                          <div>
+                            <h3
+                              style={{
+                                margin: 0,
+                                color: '#14532d',
+                                fontSize: '20px',
+                                fontWeight: '800',
+                              }}
+                            >
+                              Choose Your Academic Programme
+                            </h3>
+
+                            <p
+                              style={{
+                                margin: '4px 0 0',
+                                color: '#64748b',
+                                fontSize: '13px',
+                              }}
+                            >
+                              Select the programme you wish to apply for.
+                            </p>
+                          </div>
+                        </div>
+
+                        {programmesLoading && (
+                          <div
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '12px',
+                              padding: '16px',
+                              color: '#64748b',
+                              fontSize: '13px',
+                            }}
+                          >
+                            Loading academic programmes...
+                          </div>
+                        )}
+
+                        {programmesError && (
+                          <div
+                            style={{
+                              background: '#fef2f2',
+                              border: '1px solid #fecaca',
+                              borderRadius: '12px',
+                              padding: '12px 14px',
+                              color: '#b91c1c',
+                              fontSize: '13px',
+                              marginBottom: '12px',
+                            }}
+                          >
+                            {programmesError}
+                          </div>
+                        )}
+
+                        {!programmesLoading && !programmesError && (
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                              gap: '12px',
+                            }}
+                          >
+                            {activeProgrammes.map((programme) => {
+                              const isSelected = formData.programId === programme.id;
+
+                              return (
+                                <button
+                                  key={programme.id}
+                                  type="button"
+                                  onClick={() =>
+                                    setFormData({
+                                      ...formData,
+                                      programId: programme.id,
+                                      academicProgramme: programme.name,
+                                    })
+                                  }
+                                  style={{
+                                    textAlign: 'left',
+                                    border: isSelected
+                                      ? '2px solid #15803d'
+                                      : '1px solid #dbe5df',
+                                    background: isSelected ? '#f0fdf4' : '#ffffff',
+                                    borderRadius: '14px',
+                                    padding: '16px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: isSelected
+                                      ? '0 5px 18px rgba(21, 128, 61, 0.14)'
+                                      : '0 2px 8px rgba(15, 23, 42, 0.04)',
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'flex-start',
+                                      gap: '10px',
+                                    }}
+                                  >
+                                    <div>
+                                      <div
+                                        style={{
+                                          color: '#14532d',
+                                          fontSize: '15px',
+                                          fontWeight: '800',
+                                          lineHeight: 1.35,
+                                        }}
+                                      >
+                                        {programme.name}
+                                      </div>
+
+                                      <div
+                                        style={{
+                                          display: 'flex',
+                                          gap: '7px',
+                                          flexWrap: 'wrap',
+                                          marginTop: '9px',
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            background: '#dcfce7',
+                                            color: '#166534',
+                                            borderRadius: '999px',
+                                            padding: '4px 8px',
+                                            fontSize: '11px',
+                                            fontWeight: '700',
+                                          }}
+                                        >
+                                          {programme.level}
+                                        </span>
+
+                                        <span
+                                          style={{
+                                            background: '#fef3c7',
+                                            color: '#92400e',
+                                            borderRadius: '999px',
+                                            padding: '4px 8px',
+                                            fontSize: '11px',
+                                            fontWeight: '700',
+                                          }}
+                                        >
+                                          {programme.duration}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div
+                                      style={{
+                                        width: '23px',
+                                        height: '23px',
+                                        minWidth: '23px',
+                                        borderRadius: '50%',
+                                        border: isSelected
+                                          ? '6px solid #15803d'
+                                          : '2px solid #cbd5e1',
+                                        background: '#ffffff',
+                                      }}
+                                    />
+                                  </div>
+
+                                  <p
+                                    style={{
+                                      margin: '12px 0 0',
+                                      color: '#64748b',
+                                      fontSize: '12px',
+                                      lineHeight: 1.55,
+                                    }}
+                                  >
+                                    {programme.description}
+                                  </p>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        <input
+                          type="hidden"
+                          name="programId"
+                          value={formData.programId}
+                          required
+                        />
+
+                        {!formData.programId && !programmesLoading && (
+                          <p
+                            style={{
+                              margin: '12px 0 0',
+                              color: '#b45309',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                            }}
+                          >
+                            Please select an academic programme to continue.
+                          </p>
+                        )}
+                      </div>
+
+                      {selectedProgramme && (
+                        <div
+                          style={{
+                            marginTop: '16px',
+                            padding: '14px 16px',
+                            background: '#14532d',
+                            color: '#ffffff',
+                            borderRadius: '12px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '12px',
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <div>
+                            <div
+                              style={{
+                                fontSize: '10px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.08em',
+                                color: '#bbf7d0',
+                                fontWeight: '700',
+                              }}
+                            >
+                              Selected Programme
+                            </div>
+
+                            <div
+                              style={{
+                                fontSize: '15px',
+                                fontWeight: '800',
+                                marginTop: '3px',
+                              }}
+                            >
+                              {selectedProgramme.name}
+                            </div>
+                          </div>
+
+                          <div
+                            style={{
+                              color: '#facc15',
+                              fontSize: '12px',
+                              fontWeight: '700',
+                            }}
+                          >
+                            {selectedProgramme.id}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -541,211 +1671,262 @@ export default function AdmissionPage() {
                 {/* STAGE 4: Fee & Payment Gateway */}
                 {currentStage === 4 && (
                   <>
-                    <div style={{ backgroundColor: '#f0fdf4', padding: '25px', borderRadius: '12px', border: '1px solid #bbf7d0', textAlign: 'center' }}>
-                      <span style={{ textTransform: 'uppercase', fontSize: '12px', fontWeight: 'bold', color: '#166534', letterSpacing: '0.05em' }}>
+                    <div
+                      style={{
+                        backgroundColor: '#f0fdf4',
+                        padding: '25px',
+                        borderRadius: '12px',
+                        border: '1px solid #bbf7d0',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <span
+                        style={{
+                          textTransform: 'uppercase',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          color: '#166534',
+                          letterSpacing: '0.05em',
+                        }}
+                      >
                         Auto-Calculated Admission Fee
                       </span>
-                      <div style={{ fontSize: '42px', color: '#14532d', fontWeight: 'bold', margin: '10px 0' }}>
+
+                      <div
+                        style={{
+                          fontSize: '42px',
+                          color: '#14532d',
+                          fontWeight: 'bold',
+                          margin: '10px 0',
+                        }}
+                      >
                         {formData.calculatedFee}
                       </div>
-                      <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+
+                      <p
+                        style={{
+                          fontSize: '13px',
+                          color: '#64748b',
+                          margin: 0,
+                        }}
+                      >
                         {formData.feeBase} - {formData.applicantCategory}.
                       </p>
                     </div>
 
-                    <div>
-                      <label style={commonLabelStyle}>Select Payment Method *</label>
-                      <select 
-                        required 
-                        value={formData.paymentMethod} 
-                        onChange={(e) => {
-                          setFormData({...formData, paymentMethod: e.target.value});
-                          setIsPaymentProcessed(false); 
-                        }} 
-                        style={commonInputStyle}
+                    <div
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        padding: '20px',
+                        borderRadius: '10px',
+                        border: '1px solid #e2e8f0',
+                      }}
+                    >
+                      <h4
+                        style={{
+                          fontSize: '13px',
+                          textTransform: 'uppercase',
+                          color: '#0f172a',
+                          fontWeight: 'bold',
+                          margin: '0 0 8px 0',
+                        }}
                       >
-                        <option value="MoMo">Mobile Money (MoMo)</option>
-                        <option value="Debit/Credit Card (Visa/Master)">Debit/Credit Card (Visa/Master)</option>
-                        <option value="Direct Bank Transfer">Direct Bank Transfer</option>
-                      </select>
-                    </div>
-
-                    {/* Integrated Payment Execution Module with dynamic input fields */}
-                    <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '10px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
-                      <h4 style={{ fontSize: '13px', textTransform: 'uppercase', color: '#0f172a', fontWeight: 'bold', margin: '0 0 8px 0' }}>
-                        Payment Processing Gateway ({formData.paymentMethod})
+                        Payment Method
                       </h4>
-                      <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 15px 0' }}>
-                        Enter your account details or beneficiary information to authorize the charge.
+
+                      <p
+                        style={{
+                          fontSize: '13px',
+                          color: '#64748b',
+                          margin: '0 0 15px 0',
+                        }}
+                      >
+                        Choose how you would like to pay your admission fee.
                       </p>
 
-                      {isPaymentProcessed ? (
-                        <div style={{ padding: '12px', backgroundColor: '#dcfce7', border: '1px solid #86efac', borderRadius: '6px', color: '#166534', fontWeight: 'bold', fontSize: '14px', textAlign: 'center' }}>
-                          ✓ Payment Successful & Verified ({formData.calculatedFee})
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                          
-                          {formData.paymentMethod === 'MoMo' && (
-                            <>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                                <div>
-                                  <label style={commonLabelStyle}>MoMo Network *</label>
-                                  <select 
-                                    value={paymentDetails.momoNetwork} 
-                                    onChange={(e) => setPaymentDetails({...paymentDetails, momoNetwork: e.target.value})} 
-                                    style={commonInputStyle}
-                                  >
-                                    <option value="MTN">MTN Mobile Money</option>
-                                    <option value="Vodafone">Vodafone Cash</option>
-                                    <option value="AirtelTigo">AirtelTigo Money</option>
-                                  </select>
-                                </div>
-                                <div>
-                                  <label style={commonLabelStyle}>Mobile Number *</label>
-                                  <input 
-                                    type="tel" 
-                                    placeholder="e.g., 0241234567" 
-                                    value={paymentDetails.momoNumber}
-                                    onChange={(e) => setPaymentDetails({...paymentDetails, momoNumber: e.target.value})}
-                                    style={commonInputStyle}
-                                  />
-                                </div>
-                              </div>
-                              <div>
-                                <label style={commonLabelStyle}>Account / Beneficiary Name *</label>
-                                <input 
-                                  type="text" 
-                                  placeholder="Enter account holder name..." 
-                                  value={paymentDetails.accountName}
-                                  onChange={(e) => setPaymentDetails({...paymentDetails, accountName: e.target.value})}
-                                  style={commonInputStyle}
-                                />
-                              </div>
-                            </>
-                          )}
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: '15px',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              paymentMethod: 'ADMISSION_PAYSTACK',
+                            })
+                          }
+                          style={{
+                            padding: '16px',
+                            borderRadius: '8px',
+                            border:
+                              formData.paymentMethod === 'ADMISSION_PAYSTACK'
+                                ? '2px solid #16a34a'
+                                : '1px solid #cbd5e1',
+                            backgroundColor:
+                              formData.paymentMethod === 'ADMISSION_PAYSTACK'
+                                ? '#f0fdf4'
+                                : '#ffffff',
+                            color: '#14532d',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Pay with Paystack
+                        </button>
 
-                          {formData.paymentMethod === 'Debit/Credit Card (Visa/Master)' && (
-                            <>
-                              <div>
-                                <label style={commonLabelStyle}>Cardholder Name *</label>
-                                <input 
-                                  type="text" 
-                                  placeholder="Name on card..." 
-                                  value={paymentDetails.accountName}
-                                  onChange={(e) => setPaymentDetails({...paymentDetails, accountName: e.target.value})}
-                                  style={commonInputStyle}
-                                />
-                              </div>
-                              <div>
-                                <label style={commonLabelStyle}>Card Number *</label>
-                                <input 
-                                  type="text" 
-                                  placeholder="4532 •••• •••• ••••" 
-                                  value={paymentDetails.cardNumber}
-                                  onChange={(e) => setPaymentDetails({...paymentDetails, cardNumber: e.target.value})}
-                                  style={commonInputStyle}
-                                />
-                              </div>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                                <div>
-                                  <label style={commonLabelStyle}>Expiry Date *</label>
-                                  <input 
-                                    type="text" 
-                                    placeholder="MM/YY" 
-                                    value={paymentDetails.cardExpiry}
-                                    onChange={(e) => setPaymentDetails({...paymentDetails, cardExpiry: e.target.value})}
-                                    style={commonInputStyle}
-                                  />
-                                </div>
-                                <div>
-                                  <label style={commonLabelStyle}>CVV *</label>
-                                  <input 
-                                    type="password" 
-                                    placeholder="123" 
-                                    maxLength="4"
-                                    value={paymentDetails.cardCvv}
-                                    onChange={(e) => setPaymentDetails({...paymentDetails, cardCvv: e.target.value})}
-                                    style={commonInputStyle}
-                                  />
-                                </div>
-                              </div>
-                            </>
-                          )}
-
-                          {formData.paymentMethod === 'Direct Bank Transfer' && (
-                            <>
-                              <div>
-                                <label style={commonLabelStyle}>Select Bank *</label>
-                                <select 
-                                  value={paymentDetails.bankName} 
-                                  onChange={(e) => setPaymentDetails({...paymentDetails, bankName: e.target.value})} 
-                                  style={commonInputStyle}
-                                >
-                                  <option value="GCB Bank">GCB Bank</option>
-                                  <option value="Ecobank Ghana">Ecobank Ghana</option>
-                                  <option value="Stanbic Bank">Stanbic Bank</option>
-                                  <option value="Absa Bank">Absa Bank</option>
-                                  <option value="CalBank">CalBank</option>
-                                </select>
-                              </div>
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                                <div>
-                                  <label style={commonLabelStyle}>Account Number *</label>
-                                  <input 
-                                    type="text" 
-                                    placeholder="Enter bank account..." 
-                                    value={paymentDetails.accountNumber}
-                                    onChange={(e) => setPaymentDetails({...paymentDetails, accountNumber: e.target.value})}
-                                    style={commonInputStyle}
-                                  />
-                                </div>
-                                <div>
-                                  <label style={commonLabelStyle}>Beneficiary / Account Name *</label>
-                                  <input 
-                                    type="text" 
-                                    placeholder="Account holder name..." 
-                                    value={paymentDetails.accountName}
-                                    onChange={(e) => setPaymentDetails({...paymentDetails, accountName: e.target.value})}
-                                    style={commonInputStyle}
-                                  />
-                                </div>
-                              </div>
-                            </>
-                          )}
-
-                          <button
-                            type="button"
-                            disabled={!isPaymentFormValid() || isProcessingPayment}
-                            onClick={() => {
-                              if (!isPaymentFormValid()) {
-                                alert('Please fill in all required payment and beneficiary details.');
-                                return;
-                              }
-                              setIsProcessingPayment(true);
-                              setTimeout(() => {
-                                setIsProcessingPayment(false);
-                                setIsPaymentProcessed(true);
-                              }, 2000);
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '12px',
-                              backgroundColor: !isPaymentFormValid() ? '#cbd5e1' : '#0284c7',
-                              color: '#ffffff',
-                              border: 'none',
-                              borderRadius: '6px',
-                              fontWeight: 'bold',
-                              fontSize: '14px',
-                              cursor: !isPaymentFormValid() ? 'not-allowed' : 'pointer',
-                              marginTop: '10px'
-                            }}
-                          >
-                            {isProcessingPayment ? 'Processing Transaction...' : `Pay ${formData.calculatedFee} Now`}
-                          </button>
-                        </div>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              paymentMethod: 'STRIPE',
+                            })
+                          }
+                          style={{
+                            padding: '16px',
+                            borderRadius: '8px',
+                            border:
+                              formData.paymentMethod === 'STRIPE'
+                                ? '2px solid #16a34a'
+                                : '1px solid #cbd5e1',
+                            backgroundColor:
+                              formData.paymentMethod === 'STRIPE'
+                                ? '#f0fdf4'
+                                : '#ffffff',
+                            color: '#14532d',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Stripe Payment
+                        </button>
+                      </div>
                     </div>
+
+                    {formData.paymentMethod === 'ADMISSION_PAYSTACK' && (
+                      <div
+                        style={{
+                          backgroundColor: '#eff6ff',
+                          padding: '20px',
+                          borderRadius: '10px',
+                          border: '1px solid #bfdbfe',
+                        }}
+                      >
+                        <h4
+                          style={{
+                            fontSize: '14px',
+                            color: '#1e3a8a',
+                            fontWeight: 'bold',
+                            margin: '0 0 8px 0',
+                          }}
+                        >
+                          Paystack Payment
+                        </h4>
+
+                        <p
+                          style={{
+                            fontSize: '13px',
+                            color: '#475569',
+                            margin: '0 0 15px 0',
+                          }}
+                        >
+                          You will be securely redirected to Paystack to
+                          complete your admission fee payment.
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={initializeAdmissionPayment}
+                          disabled={isProcessingPayment}
+                          style={{
+                            width: '100%',
+                            padding: '13px',
+                            backgroundColor: isProcessingPayment
+                              ? '#94a3b8'
+                              : '#0284c7',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '7px',
+                            fontWeight: 'bold',
+                            fontSize: '14px',
+                            cursor: isProcessingPayment
+                              ? 'not-allowed'
+                              : 'pointer',
+                          }}
+                        >
+                          {isProcessingPayment
+                            ? 'Preparing Payment...'
+                            : `Pay ${formData.calculatedFee} with Paystack`}
+                        </button>
+                      </div>
+                    )}
+
+                    {formData.paymentMethod === 'STRIPE' && (
+                      <div
+                        style={{
+                          backgroundColor: '#fffbeb',
+                          padding: '20px',
+                          borderRadius: '10px',
+                          border: '1px solid #fde68a',
+                        }}
+                      >
+                        <h4
+                          style={{
+                            fontSize: '14px',
+                            color: '#92400e',
+                            fontWeight: 'bold',
+                            margin: '0 0 8px 0',
+                          }}
+                        >
+                          Stripe Payment
+                        </h4>
+
+                        <p
+                          style={{
+                            fontSize: '13px',
+                            color: '#475569',
+                            margin: '0 0 15px 0',
+                          }}
+                        >
+                          Pay your admission fee securely through Stripe.
+                          You will be redirected to Stripe Checkout to
+                          complete your payment.
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={initializeAdmissionPayment}
+                          disabled={isProcessingPayment || isPaymentProcessed}
+                          style={{
+                            width: '100%',
+                            padding: '13px',
+                            backgroundColor:
+                              isProcessingPayment || isPaymentProcessed
+                                ? '#94a3b8'
+                                : '#635bff',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '7px',
+                            fontWeight: 'bold',
+                            fontSize: '14px',
+                            cursor:
+                              isProcessingPayment || isPaymentProcessed
+                                ? 'not-allowed'
+                                : 'pointer',
+                          }}
+                        >
+                          {isProcessingPayment
+                            ? 'Preparing Stripe Payment...'
+                            : isPaymentProcessed
+                              ? 'Payment Verified'
+                              : `Pay ${formData.calculatedFee} with Stripe`}
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -791,56 +1972,199 @@ export default function AdmissionPage() {
             <div style={{ padding: '10px 0' }}>
               <div style={{ textAlign: 'center', marginBottom: '25px' }}>
                 <div style={{ fontSize: '48px', marginBottom: '10px' }}>✅</div>
-                <h3 style={{ color: '#14532d', fontSize: '24px', margin: '0 0 10px 0' }}>Application Submitted & Saved Successfully!</h3>
-                <p style={{ color: '#64748b', fontSize: '15px', margin: 0 }}>
-                  Thank you, <strong>{formData.fullName || 'Applicant'}</strong>. Your admission request has been successfully recorded.
+
+                <h3
+                  style={{
+                    color: '#14532d',
+                    fontSize: '24px',
+                    margin: '0 0 10px 0',
+                  }}
+                >
+                  Application Submitted Successfully!
+                </h3>
+
+                <p
+                  style={{
+                    color: '#64748b',
+                    fontSize: '15px',
+                    margin: 0,
+                  }}
+                >
+                  Thank you,{' '}
+                  <strong>{formData.fullName || 'Applicant'}</strong>. Your
+                  admission application has been recorded successfully.
                 </p>
               </div>
 
-              {/* Comprehensive Summary Report */}
-              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '25px', marginBottom: '30px' }}>
-                <h4 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#14532d', borderBottom: '2px solid #cbd5e1', paddingBottom: '10px', marginTop: 0, marginBottom: '15px', letterSpacing: '0.05em' }}>
+              <div
+                style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '12px',
+                  padding: '25px',
+                  marginBottom: '30px',
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: '14px',
+                    textTransform: 'uppercase',
+                    color: '#14532d',
+                    borderBottom: '2px solid #cbd5e1',
+                    paddingBottom: '10px',
+                    marginTop: 0,
+                    marginBottom: '15px',
+                    letterSpacing: '0.05em',
+                  }}
+                >
                   Official Admission & Payment Summary Report
                 </h4>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', fontSize: '14px', color: '#334155' }}>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '15px',
+                    fontSize: '14px',
+                    color: '#334155',
+                  }}
+                >
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Applicant Full Name</span>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
+                      Applicant Full Name
+                    </span>
                     <strong>{formData.fullName}</strong>
                   </div>
+
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Email Address</span>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
+                      Email Address
+                    </span>
                     <strong>{formData.email}</strong>
                   </div>
+
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Selected Programme</span>
-                    <strong style={{ color: '#16a34a' }}>{formData.academicProgramme}</strong>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
+                      Selected Programme
+                    </span>
+                    <strong style={{ color: '#16a34a' }}>
+                      {formData.academicProgramme}
+                    </strong>
                   </div>
+
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Study Session</span>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
+                      Study Session
+                    </span>
                     <strong>{formData.studySession}</strong>
                   </div>
+
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Applicant Classification</span>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
+                      Applicant Classification
+                    </span>
                     <strong>{formData.applicantCategory}</strong>
                   </div>
+
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Country of Residence</span>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
+                      Country of Residence
+                    </span>
                     <strong>{formData.countryOfResidence}</strong>
                   </div>
+
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Payment Method Used</span>
-                    <strong>{formData.paymentMethod}</strong>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
+                      Payment Method
+                    </span>
+                    <strong>
+                      {formData.paymentMethod === 'ADMISSION_PAYSTACK'
+                        ? 'Paystack'
+                        : formData.paymentMethod === 'STRIPE'
+                          ? 'Stripe'
+                          : formData.paymentMethod}
+                    </strong>
                   </div>
+
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>Non-Refundable Admission Fee Paid</span>
-                    <strong style={{ color: '#0284c7', fontSize: '16px' }}>{formData.calculatedFee} ({formData.feeBase})</strong>
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
+                      Admission Fee
+                    </span>
+                    <strong
+                      style={{
+                        color: '#0284c7',
+                        fontSize: '16px',
+                      }}
+                    >
+                      {formData.calculatedFee} ({formData.feeBase})
+                    </strong>
+                  </div>
+
+                  <div
+                    style={{
+                      gridColumn: '1 / -1',
+                      marginTop: '5px',
+                      padding: '12px',
+                      backgroundColor:
+                        formData.paymentMethod === 'ADMISSION_PAYSTACK'
+                          ? '#dcfce7'
+                          : '#fffbeb',
+                      border:
+                        formData.paymentMethod === 'ADMISSION_PAYSTACK'
+                          ? '1px solid #86efac'
+                          : '1px solid #fde68a',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'block',
+                        fontSize: '11px',
+                        textTransform: 'uppercase',
+                        color: '#64748b',
+                        fontWeight: 'bold',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      Payment Status
+                    </span>
+
+                    <strong
+                      style={{
+                        color:
+                          formData.paymentMethod === 'ADMISSION_PAYSTACK'
+                            ? isPaymentProcessed
+                              ? '#166534'
+                              : '#92400e'
+                            : '#92400e',
+                      }}
+                    >
+                      {formData.paymentMethod === 'ADMISSION_PAYSTACK'
+                        ? isPaymentProcessed
+                          ? 'Payment verified successfully through Paystack.'
+                          : isProcessingPayment
+                            ? 'Verifying your Paystack payment...'
+                            : 'Payment not yet verified. Complete the Paystack payment above.'
+                        : 'Bank transfer selected. Payment will be confirmed after transfer verification.'}
+                    </strong>
                   </div>
                 </div>
               </div>
 
               <div style={{ textAlign: 'center' }}>
-                <Link href="/" style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#14532d', color: '#ffffff', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', fontSize: '15px' }}>
+                <Link
+                  href="/"
+                  style={{
+                    display: 'inline-block',
+                    padding: '12px 28px',
+                    backgroundColor: '#14532d',
+                    color: '#ffffff',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    textDecoration: 'none',
+                    fontSize: '15px',
+                  }}
+                >
                   Return to Home Page
                 </Link>
               </div>

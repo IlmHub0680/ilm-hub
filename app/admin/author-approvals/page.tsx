@@ -31,8 +31,10 @@ export default function AdminAuthorApprovals() {
 
       const data = await res.json();
 
-      if (Array.isArray(data)) {
-        setPendingAuthors(data);
+      if (data?.success && Array.isArray(data.data)) {
+        setPendingAuthors(data.data);
+      } else {
+        throw new Error(data?.error || "Invalid pending authors response");
       }
     } catch (error) {
       console.error(error);

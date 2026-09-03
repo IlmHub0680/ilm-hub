@@ -1,0 +1,162 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+const SETTINGS_ID = 'default-admission-fees';
+
+export async function POST(request) {
+  try {
+    const body = await request.json();
+
+    const {
+      fullName,
+      dob,
+      nationality,
+      countryOfResidence,
+      programId,
+      studySession,
+    } = body;
+
+    if (!fullName || !dob || !countryOfResidence) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Full name, date of birth, and country of residence are required.',
+        },
+        { status: 400 }
+      );
+    }
+
+    const birthDate = new Date(dob);
+
+    if (Number.isNaN(birthDate.getTime())) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid date of birth.',
+        },
+        { status: 400 }
+      );
+    }
+
+    const today = new Date();
+
+    let age = today.getFullYear() - birthDate.getFullYear();
+
+    const monthDifference = today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDifference < 0 ||
+      (monthDifference === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    let category;
+
+    if (age >= 4 && age <= 14) {
+      category = 'Junior Learner';
+    } else if (age >= 15 && age <= 20) {
+      category = 'Senior Learner';
+    } else if (age >= 21) {
+      category = 'Mature Learner';
+    } else {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Applicant does not fall within an eligible learner age category.',
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * IMPORTANT:
+     * Fee is determined ONLY by country of residence.
+     *
+     * Ghana residence:
+     *   Junior -> juniorGhana
+     *   Senior -> seniorGhana
+     *   Mature -> matureGhana
+     *
+     * Any non-Ghana residence:
+     *   Junior -> juniorInternational
+     *   Senior -> seniorInternational
+     *   Mature -> matureInternational
+     *
+     * Nationality is intentionally NOT used to determine the fee.
+     */
+
+    const residence = countryOfResidence.trim().toLowerCase();
+
+    const isGhanaResident = residence === 'ghana';
+
+    const settings = await prisma.admissionFeeSettings.findUnique({
+      where: {
+        id: SETTINGS_ID,
+      },
+    });
+
+    if (!settings) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Admission fee settings are not configured by the administrator.',
+        },
+        { status: 500 }
+      );
+    }
+
+    let amount;
+    let currency;
+
+    if (isGhanaResident) {
+      currency = 'GHS';
+
+      if (category === 'Junior Learner') {
+        amount = Number(settings.juniorGhana);
+      } else if (category === 'Senior Learner') {
+        amount = Number(settings.seniorGhana);
+      } else {
+        amount = Number(settings.matureGhana);
+      }
+    } else {
+      currency = 'USD';
+
+      if (category === 'Junior Learner') {
+        amount = Number(settings.juniorInternational);
+      } else if (category === 'Senior Learner') {
+        amount = Number(settings.seniorInternational);
+      } else {
+        amount = Number(settings.matureInternational);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        learnerCategory: category,
+        age,
+        currency,
+        admissionFee: amount,
+        countryOfResidence,
+        nationality,
+        programId,
+        studySession,
+        feeBasis: isGhanaResident
+          ? 'Ghana Resident Rate'
+          : 'International Resident Rate',
+        status: 'Pending Payment',
+      },
+    });
+  } catch (error) {
+    console.error('Admission registration error:', error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message || 'Unable to calculate admission fee.',
+      },
+      { status: 500 }
+    );
+  }
+}

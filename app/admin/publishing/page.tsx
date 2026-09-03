@@ -66,8 +66,12 @@ export default function AdminPublishingManager() {
 
       const data = await res.json();
 
-      if (Array.isArray(data)) {
-        setSubmissions(data);
+      if (data?.success && Array.isArray(data.data)) {
+        setSubmissions(data.data);
+      } else {
+        throw new Error(
+          data?.error || "Invalid submissions response"
+        );
       }
     } catch (err) {
       console.error("Publishing submissions error:", err);

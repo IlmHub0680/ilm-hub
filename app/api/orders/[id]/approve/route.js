@@ -1,363 +1,265 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { requireUser } from '@/lib/auth';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-export async function POST(
-  request,
-  { params }
-) {
+export async function POST(request, { params }) {
   try {
-    /*
-     * --------------------------------
-     * AUTHENTICATE ADMIN
-     * --------------------------------
-     */
+    const admin = await requireAdmin();
 
-    const admin = await requireUser();
-
-    if (
-      admin.role !== 'ADMIN' &&
-      admin.role !== 'SUPER_ADMIN'
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'Administrator access is required.',
-        },
-        { status: 403 }
-      );
-    }
-
-    /*
-     * --------------------------------
-     * VALIDATE ORDER ID
-     * --------------------------------
-     */
-
-    const orderId =
-      params?.id?.trim();
+    const orderId = String(params?.id || "").trim();
 
     if (!orderId) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            'Order ID is required.',
+          error: "Order ID is required.",
         },
         { status: 400 }
       );
     }
 
-    /*
-     * --------------------------------
-     * LOAD ORDER
-     * --------------------------------
-     *
-     * Prisma is the source of truth.
-     */
-
-    const order =
-      await prisma.order.findUnique({
-        where: {
-          id: orderId,
-        },
-
-        include: {
-          items: {
-            include: {
-              book: {
-                select: {
-                  id: true,
-                  titleEn: true,
-                  titleAr: true,
-                  r2FileKey: true,
-                },
+    const order = await prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        items: {
+          include: {
+            book: {
+              select: {
+                id: true,
+                titleEn: true,
+                titleAr: true,
+                r2FileKey: true,
               },
             },
           },
         },
-      });
+      },
+    });
 
     if (!order) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Order not found.',
+          error: "Order not found.",
         },
         { status: 404 }
       );
     }
 
     /*
-     * --------------------------------
-     * PAYMENT CHECK
-     * --------------------------------
-     *
-     * Your Prisma schema does not have a
-     * separate payment_status column.
-     *
-     * The payment lifecycle is represented
-     * by Order.status.
-     *
-     * PAYMENT_SUBMITTED means the customer
-     * has submitted payment information and
-     * the order is awaiting review.
-     *
-     * UNDER_REVIEW and PENDING_ADMIN_APPROVAL
-     * are also valid review states.
-     *
-     * Do not approve an unpaid/new order.
+     * Payment must be confirmed before access is granted.
      */
+    if (order.paymentStatus !== "PAID") {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "This order cannot be activated because payment has not been confirmed.",
+        },
+        { status: 409 }
+      );
+    }
 
-    const payableReviewStatuses = [
-      'PAYMENT_SUBMITTED',
-      'UNDER_REVIEW',
-      'PENDING_ADMIN_APPROVAL',
+    /*
+     * Already activated.
+     */
+    if (
+      order.status === "ACTIVATED" ||
+      order.status === "COMPLETED"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "This order has already been activated.",
+        },
+        { status: 409 }
+      );
+    }
+
+    /*
+     * Already approved is treated as a duplicate action.
+     */
+    if (order.status === "APPROVED") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "This order has already been approved.",
+        },
+        { status: 409 }
+      );
+    }
+
+    /*
+     * Only payment-review states can be activated.
+     */
+    const reviewStatuses = [
+      "ORDER_PLACED",
+      "PAYMENT_SUBMITTED",
+      "UNDER_REVIEW",
+      "PENDING_ADMIN_APPROVAL",
     ];
 
-    if (
-      !payableReviewStatuses.includes(
-        order.status
-      )
-    ) {
-      if (
-        order.status === 'ACTIVATED' ||
-        order.status === 'COMPLETED'
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              'This order has already been activated.',
-          },
-          { status: 409 }
-        );
-      }
-
-      if (
-        order.status === 'APPROVED'
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              'This order has already been approved.',
-          },
-          { status: 409 }
-        );
-      }
-
+    if (!reviewStatuses.includes(order.status)) {
       return NextResponse.json(
         {
           success: false,
           error:
-            'This order is not currently awaiting payment approval.',
-          currentStatus:
-            order.status,
+            "This order is not currently awaiting payment approval.",
+          currentStatus: order.status,
         },
         { status: 409 }
       );
     }
 
-    /*
-     * --------------------------------
-     * VERIFY ORDER ITEMS
-     * --------------------------------
-     */
-
-    if (
-      !order.items ||
-      order.items.length === 0
-    ) {
+    if (!order.items || order.items.length === 0) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            'This order contains no books.',
+          error: "This order contains no books.",
         },
         { status: 409 }
       );
     }
 
-    /*
-     * Every purchased book must still exist.
-     */
-
-    const invalidItem =
-      order.items.find(
-        (item) => !item.book
-      );
+    const invalidItem = order.items.find(
+      (item) => !item.book
+    );
 
     if (invalidItem) {
       return NextResponse.json(
         {
           success: false,
           error:
-            'One or more books in this order could not be found.',
+            "One or more books in this order could not be found.",
         },
         { status: 409 }
       );
     }
 
-    /*
-     * --------------------------------
-     * ACTIVATE ORDER
-     * --------------------------------
-     *
-     * ACTIVATED is the state recognized by
-     * the current download endpoint.
-     */
+    const now = new Date();
 
-    const updatedOrder =
-      await prisma.order.update({
-        where: {
-          id: orderId,
-        },
+    const updatedOrder = await prisma.$transaction(
+      async (tx) => {
+        /*
+         * Grant access to every purchased book.
+         */
+        for (const item of order.items) {
+          await tx.bookAccess.upsert({
+            where: {
+              userId_bookId_orderId: {
+                userId: order.userId,
+                bookId: item.bookId,
+                orderId: order.id,
+              },
+            },
 
-        data: {
-          status: 'ACTIVATED',
-        },
+            create: {
+              userId: order.userId,
+              bookId: item.bookId,
+              orderId: order.id,
+              approvedAt: now,
+              revokedAt: null,
+            },
 
-        include: {
-          items: {
-            include: {
-              book: {
-                select: {
-                  id: true,
-                  titleEn: true,
-                  titleAr: true,
-                  slug: true,
-                  coverImageUrl: true,
-                  r2FileKey: true,
+            update: {
+              approvedAt: now,
+              revokedAt: null,
+            },
+          });
+        }
+
+        /*
+         * ACTIVATED is the only successful access state.
+         * This matches the download endpoint.
+         */
+        return tx.order.update({
+          where: {
+            id: order.id,
+          },
+
+          data: {
+            status: "ACTIVATED",
+            approvedAt: now,
+            paidAt: order.paidAt || now,
+            paidAmount:
+              Number(order.paidAmount) > 0
+                ? order.paidAmount
+                : order.totalUSD,
+          },
+
+          include: {
+            items: {
+              include: {
+                book: {
+                  select: {
+                    id: true,
+                    titleEn: true,
+                    titleAr: true,
+                    r2FileKey: true,
+                  },
                 },
               },
             },
           },
-        },
-      });
-
-    /*
-     * --------------------------------
-     * SUCCESS
-     * --------------------------------
-     */
-
-    console.log(
-      'ORDER ACTIVATED:',
-      {
-        orderId:
-          updatedOrder.id,
-
-        orderNumber:
-          updatedOrder.orderNumber,
-
-        userId:
-          updatedOrder.userId,
-
-        approvedBy:
-          admin.id,
-
-        itemCount:
-          updatedOrder.items.length,
+        });
       }
     );
 
-    return NextResponse.json(
-      {
-        success: true,
+    console.log("ORDER ACTIVATED:", {
+      orderId: updatedOrder.id,
+      orderNumber: updatedOrder.orderNumber,
+      userId: updatedOrder.userId,
+      approvedBy: admin.id,
+      itemCount: updatedOrder.items.length,
+    });
 
-        message:
-          'Payment approved. The order has been activated and the customer can now download the purchased books.',
-
-        order: {
-          id:
-            updatedOrder.id,
-
-          orderNumber:
-            updatedOrder.orderNumber,
-
-          status:
-            updatedOrder.status,
-
-          totalUSD:
-            Number(
-              updatedOrder.totalUSD
-            ),
-
-          paidAmount:
-            Number(
-              updatedOrder.paidAmount
-            ),
-
-          currencyCode:
-            updatedOrder.currencyCode,
-
-          paymentMethod:
-            updatedOrder.paymentMethod,
-
-          paymentRef:
-            updatedOrder.paymentRef,
-
-          createdAt:
-            updatedOrder.createdAt,
-
-          updatedAt:
-            updatedOrder.updatedAt,
-
-          items:
-            updatedOrder.items.map(
-              (item) => ({
-                id:
-                  item.id,
-
-                bookId:
-                  item.bookId,
-
-                priceUSD:
-                  Number(
-                    item.priceUSD
-                  ),
-
-                quantity:
-                  item.quantity,
-
-                book:
-                  item.book,
-              })
-            ),
-        },
-      },
-      { status: 200 }
+    /*
+     * Redirect back to the admin order list.
+     */
+    return NextResponse.redirect(
+      new URL("/admin/orders?approved=1", request.url)
     );
   } catch (error) {
     if (
       error instanceof Error &&
-      error.message === 'UNAUTHORIZED'
+      error.message === "UNAUTHORIZED"
     ) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            'Authentication required.',
+          error: "Authentication required.",
         },
         { status: 401 }
       );
     }
 
-    console.error(
-      'Admin order approval error:',
-      error
-    );
+    if (
+      error instanceof Error &&
+      error.message === "FORBIDDEN"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Administrator access is required.",
+        },
+        { status: 403 }
+      );
+    }
+
+    console.error("ORDER APPROVAL ERROR:", error);
 
     return NextResponse.json(
       {
         success: false,
         error:
-          'Unable to approve the order.',
+          error instanceof Error
+            ? error.message
+            : "Unable to activate the order.",
       },
       { status: 500 }
     );
