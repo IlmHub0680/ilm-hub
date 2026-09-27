@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { INSTITUTE_LIBRARY_VISIBILITY_TIERS } from '@/lib/institute-library-visibility';
+import { INSTITUTE_LIBRARY_VISIBILITY_TIERS } from '@/lib/institute-library-visibility.constants';
 
 const VISIBILITY_LABEL_MAP = Object.fromEntries(
   INSTITUTE_LIBRARY_VISIBILITY_TIERS.map((t: any) => [t.value, t.label])

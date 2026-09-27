@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { INSTITUTE_LIBRARY_VISIBILITY_TIERS } from '@/lib/institute-library-visibility';
+import { INSTITUTE_LIBRARY_VISIBILITY_TIERS } from '@/lib/institute-library-visibility.constants';
 
 const CATEGORY_OPTIONS = [
   { value: 'DIGITAL_BOOKS', label: 'Digital Books' },
