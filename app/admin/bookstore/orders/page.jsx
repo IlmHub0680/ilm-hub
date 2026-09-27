@@ -7,6 +7,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
 
   async function loadOrders() {
     try {
@@ -135,6 +137,115 @@ export default function OrdersPage() {
     }
   }
 
+  async function deleteOrder(order) {
+    const confirmed = window.confirm(
+      `Permanently delete order ${order.orderNumber}? This removes its ` +
+        `payment records and book access grants too. This cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setError('');
+
+      const response = await fetch(
+        `/api/admin/orders/${encodeURIComponent(order.id)}`,
+        { method: 'DELETE' }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result?.error || 'Unable to delete this order.'
+        );
+      }
+
+      setOrders((previous) =>
+        previous.filter((o) => o.id !== order.id)
+      );
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to delete this order.'
+      );
+    }
+  }
+
+  async function toggleBookAccess(access, nextActive) {
+    const confirmMessage = nextActive
+      ? 'Reactivate download access for this book?'
+      : 'Deactivate download access for this book? The customer will no longer be able to download it.';
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      setError('');
+
+      const response = await fetch(
+        `/api/admin/book-access/${encodeURIComponent(access.id)}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ active: nextActive }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result?.error || 'Unable to update download access.'
+        );
+      }
+
+      await loadOrders();
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to update download access.'
+      );
+    }
+  }
+
+  const matchesSearch = (order) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    const haystack = [
+      order.orderNumber,
+      order.user?.name,
+      order.user?.email,
+      order.paymentRef,
+      ...(order.items || []).map((item) => item.book?.titleEn),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(q);
+  };
+
+  const matchesStatusFilter = (order) => {
+    if (statusFilter === 'ALL') return true;
+    if (statusFilter === 'PAID') return order.paymentStatus === 'PAID' && !isActivated(order);
+    if (statusFilter === 'ACTIVATED') return isActivated(order);
+    if (statusFilter === 'AWAITING_PAYMENT') return order.paymentStatus !== 'PAID' && !isActivated(order);
+    return true;
+  };
+
+  const filteredOrders = orders.filter(
+    (order) => matchesSearch(order) && matchesStatusFilter(order)
+  );
+
   const paidCount = orders.filter(
     (order) => order.paymentStatus === 'PAID'
   ).length;
@@ -189,19 +300,19 @@ export default function OrdersPage() {
           <SummaryCard
             label="Paid"
             value={paidCount}
-            color="#166534"
+            color="var(--brand-light)"
           />
 
           <SummaryCard
             label="Activated"
             value={activatedCount}
-            color="#1d4ed8"
+            color="var(--brand-dark)"
           />
 
           <SummaryCard
             label="Awaiting Payment"
             value={pendingCount}
-            color="#92400e"
+            color="var(--warning)"
           />
         </section>
 
@@ -228,6 +339,27 @@ export default function OrdersPage() {
             </button>
           </div>
 
+          <div style={styles.filterRow}>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search order #, customer, email, book title..."
+              style={styles.searchInput}
+            />
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={styles.filterSelect}
+            >
+              <option value="ALL">All Orders</option>
+              <option value="PAID">Paid — Awaiting Activation</option>
+              <option value="ACTIVATED">Activated</option>
+              <option value="AWAITING_PAYMENT">Awaiting Payment</option>
+            </select>
+          </div>
+
           {loading ? (
             <div style={styles.empty}>
               Loading bookstore orders...
@@ -241,14 +373,37 @@ export default function OrdersPage() {
                 when orders are created.
               </p>
             </div>
+          ) : filteredOrders.length === 0 ? (
+            <div style={styles.empty}>
+              <h3>No orders match your search or filter.</h3>
+
+              <p>Try a different search term or filter option.</p>
+            </div>
           ) : (
             <div style={styles.orders}>
-              {orders.map((order) => {
+              {filteredOrders.map((order) => {
                 const activated = isActivated(order);
                 const canApprove = canActivate(order);
 
+                // The book price/order total is always stored in USD
+                // (Book.priceUSD / Order.totalUSD) regardless of which
+                // currency the customer actually pays in. `currency` here
+                // is the CHARGE currency (what the payment gateway
+                // actually processed) — never format totalUSD with it.
                 const currency =
                   order.currencyCode || 'USD';
+
+                const chargePayment =
+                  order.payments?.[0] || null;
+
+                const chargeAmount =
+                  chargePayment?.amount != null
+                    ? Number(chargePayment.amount)
+                    : Number(order.totalUSD || 0) *
+                      Number(order.exchangeRate || 1);
+
+                const chargeCurrency =
+                  chargePayment?.currencyCode || currency;
 
                 return (
                   <article
@@ -273,10 +428,27 @@ export default function OrdersPage() {
                         </div>
                       </div>
 
-                      <div style={styles.amount}>
-                        {formatMoney(
-                          order.totalUSD,
-                          currency
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={styles.amount}>
+                          {formatMoney(
+                            chargeAmount,
+                            chargeCurrency
+                          )}
+                        </div>
+                        {chargeCurrency !== 'USD' && (
+                          <div
+                            style={{
+                              fontSize: '12px',
+                              color: 'var(--ink-soft)',
+                              marginTop: '2px',
+                            }}
+                          >
+                            Book price:{' '}
+                            {formatMoney(
+                              order.totalUSD,
+                              'USD'
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -291,8 +463,8 @@ export default function OrdersPage() {
                         }
                         color={
                           order.paymentStatus === 'PAID'
-                            ? '#166534'
-                            : '#92400e'
+                            ? 'var(--brand-light)'
+                            : 'var(--warning)'
                         }
                       />
 
@@ -304,8 +476,8 @@ export default function OrdersPage() {
                         }
                         color={
                           activated
-                            ? '#166534'
-                            : '#92400e'
+                            ? 'var(--brand-light)'
+                            : 'var(--warning)'
                         }
                       />
 
@@ -431,6 +603,31 @@ export default function OrdersPage() {
                                   'USD'
                                 )}
                               </div>
+
+                              {item.access ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    toggleBookAccess(
+                                      item.access,
+                                      !item.access.active
+                                    )
+                                  }
+                                  style={
+                                    item.access.active
+                                      ? styles.deactivateAccessButton
+                                      : styles.activateAccessButton
+                                  }
+                                >
+                                  {item.access.active
+                                    ? '⊘ Deactivate Download'
+                                    : '✓ Activate Download'}
+                                </button>
+                              ) : (
+                                <span style={styles.accessPendingNote}>
+                                  Not yet activated
+                                </span>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -484,6 +681,14 @@ export default function OrdersPage() {
                         </div>
                       )}
 
+                      <button
+                        type="button"
+                        onClick={() => deleteOrder(order)}
+                        style={styles.deleteOrderButton}
+                      >
+                        🗑 Delete Order
+                      </button>
+
                     </div>
 
                   </article>
@@ -507,7 +712,7 @@ function SummaryCard({
     <div style={styles.summaryCard}>
       <strong
         style={{
-          color: color || '#14532d',
+          color: color || 'var(--brand)',
         }}
       >
         {value}
@@ -529,7 +734,7 @@ function Info({
 
       <strong
         style={{
-          color: color || '#111827',
+          color: color || 'var(--brand-dark)',
         }}
       >
         {value}
@@ -541,7 +746,7 @@ function Info({
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#f8fafc',
+    background: 'var(--paper)',
     padding: '40px 20px',
     fontFamily: 'Inter, Arial, sans-serif',
   },
@@ -560,7 +765,7 @@ const styles = {
   },
 
   eyebrow: {
-    color: '#166534',
+    color: 'var(--brand-light)',
     fontSize: '12px',
     fontWeight: 800,
     letterSpacing: '0.12em',
@@ -569,14 +774,14 @@ const styles = {
 
   title: {
     margin: 0,
-    color: '#111827',
+    color: 'var(--brand-dark)',
     fontSize: '34px',
     fontWeight: 800,
   },
 
   subtitle: {
     marginTop: '8px',
-    color: '#6b7280',
+    color: 'var(--ink-soft)',
     fontSize: '15px',
   },
 
@@ -584,9 +789,9 @@ const styles = {
     marginBottom: '20px',
     padding: '14px 16px',
     borderRadius: '10px',
-    background: '#fef2f2',
-    color: '#b91c1c',
-    border: '1px solid #fecaca',
+    background: 'var(--danger-tint)',
+    color: 'var(--danger)',
+    border: '1px solid var(--danger-tint)',
     fontWeight: 600,
   },
 
@@ -599,20 +804,22 @@ const styles = {
   },
 
   summaryCard: {
-    background: '#fff',
-    border: '1px solid #e5e7eb',
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
     borderRadius: '14px',
     padding: '20px',
     display: 'flex',
     flexDirection: 'column',
     gap: '5px',
+     boxShadow: '0 4px 18px rgba(27,36,31,.08)',
   },
 
   card: {
-    background: '#fff',
-    border: '1px solid #e5e7eb',
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
     borderRadius: '16px',
     padding: '24px',
+     boxShadow: '0 4px 18px rgba(27,36,31,.08)',
   },
 
   cardTitleRow: {
@@ -626,18 +833,46 @@ const styles = {
   sectionTitle: {
     margin: 0,
     fontSize: '22px',
-    color: '#111827',
+    color: 'var(--brand-dark)',
   },
 
   muted: {
-    color: '#6b7280',
+    color: 'var(--ink-soft)',
     marginTop: '6px',
     lineHeight: 1.5,
   },
 
+  filterRow: {
+    display: 'flex',
+    gap: '12px',
+    flexWrap: 'wrap',
+    marginBottom: '20px',
+  },
+
+  searchInput: {
+    flex: '1 1 280px',
+    padding: '10px 14px',
+    borderRadius: '8px',
+    border: '1px solid var(--border)',
+    fontSize: '13.5px',
+    fontFamily: 'inherit',
+    background: 'var(--paper)',
+    color: 'var(--ink)',
+  },
+
+  filterSelect: {
+    padding: '10px 14px',
+    borderRadius: '8px',
+    border: '1px solid var(--border)',
+    fontSize: '13.5px',
+    fontFamily: 'inherit',
+    background: 'var(--paper)',
+    color: 'var(--ink)',
+  },
+
   refreshButton: {
-    border: '1px solid #d1d5db',
-    background: '#fff',
+    border: '1px solid var(--border)',
+    background: 'var(--surface)',
     borderRadius: '9px',
     padding: '9px 14px',
     cursor: 'pointer',
@@ -647,7 +882,7 @@ const styles = {
   empty: {
     textAlign: 'center',
     padding: '50px 20px',
-    color: '#6b7280',
+    color: 'var(--ink-soft)',
   },
 
   orders: {
@@ -657,10 +892,11 @@ const styles = {
   },
 
   order: {
-    border: '1px solid #e5e7eb',
+    border: '1px solid var(--border)',
     borderRadius: '14px',
     padding: '22px',
-    background: '#fff',
+    background: 'var(--surface)',
+     boxShadow: '0 4px 18px rgba(27,36,31,.08)',
   },
 
   orderHeader: {
@@ -671,7 +907,7 @@ const styles = {
   },
 
   orderNumber: {
-    color: '#166534',
+    color: 'var(--brand-light)',
     fontSize: '13px',
     fontWeight: 800,
     letterSpacing: '0.04em',
@@ -679,17 +915,17 @@ const styles = {
 
   customer: {
     margin: '7px 0 3px',
-    color: '#111827',
+    color: 'var(--brand-dark)',
     fontSize: '19px',
   },
 
   email: {
-    color: '#6b7280',
+    color: 'var(--ink-soft)',
     fontSize: '14px',
   },
 
   amount: {
-    color: '#111827',
+    color: 'var(--brand-dark)',
     fontSize: '22px',
     fontWeight: 800,
   },
@@ -703,7 +939,7 @@ const styles = {
   },
 
   info: {
-    background: '#f8fafc',
+    background: 'var(--paper)',
     borderRadius: '10px',
     padding: '12px',
     display: 'flex',
@@ -714,38 +950,38 @@ const styles = {
   reference: {
     marginTop: '14px',
     padding: '12px 14px',
-    background: '#f9fafb',
+    background: 'var(--paper)',
     borderRadius: '9px',
-    color: '#374151',
+    color: 'var(--brand-deepest)',
     fontSize: '14px',
     wordBreak: 'break-word',
   },
 
   link: {
-    color: '#166534',
+    color: 'var(--brand-light)',
     fontWeight: 700,
   },
 
   booksSection: {
     marginTop: '20px',
-    borderTop: '1px solid #e5e7eb',
+    borderTop: '1px solid var(--border)',
     paddingTop: '18px',
   },
 
   booksTitle: {
     margin: '0 0 10px',
-    color: '#374151',
+    color: 'var(--brand-deepest)',
     fontSize: '15px',
   },
 
   bookRow: {
     display: 'grid',
     gridTemplateColumns:
-      'minmax(0, 1fr) 70px 110px',
+      'minmax(0, 1fr) 70px 110px 170px',
     gap: '12px',
     alignItems: 'center',
     padding: '12px 0',
-    borderBottom: '1px solid #f3f4f6',
+    borderBottom: '1px solid var(--border-soft)',
   },
 
   bookInfo: {
@@ -760,24 +996,54 @@ const styles = {
     height: '58px',
     objectFit: 'cover',
     borderRadius: '5px',
-    background: '#e5e7eb',
+    background: 'var(--border)',
     flexShrink: 0,
   },
 
   arabic: {
     marginTop: '3px',
-    color: '#6b7280',
+    color: 'var(--ink-soft)',
     direction: 'rtl',
   },
 
   quantity: {
     textAlign: 'center',
-    color: '#6b7280',
+    color: 'var(--ink-soft)',
   },
 
   itemPrice: {
     textAlign: 'right',
     fontWeight: 700,
+  },
+
+  activateAccessButton: {
+    background: 'var(--brand-tint)',
+    color: 'var(--brand-dark)',
+    border: '1px solid var(--brand-light)',
+    borderRadius: '7px',
+    padding: '7px 10px',
+    fontSize: '11.5px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
+
+  deactivateAccessButton: {
+    background: 'var(--danger-tint)',
+    color: 'var(--danger)',
+    border: '1px solid var(--danger)',
+    borderRadius: '7px',
+    padding: '7px 10px',
+    fontSize: '11.5px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
+
+  accessPendingNote: {
+    color: 'var(--ink-soft)',
+    fontSize: '11px',
+    textAlign: 'right',
   },
 
   actionRow: {
@@ -789,8 +1055,8 @@ const styles = {
     border: 'none',
     borderRadius: '10px',
     padding: '15px 20px',
-    background: '#166534',
-    color: '#fff',
+    background: 'var(--brand-light)',
+    color: 'var(--on-accent)',
     fontSize: '15px',
     fontWeight: 800,
     cursor: 'pointer',
@@ -802,17 +1068,30 @@ const styles = {
     gap: '4px',
     padding: '14px 16px',
     borderRadius: '10px',
-    background: '#ecfdf5',
-    color: '#166534',
-    border: '1px solid #bbf7d0',
+    background: 'var(--brand-tint)',
+    color: 'var(--brand-light)',
+    border: '1px solid var(--success-tint)',
   },
 
   waitingBox: {
     padding: '14px 16px',
     borderRadius: '10px',
-    background: '#fffbeb',
-    color: '#92400e',
-    border: '1px solid #fde68a',
+    background: 'var(--warning-tint)',
+    color: 'var(--warning)',
+    border: '1px solid var(--warning-tint)',
     fontWeight: 600,
+  },
+
+  deleteOrderButton: {
+    width: '100%',
+    marginTop: '10px',
+    border: '1px solid var(--danger)',
+    borderRadius: '10px',
+    padding: '10px 20px',
+    background: 'var(--danger-tint)',
+    color: 'var(--danger)',
+    fontSize: '13px',
+    fontWeight: 700,
+    cursor: 'pointer',
   },
 };

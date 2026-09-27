@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 
 const MAX_QUOTE_AMOUNT = 1_000_000;
 
@@ -8,6 +9,18 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const admin = await requireUser();
+
+    if (admin.role !== "ADMIN" && admin.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Administrator access is required.",
+        },
+        { status: 403 }
+      );
+    }
+
     const submissionId = params.id?.trim();
 
     if (!submissionId) {
@@ -98,6 +111,13 @@ export async function POST(
       data: updatedSubmission,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { success: false, error: "Authentication required." },
+        { status: 401 }
+      );
+    }
+
     console.error("Error generating quote:", error);
 
     return NextResponse.json(

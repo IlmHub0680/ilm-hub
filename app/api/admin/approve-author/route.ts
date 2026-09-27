@@ -33,6 +33,7 @@ export async function POST(req: Request) {
         email: true,
         role: true,
         authorStatus: true,
+        authorAdmission: { select: { id: true, status: true } },
       },
     });
 
@@ -56,21 +57,45 @@ export async function POST(req: Request) {
       );
     }
 
-    const approvedAuthor = await prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        authorStatus: "APPROVED",
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        authorStatus: true,
-      },
-    });
+    if (author.authorAdmission && author.authorAdmission.status === "PENDING") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "This author has not paid the application fee yet.",
+        },
+        { status: 409 }
+      );
+    }
+
+    // Keep the User record and its AuthorAdmission in lock-step —
+    // previously only authorStatus was updated here, leaving the
+    // admission's own status permanently stuck at PAID even after a
+    // decision was made.
+    const [approvedAuthor] = await prisma.$transaction([
+      prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          authorStatus: "APPROVED",
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          authorStatus: true,
+        },
+      }),
+      ...(author.authorAdmission
+        ? [
+            prisma.authorAdmission.update({
+              where: { id: author.authorAdmission.id },
+              data: { status: "APPROVED" },
+            }),
+          ]
+        : []),
+    ]);
 
     return NextResponse.json({
       success: true,

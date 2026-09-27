@@ -68,9 +68,9 @@ export default function ApproveOrderButton({
           border: 'none',
           borderRadius: '10px',
           background: loading
-            ? '#86efac'
-            : '#166534',
-          color: '#fff',
+            ? 'var(--success-tint)'
+            : 'var(--brand-light)',
+          color: 'var(--on-accent)',
           fontSize: '15px',
           fontWeight: '800',
           cursor: loading
@@ -89,8 +89,8 @@ export default function ApproveOrderButton({
             marginTop: '12px',
             padding: '12px',
             borderRadius: '8px',
-            background: '#fef2f2',
-            color: '#b91c1c',
+            background: 'var(--danger-tint)',
+            color: 'var(--danger)',
             fontSize: '14px',
             fontWeight: '600',
           }}

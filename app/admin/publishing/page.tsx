@@ -258,8 +258,8 @@ export default function AdminPublishingManager() {
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#f8fafc",
-        color: "#0f172a",
+        backgroundColor: "var(--paper)",
+        color: "var(--ink)",
         fontFamily:
           "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       }}
@@ -270,9 +270,9 @@ export default function AdminPublishingManager() {
 
       <header
         style={{
-          backgroundColor: "#0f172a",
-          color: "#ffffff",
-          borderBottom: "1px solid #1e293b",
+          backgroundColor: "var(--ink)",
+          color: "var(--on-accent)",
+          borderBottom: "1px solid var(--ink)",
         }}
       >
         <div
@@ -299,7 +299,7 @@ export default function AdminPublishingManager() {
                 width: "42px",
                 height: "42px",
                 borderRadius: "10px",
-                backgroundColor: "#14532d",
+                backgroundColor: "var(--brand)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -307,7 +307,7 @@ export default function AdminPublishingManager() {
                 fontWeight: "900",
               }}
             >
-              IH
+              UA
             </div>
 
             <div>
@@ -317,13 +317,13 @@ export default function AdminPublishingManager() {
                   fontWeight: "800",
                 }}
               >
-                Ilm-Hub
+                Ulul Azm
               </div>
 
               <div
                 style={{
                   marginTop: "2px",
-                  color: "#94a3b8",
+                  color: "var(--ink-soft)",
                   fontSize: "11px",
                   textTransform: "uppercase",
                   letterSpacing: "0.8px",
@@ -338,8 +338,8 @@ export default function AdminPublishingManager() {
             href="/admin/dashboard"
             style={{
               textDecoration: "none",
-              color: "#e2e8f0",
-              border: "1px solid #334155",
+              color: "var(--border)",
+              border: "1px solid var(--ink-soft)",
               padding: "9px 14px",
               borderRadius: "8px",
               fontSize: "13px",
@@ -377,7 +377,7 @@ export default function AdminPublishingManager() {
           <div>
             <div
               style={{
-                color: "#64748b",
+                color: "var(--ink-soft)",
                 fontSize: "11px",
                 fontWeight: "800",
                 textTransform: "uppercase",
@@ -404,7 +404,7 @@ export default function AdminPublishingManager() {
               style={{
                 margin: "8px 0 0",
                 maxWidth: "720px",
-                color: "#64748b",
+                color: "var(--ink-soft)",
                 fontSize: "14px",
                 lineHeight: 1.6,
               }}
@@ -417,9 +417,9 @@ export default function AdminPublishingManager() {
           <button
             onClick={fetchSubmissions}
             style={{
-              border: "1px solid #cbd5e1",
-              backgroundColor: "#ffffff",
-              color: "#334155",
+              border: "1px solid var(--border)",
+              backgroundColor: "var(--surface)",
+              color: "var(--ink-soft)",
               padding: "10px 14px",
               borderRadius: "8px",
               fontSize: "12px",
@@ -492,11 +492,12 @@ export default function AdminPublishingManager() {
 
         <section
           style={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #e2e8f0",
+            backgroundColor: "var(--surface)",
+            border: "1px solid var(--border)",
             borderRadius: "12px",
             padding: "16px",
             marginBottom: "18px",
+            boxShadow: "0 4px 18px rgba(27,36,31,.08)",
           }}
         >
           <div
@@ -524,12 +525,12 @@ export default function AdminPublishingManager() {
                   width: "100%",
                   boxSizing: "border-box",
                   padding: "11px 13px",
-                  border: "1px solid #cbd5e1",
+                  border: "1px solid var(--border)",
                   borderRadius: "8px",
                   outline: "none",
                   fontSize: "13px",
-                  color: "#0f172a",
-                  backgroundColor: "#ffffff",
+                  color: "var(--ink)",
+                  backgroundColor: "var(--surface)",
                 }}
               />
             </div>
@@ -542,10 +543,10 @@ export default function AdminPublishingManager() {
               style={{
                 minWidth: "190px",
                 padding: "11px 12px",
-                border: "1px solid #cbd5e1",
+                border: "1px solid var(--border)",
                 borderRadius: "8px",
-                backgroundColor: "#ffffff",
-                color: "#334155",
+                backgroundColor: "var(--surface)",
+                color: "var(--ink-soft)",
                 fontSize: "13px",
                 fontWeight: "600",
               }}
@@ -567,8 +568,8 @@ export default function AdminPublishingManager() {
                 }}
                 style={{
                   border: "none",
-                  backgroundColor: "#f1f5f9",
-                  color: "#475569",
+                  backgroundColor: "var(--border-soft)",
+                  color: "var(--ink-soft)",
                   padding: "10px 13px",
                   borderRadius: "8px",
                   fontSize: "12px",
@@ -616,16 +617,17 @@ export default function AdminPublishingManager() {
 
             <section
               style={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #e2e8f0",
+                backgroundColor: "var(--surface)",
+                border: "1px solid var(--border)",
                 borderRadius: "12px",
                 overflow: "hidden",
+                boxShadow: "0 4px 18px rgba(27,36,31,.08)",
               }}
             >
               <div
                 style={{
                   padding: "19px 20px",
-                  borderBottom: "1px solid #e2e8f0",
+                  borderBottom: "1px solid var(--border)",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
@@ -646,7 +648,7 @@ export default function AdminPublishingManager() {
                   <p
                     style={{
                       margin: "5px 0 0",
-                      color: "#64748b",
+                      color: "var(--ink-soft)",
                       fontSize: "12px",
                     }}
                   >
@@ -660,9 +662,9 @@ export default function AdminPublishingManager() {
 
                 <span
                   style={{
-                    backgroundColor: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    color: "#475569",
+                    backgroundColor: "var(--paper)",
+                    border: "1px solid var(--border)",
+                    color: "var(--ink-soft)",
                     padding: "5px 10px",
                     borderRadius: "999px",
                     fontSize: "11px",
@@ -736,15 +738,15 @@ export default function AdminPublishingManager() {
           style={{
             marginTop: "24px",
             padding: "15px 18px",
-            backgroundColor: "#f8fafc",
-            border: "1px solid #e2e8f0",
+            backgroundColor: "var(--paper)",
+            border: "1px solid var(--border)",
             borderRadius: "9px",
-            color: "#64748b",
+            color: "var(--ink-soft)",
             fontSize: "11px",
             lineHeight: 1.6,
           }}
         >
-          <strong style={{ color: "#334155" }}>
+          <strong style={{ color: "var(--ink-soft)" }}>
             Publishing workflow:
           </strong>{" "}
           Review each manuscript before generating a quote. Once
@@ -774,19 +776,19 @@ function MetricCard({
 }) {
   const tones = {
     default: {
-      border: "#e2e8f0",
-      label: "#64748b",
-      value: "#0f172a",
+      border: "var(--border)",
+      label: "var(--ink-soft)",
+      value: "var(--ink)",
     },
     amber: {
-      border: "#fde68a",
-      label: "#92400e",
-      value: "#92400e",
+      border: "var(--warning-tint)",
+      label: "var(--warning)",
+      value: "var(--warning)",
     },
     blue: {
-      border: "#bfdbfe",
-      label: "#1d4ed8",
-      value: "#1d4ed8",
+      border: "var(--info-tint)",
+      label: "var(--info)",
+      value: "var(--info)",
     },
     purple: {
       border: "#ddd6fe",
@@ -794,14 +796,14 @@ function MetricCard({
       value: "#6d28d9",
     },
     green: {
-      border: "#bbf7d0",
-      label: "#166534",
-      value: "#166534",
+      border: "var(--success-tint)",
+      label: "var(--brand-light)",
+      value: "var(--brand-light)",
     },
     dark: {
-      border: "#cbd5e1",
-      label: "#334155",
-      value: "#0f172a",
+      border: "var(--border)",
+      label: "var(--ink-soft)",
+      value: "var(--ink)",
     },
   };
 
@@ -810,10 +812,11 @@ function MetricCard({
   return (
     <div
       style={{
-        backgroundColor: "#ffffff",
+        backgroundColor: "var(--surface)",
         border: `1px solid ${current.border}`,
         borderRadius: "12px",
         padding: "18px",
+        boxShadow: "0 4px 18px rgba(27,36,31,.08)",
       }}
     >
       <div
@@ -843,7 +846,7 @@ function MetricCard({
       <div
         style={{
           marginTop: "8px",
-          color: "#64748b",
+          color: "var(--ink-soft)",
           fontSize: "11px",
         }}
       >
@@ -881,10 +884,10 @@ function SubmissionCard({
     <div
       style={{
         padding: "20px",
-        borderBottom: "1px solid #f1f5f9",
-        backgroundColor: selected ? "#f8fafc" : "#ffffff",
+        borderBottom: "1px solid var(--border-soft)",
+        backgroundColor: selected ? "var(--paper)" : "var(--surface)",
         borderLeft: selected
-          ? "3px solid #14532d"
+          ? "3px solid var(--brand)"
           : "3px solid transparent",
         transition: "background-color 0.15s ease",
       }}
@@ -908,7 +911,7 @@ function SubmissionCard({
               background: "transparent",
               cursor: "pointer",
               textAlign: "left",
-              color: "#0f172a",
+              color: "var(--ink)",
               fontSize: "16px",
               fontWeight: "800",
             }}
@@ -923,7 +926,7 @@ function SubmissionCard({
               alignItems: "center",
               flexWrap: "wrap",
               gap: "7px",
-              color: "#64748b",
+              color: "var(--ink-soft)",
               fontSize: "11px",
             }}
           >
@@ -963,9 +966,9 @@ function SubmissionCard({
               style={{
                 padding: "5px 8px",
                 borderRadius: "6px",
-                backgroundColor: "#f1f5f9",
-                border: "1px solid #e2e8f0",
-                color: "#475569",
+                backgroundColor: "var(--border-soft)",
+                border: "1px solid var(--border)",
+                color: "var(--ink-soft)",
                 fontSize: "10px",
                 fontWeight: "700",
               }}
@@ -976,7 +979,7 @@ function SubmissionCard({
         ) : (
           <span
             style={{
-              color: "#94a3b8",
+              color: "var(--ink-soft)",
               fontSize: "11px",
             }}
           >
@@ -991,7 +994,7 @@ function SubmissionCard({
         style={{
           marginTop: "17px",
           paddingTop: "14px",
-          borderTop: "1px solid #f1f5f9",
+          borderTop: "1px solid var(--border-soft)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -1012,9 +1015,9 @@ function SubmissionCard({
             rel="noreferrer"
             style={{
               textDecoration: "none",
-              color: "#14532d",
-              border: "1px solid #bbf7d0",
-              backgroundColor: "#f0fdf4",
+              color: "var(--brand)",
+              border: "1px solid var(--success-tint)",
+              backgroundColor: "var(--brand-tint)",
               padding: "8px 11px",
               borderRadius: "7px",
               fontSize: "11px",
@@ -1026,12 +1029,12 @@ function SubmissionCard({
 
           <span
             style={{
-              color: "#64748b",
+              color: "var(--ink-soft)",
               fontSize: "11px",
             }}
           >
             Quote:{" "}
-            <strong style={{ color: "#334155" }}>
+            <strong style={{ color: "var(--ink-soft)" }}>
               {formatCurrency(submission.quoteAmount)}
             </strong>
           </span>
@@ -1071,9 +1074,9 @@ function SubmissionCard({
               )
             }
             style={{
-              border: "1px solid #d1d5db",
-              backgroundColor: "#ffffff",
-              color: "#374151",
+              border: "1px solid var(--border)",
+              backgroundColor: "var(--surface)",
+              color: "var(--ink-soft)",
               padding: "8px 12px",
               borderRadius: "8px",
               fontSize: "12px",
@@ -1128,8 +1131,8 @@ function QuotePanel({
   return (
     <div
       style={{
-        backgroundColor: "#ffffff",
-        border: "1px solid #e2e8f0",
+        backgroundColor: "var(--surface)",
+        border: "1px solid var(--border)",
         borderRadius: "12px",
         overflow: "hidden",
         boxShadow: "0 8px 25px rgba(15, 23, 42, 0.06)",
@@ -1140,8 +1143,8 @@ function QuotePanel({
       <div
         style={{
           padding: "18px",
-          borderBottom: "1px solid #e2e8f0",
-          backgroundColor: "#f8fafc",
+          borderBottom: "1px solid var(--border)",
+          backgroundColor: "var(--paper)",
         }}
       >
         <div
@@ -1184,9 +1187,9 @@ function QuotePanel({
               width: "30px",
               height: "30px",
               borderRadius: "7px",
-              border: "1px solid #cbd5e1",
-              backgroundColor: "#ffffff",
-              color: "#64748b",
+              border: "1px solid var(--border)",
+              backgroundColor: "var(--surface)",
+              color: "var(--ink-soft)",
               cursor: "pointer",
               fontSize: "15px",
             }}
@@ -1201,7 +1204,7 @@ function QuotePanel({
       <div
         style={{
           padding: "17px 18px",
-          borderBottom: "1px solid #f1f5f9",
+          borderBottom: "1px solid var(--border-soft)",
         }}
       >
         <DetailRow
@@ -1240,12 +1243,12 @@ function QuotePanel({
       <div
         style={{
           padding: "17px 18px",
-          borderBottom: "1px solid #f1f5f9",
+          borderBottom: "1px solid var(--border-soft)",
         }}
       >
         <div
           style={{
-            color: "#475569",
+            color: "var(--ink-soft)",
             fontSize: "10px",
             fontWeight: "800",
             textTransform: "uppercase",
@@ -1268,9 +1271,9 @@ function QuotePanel({
               <span
                 key={service}
                 style={{
-                  backgroundColor: "#f1f5f9",
-                  border: "1px solid #e2e8f0",
-                  color: "#334155",
+                  backgroundColor: "var(--border-soft)",
+                  border: "1px solid var(--border)",
+                  color: "var(--ink-soft)",
                   borderRadius: "6px",
                   padding: "5px 8px",
                   fontSize: "10px",
@@ -1283,7 +1286,7 @@ function QuotePanel({
           ) : (
             <span
               style={{
-                color: "#94a3b8",
+                color: "var(--ink-soft)",
                 fontSize: "11px",
               }}
             >
@@ -1306,7 +1309,7 @@ function QuotePanel({
             style={{
               display: "block",
               marginBottom: "7px",
-              color: "#334155",
+              color: "var(--ink-soft)",
               fontSize: "11px",
               fontWeight: "800",
             }}
@@ -1328,11 +1331,11 @@ function QuotePanel({
               width: "100%",
               boxSizing: "border-box",
               padding: "11px 12px",
-              border: "1px solid #cbd5e1",
+              border: "1px solid var(--border)",
               borderRadius: "8px",
               fontSize: "14px",
               fontWeight: "700",
-              color: "#0f172a",
+              color: "var(--ink)",
               outline: "none",
             }}
           />
@@ -1343,7 +1346,7 @@ function QuotePanel({
             style={{
               display: "block",
               marginBottom: "7px",
-              color: "#334155",
+              color: "var(--ink-soft)",
               fontSize: "11px",
               fontWeight: "800",
             }}
@@ -1363,11 +1366,11 @@ function QuotePanel({
               boxSizing: "border-box",
               resize: "vertical",
               padding: "11px 12px",
-              border: "1px solid #cbd5e1",
+              border: "1px solid var(--border)",
               borderRadius: "8px",
               fontSize: "12px",
               lineHeight: 1.6,
-              color: "#0f172a",
+              color: "var(--ink)",
               outline: "none",
             }}
           />
@@ -1398,9 +1401,9 @@ function QuotePanel({
             width: "100%",
             border: "none",
             backgroundColor: updating
-              ? "#94a3b8"
-              : "#14532d",
-            color: "#ffffff",
+              ? "var(--ink-soft)"
+              : "var(--brand)",
+            color: "var(--on-accent)",
             padding: "11px 14px",
             borderRadius: "8px",
             fontSize: "12px",
@@ -1443,12 +1446,12 @@ function DetailRow({
         padding: "8px 0",
         borderBottom: last
           ? "none"
-          : "1px solid #f8fafc",
+          : "1px solid var(--paper)",
       }}
     >
       <span
         style={{
-          color: "#94a3b8",
+          color: "var(--ink-soft)",
           fontSize: "11px",
         }}
       >
@@ -1457,7 +1460,7 @@ function DetailRow({
 
       <span
         style={{
-          color: "#334155",
+          color: "var(--ink-soft)",
           fontSize: "11px",
           fontWeight: "700",
           textAlign: "right",
@@ -1488,14 +1491,14 @@ function StatusBadge({
     }
   > = {
     SUBMITTED: {
-      background: "#fff7ed",
-      border: "#fed7aa",
-      color: "#9a3412",
+      background: "var(--warning-tint)",
+      border: "var(--warning-tint)",
+      color: "var(--warning)",
     },
     UNDER_REVIEW: {
-      background: "#eff6ff",
-      border: "#bfdbfe",
-      color: "#1d4ed8",
+      background: "var(--info-tint)",
+      border: "var(--info-tint)",
+      color: "var(--info)",
     },
     QUOTE_GENERATED: {
       background: "#f5f3ff",
@@ -1503,32 +1506,32 @@ function StatusBadge({
       color: "#6d28d9",
     },
     QUOTE_ACCEPTED: {
-      background: "#ecfdf5",
-      border: "#a7f3d0",
-      color: "#047857",
+      background: "var(--brand-tint)",
+      border: "var(--success-tint)",
+      color: "var(--brand-dark)",
     },
     IN_PRODUCTION: {
-      background: "#f0fdf4",
-      border: "#bbf7d0",
-      color: "#166534",
+      background: "var(--brand-tint)",
+      border: "var(--success-tint)",
+      color: "var(--brand-light)",
     },
     PUBLISHED: {
-      background: "#ecfdf5",
-      border: "#a7f3d0",
-      color: "#047857",
+      background: "var(--brand-tint)",
+      border: "var(--success-tint)",
+      color: "var(--brand-dark)",
     },
     REJECTED: {
-      background: "#fef2f2",
-      border: "#fecaca",
-      color: "#b91c1c",
+      background: "var(--danger-tint)",
+      border: "var(--danger-tint)",
+      color: "var(--danger)",
     },
   };
 
   const style =
     config[status] || {
-      background: "#f8fafc",
-      border: "#e2e8f0",
-      color: "#475569",
+      background: "var(--paper)",
+      border: "var(--border)",
+      color: "var(--ink-soft)",
     };
 
   return (
@@ -1559,11 +1562,12 @@ function LoadingState() {
   return (
     <div
       style={{
-        backgroundColor: "#ffffff",
-        border: "1px solid #e2e8f0",
+        backgroundColor: "var(--surface)",
+        border: "1px solid var(--border)",
         borderRadius: "12px",
         padding: "70px 20px",
         textAlign: "center",
+        boxShadow: "0 4px 18px rgba(27,36,31,.08)",
       }}
     >
       <div
@@ -1572,15 +1576,15 @@ function LoadingState() {
           height: "34px",
           margin: "0 auto 14px",
           borderRadius: "50%",
-          border: "3px solid #e2e8f0",
-          borderTopColor: "#14532d",
+          border: "3px solid var(--border)",
+          borderTopColor: "var(--brand)",
           animation: "publishing-spin 0.8s linear infinite",
         }}
       />
 
       <div
         style={{
-          color: "#334155",
+          color: "var(--ink-soft)",
           fontSize: "14px",
           fontWeight: "800",
         }}
@@ -1591,7 +1595,7 @@ function LoadingState() {
       <div
         style={{
           marginTop: "5px",
-          color: "#94a3b8",
+          color: "var(--ink-soft)",
           fontSize: "11px",
         }}
       >
@@ -1623,11 +1627,12 @@ function EmptyState({
   return (
     <div
       style={{
-        backgroundColor: "#ffffff",
-        border: "1px solid #e2e8f0",
+        backgroundColor: "var(--surface)",
+        border: "1px solid var(--border)",
         borderRadius: "12px",
         padding: "70px 20px",
         textAlign: "center",
+        boxShadow: "0 4px 18px rgba(27,36,31,.08)",
       }}
     >
       <div
@@ -1636,7 +1641,7 @@ function EmptyState({
           height: "52px",
           margin: "0 auto 14px",
           borderRadius: "12px",
-          backgroundColor: "#f1f5f9",
+          backgroundColor: "var(--border-soft)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -1651,7 +1656,7 @@ function EmptyState({
           margin: 0,
           fontSize: "16px",
           fontWeight: "800",
-          color: "#334155",
+          color: "var(--ink-soft)",
         }}
       >
         {hasFilters
@@ -1663,7 +1668,7 @@ function EmptyState({
         style={{
           margin: "7px auto 0",
           maxWidth: "450px",
-          color: "#64748b",
+          color: "var(--ink-soft)",
           fontSize: "12px",
           lineHeight: 1.6,
         }}
@@ -1678,9 +1683,9 @@ function EmptyState({
           onClick={clearFilters}
           style={{
             marginTop: "16px",
-            border: "1px solid #cbd5e1",
-            backgroundColor: "#ffffff",
-            color: "#334155",
+            border: "1px solid var(--border)",
+            backgroundColor: "var(--surface)",
+            color: "var(--ink-soft)",
             padding: "9px 13px",
             borderRadius: "7px",
             fontSize: "11px",

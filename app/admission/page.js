@@ -1,9 +1,28 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useLanguage } from './LanguageContext';
+
+// Display-only friendly names for the real Program records shown in
+// this admission flow -- matches PATHWAY_OPTIONS/PATHWAY_TIERS' wording
+// elsewhere on the site. The database's Program.nameEn values (and
+// what gets submitted with the application) are unchanged.
+const PROGRAMME_DISPLAY_NAMES = {
+  'Foundation Studies': 'Foundation Learner Programme',
+  'Intermediate Islamic Studies': 'Intermediate Learner Programme',
+  'Advanced Islamic Studies': 'Advanced Islamic Studies',
+  'Diploma in Islamic Studies': 'Diploma in Islamic Studies',
+};
+
+function programmeDisplayName(name) {
+  return PROGRAMME_DISPLAY_NAMES[name] || name;
+}
 
 export default function AdmissionPage() {
+  const { t } = useLanguage();
+  const searchParams = useSearchParams();
   const [currentStage, setCurrentStage] = useState(1);
   const [academicProgrammes, setAcademicProgrammes] = useState([]);
   const [programmesLoading, setProgrammesLoading] = useState(true);
@@ -17,19 +36,95 @@ export default function AdmissionPage() {
 
   const [maxCompletedStage, setMaxCompletedStage] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [submittedApplicationNumber, setSubmittedApplicationNumber] = useState('');
 
-  // Prevent Step 1 from flashing while returning from Paystack or Stripe.
+  useEffect(() => {
+    if (!submitted) return;
+    try {
+      const stored = localStorage.getItem('ilm_admission_application_number');
+      if (stored) setSubmittedApplicationNumber(stored);
+    } catch (error) {
+      // localStorage unavailable — tracking number just won't prefill.
+    }
+  }, [submitted]);
+
+  // Prevent Step 1 from flashing while returning from Paystack or Stripe
+  // and a real payment verification is in flight. This is reset back to
+  // false as soon as that verification finishes (success or failure) —
+  // it must never permanently hide the wizard (that was the bug: the
+  // applicant would pay, come back, and see no Submit button at all).
   const [isPaymentReturn, setIsPaymentReturn] = useState(false);
-  
+
+  // Shown once, inline, when the applicant is sent back here after
+  // cancelling a payment on the gateway's own page.
+  const [paymentCancelledNotice, setPaymentCancelledNotice] = useState(false);
+
   // State for handling direct payment and processing inside Step 4
   const [isPaymentProcessed, setIsPaymentProcessed] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // Model 16 "Apply Now" wizard -- Student Type -> Study Type -> Ready
+  // to Apply -- shown before the application form below unless the
+  // applicant already answered these elsewhere (a specific programme's
+  // own "Apply Now" link) or is already mid-flow.
+  const [wizardComplete, setWizardComplete] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [wizardResidency, setWizardResidency] = useState('');
+  const [wizardProgramId, setWizardProgramId] = useState('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const alreadyInFlow =
+        params.has('program') ||
+        params.has('reference') ||
+        params.has('stripe_session_id') ||
+        params.get('payment') === 'cancelled' ||
+        Boolean(sessionStorage.getItem('ilm_admission_payment_draft'));
+
+      if (alreadyInFlow) {
+        setWizardComplete(true);
+      }
+    } catch (error) {
+      // sessionStorage/URL access unavailable -- default to showing
+      // the wizard, which is always safe.
+    }
+  }, []);
+
+  const wizardSelectedProgramme = useMemo(
+    () => activeProgrammes.find((programme) => programme.id === wizardProgramId),
+    [activeProgrammes, wizardProgramId]
+  );
+
+  const startApplicationFromWizard = () => {
+    setFormData((prev) => ({
+      ...prev,
+      countryOfResidence:
+        wizardResidency === 'RESIDENT' ? 'Ghana' : '',
+      ...(wizardSelectedProgramme
+        ? {
+            programId: wizardSelectedProgramme.id,
+            academicProgramme: wizardSelectedProgramme.name,
+            academicProgrammeLevel: wizardSelectedProgramme.level,
+          }
+        : {}),
+    }));
+    setWizardComplete(true);
+  };
+
+  const restartWizard = () => {
+    setWizardStep(1);
+    setWizardResidency('');
+    setWizardProgramId('');
+  };
 
   const [formData, setFormData] = useState({
     // Step 1: Account & Personal
     email: '',
     password: '',
     fullName: '',
+    preferredName: '',
     dateOfBirth: '',
     gender: '',
     nationality: 'Ghana',
@@ -49,9 +144,29 @@ export default function AdmissionPage() {
     highestEducation: 'High School',
     institutionName: '',
 
+    // Step 2 (cont.): Academic background & placement self-assessment
+    islamicStudiesBackground: '',
+    quranReadingSelf: '',
+    quranTajweedSelf: '',
+    quranHifzSelf: '',
+    quranRecitationSelf: '',
+    arabicReadingSelf: '',
+    arabicWritingSelf: '',
+    arabicGrammarSelf: '',
+    arabicVocabularySelf: '',
+    arabicConversationSelf: '',
+    quranicArabicSelf: '',
+    learningGoals: '',
+    supportNeeds: '',
+
     // Step 3: Programme, Session & Documents
     programId: '',
     academicProgramme: '',
+    academicProgrammeLevel: '',
+    pathwayPreference: '',
+    preferredDepartmentId: '',
+    specialization: '',
+    studyMode: '',
     studySession: 'Morning Session',
     identityDocType: 'Ghana Card',
     documents: {
@@ -62,6 +177,7 @@ export default function AdmissionPage() {
       testimonial: null,
       recommendation: null,
     },
+    declarationAccepted: false,
 
     // Step 4: Fee & Payment
     paymentMethod: 'ADMISSION_PAYSTACK',
@@ -72,6 +188,56 @@ export default function AdmissionPage() {
   const selectedProgramme = useMemo(
     () => activeProgrammes.find((programme) => programme.id === formData.programId),
     [activeProgrammes, formData.programId]
+  );
+
+  // Preferred department options, derived from the programmes already
+  // loaded for Step 3 rather than a second network call — a program's
+  // department (Program.departmentId) is real, so a genuine department
+  // preference can be recorded even before a specific programme is
+  // chosen.
+  const departmentOptions = useMemo(() => {
+    const seen = new Map();
+    for (const programme of activeProgrammes) {
+      if (programme.departmentId && programme.department && !seen.has(programme.departmentId)) {
+        seen.set(programme.departmentId, programme.department);
+      }
+    }
+    return Array.from(seen, ([id, name]) => ({ id, name }));
+  }, [activeProgrammes]);
+
+  // The Academy's five pathways (Academy Pathways §1) — a starting
+  // preference only; Placement (Academy Pathways §8) decides the
+  // pathway a learner actually enters.
+  const PATHWAY_OPTIONS = [
+    'Foundation Learner Programme',
+    'Intermediate Learner Programme',
+    'Advanced Islamic Studies',
+    'Diploma in Islamic Studies',
+    'Specialized Certificate Programs',
+  ];
+
+  // Shared five-point self-rating scale for the Qur'an and Arabic
+  // placement inputs below (Academy Pathways §8's seven placement
+  // inputs, made concrete) — the applicant's own account, not the
+  // placement result itself.
+  const SELF_LEVEL_OPTIONS = [
+    { value: '', label: t('Prefer not to say') },
+    { value: 'NONE', label: t('None yet') },
+    { value: 'BEGINNER', label: t('Beginner') },
+    { value: 'INTERMEDIATE', label: t('Intermediate') },
+    { value: 'ADVANCED', label: t('Advanced') },
+    { value: 'PROFICIENT', label: t('Proficient') },
+  ];
+
+  const renderSelfLevelField = (label, field) => (
+    <div>
+      <label style={commonLabelStyle}>{t(label)}</label>
+      <select value={formData[field]} onChange={(e) => setFormData({ ...formData, [field]: e.target.value })} style={commonInputStyle}>
+        {SELF_LEVEL_OPTIONS.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
   );
 
   const countryList = [
@@ -122,6 +288,19 @@ export default function AdmissionPage() {
 
         if (!cancelled) {
           setAcademicProgrammes(result.data || []);
+
+          // Coming from a specific programme's page (Apply Now) --
+          // pre-select it instead of asking the visitor to find it
+          // again among every active programme.
+          const requestedProgramId = searchParams?.get('program');
+          if (requestedProgramId) {
+            const match = (result.data || []).find(
+              (programme) => programme.id === requestedProgramId && programme.status === 'Active'
+            );
+            if (match) {
+              setFormData((f) => (f.programId ? f : { ...f, programId: match.id }));
+            }
+          }
         }
       } catch (error) {
         if (!cancelled) {
@@ -174,7 +353,7 @@ export default function AdmissionPage() {
 
         if (!response.ok || !result.success || !result.data) {
           console.error(
-            'Admission fee calculation failed:',
+            'Application fee calculation failed:',
             result.error || 'Unknown error'
           );
           return;
@@ -189,7 +368,7 @@ export default function AdmissionPage() {
         }));
       } catch (error) {
         if (!cancelled) {
-          console.error('Unable to load admission fee:', error);
+          console.error('Unable to load application fee:', error);
         }
       }
     }
@@ -224,13 +403,22 @@ export default function AdmissionPage() {
 
     try {
       const params = new URLSearchParams(window.location.search);
-      const hasPaymentReturn =
-        params.has('reference') ||
-        params.has('stripe_session_id') ||
-        params.get('payment') === 'cancelled';
 
-      if (hasPaymentReturn) {
+      // Only a reference/session id means there is an actual payment to
+      // verify — that's the only case worth briefly hiding the wizard
+      // for, while the verification effects below run.
+      const hasVerifiablePaymentReturn =
+        params.has('reference') || params.has('stripe_session_id');
+
+      if (hasVerifiablePaymentReturn) {
         setIsPaymentReturn(true);
+      } else if (params.get('payment') === 'cancelled') {
+        setCurrentStage(4);
+        setMaxCompletedStage((previous) => Math.max(previous, 4));
+        setPaymentCancelledNotice(true);
+
+        const cleanUrl = `${window.location.pathname}${window.location.hash || ''}`;
+        window.history.replaceState({}, document.title, cleanUrl);
       }
 
       const savedDraft = sessionStorage.getItem('ilm_admission_payment_draft');
@@ -347,6 +535,7 @@ export default function AdmissionPage() {
          */
         setCurrentStage(4);
         setMaxCompletedStage((previous) => Math.max(previous, 4));
+        setIsPaymentReturn(false);
 
         // Remove the Paystack reference from the address bar after
         // successful verification so a refresh does not re-trigger it.
@@ -358,6 +547,14 @@ export default function AdmissionPage() {
             'Admission Paystack return verification failed:',
             error
           );
+
+          // Verification failed (or the request itself failed) — never
+          // leave the applicant stuck behind a permanent loading gate.
+          // Send them back to the Fee & Payment step so they can see
+          // what happened and retry.
+          setIsPaymentReturn(false);
+          setCurrentStage(4);
+          setMaxCompletedStage((previous) => Math.max(previous, 4));
 
           alert(
             error?.message ||
@@ -470,6 +667,7 @@ export default function AdmissionPage() {
          */
         setCurrentStage(4);
         setMaxCompletedStage((previous) => Math.max(previous, 4));
+        setIsPaymentReturn(false);
 
         window.history.replaceState(
           {},
@@ -482,6 +680,14 @@ export default function AdmissionPage() {
             'Admission Stripe return verification failed:',
             error
           );
+
+          // Verification failed (or the request itself failed) — never
+          // leave the applicant stuck behind a permanent loading gate.
+          // Send them back to the Fee & Payment step so they can see
+          // what happened and retry.
+          setIsPaymentReturn(false);
+          setCurrentStage(4);
+          setMaxCompletedStage((previous) => Math.max(previous, 4));
 
           alert(
             error?.message ||
@@ -565,6 +771,25 @@ export default function AdmissionPage() {
           highestEducation: formData.highestEducation,
           institutionName: formData.institutionName,
           identityDocType: formData.identityDocType,
+          preferredName: formData.preferredName,
+          pathwayPreference: formData.pathwayPreference,
+          preferredDepartmentId: formData.preferredDepartmentId,
+          specialization: formData.specialization,
+          studyMode: formData.studyMode,
+          islamicStudiesBackground: formData.islamicStudiesBackground,
+          quranReadingSelf: formData.quranReadingSelf,
+          quranTajweedSelf: formData.quranTajweedSelf,
+          quranHifzSelf: formData.quranHifzSelf,
+          quranRecitationSelf: formData.quranRecitationSelf,
+          arabicReadingSelf: formData.arabicReadingSelf,
+          arabicWritingSelf: formData.arabicWritingSelf,
+          arabicGrammarSelf: formData.arabicGrammarSelf,
+          arabicVocabularySelf: formData.arabicVocabularySelf,
+          arabicConversationSelf: formData.arabicConversationSelf,
+          quranicArabicSelf: formData.quranicArabicSelf,
+          learningGoals: formData.learningGoals,
+          supportNeeds: formData.supportNeeds,
+          declarationAccepted: formData.declarationAccepted,
         }),
       });
 
@@ -623,7 +848,7 @@ export default function AdmissionPage() {
         }
       }
 
-      await uploadAdmissionDocuments(applicationId);
+      await uploadAdmissionDocuments(applicationId, result.data.applicationNumber);
 
       window.location.href = paymentUrl;
     } catch (error) {
@@ -670,7 +895,7 @@ export default function AdmissionPage() {
     }
 
     if (stageNum === 3) {
-      const isDiploma = formData.academicProgramme === 'Diploma in Islamic Sciences';
+      const isDiploma = formData.academicProgrammeLevel === 'DIPLOMA';
       const requiredBaseDocs = Boolean(formData.documents.passportPicture) && Boolean(formData.documents.identityDocument);
 
       if (isDiploma) {
@@ -679,10 +904,11 @@ export default function AdmissionPage() {
           formData.documents.transcripts &&
           formData.documents.certificate &&
           formData.documents.testimonial &&
-          formData.documents.recommendation
+          formData.documents.recommendation &&
+          formData.declarationAccepted
         );
       }
-      return requiredBaseDocs;
+      return Boolean(requiredBaseDocs && formData.declarationAccepted);
     }
 
     if (stageNum === 4) {
@@ -739,9 +965,13 @@ export default function AdmissionPage() {
     if (currentStage > 1) setCurrentStage(currentStage - 1);
   };
 
-  const uploadAdmissionDocuments = async (applicationId) => {
+  const uploadAdmissionDocuments = async (applicationId, applicationNumber) => {
     if (!applicationId) {
       throw new Error('Admission application ID is missing.');
+    }
+
+    if (!applicationNumber) {
+      throw new Error('Admission application number is missing.');
     }
 
     const uploadFormData = new FormData();
@@ -749,6 +979,15 @@ export default function AdmissionPage() {
     uploadFormData.append(
       'applicationId',
       String(applicationId)
+    );
+
+    // Security: the server verifies this application number belongs to
+    // applicationId before accepting any upload, so a guessed/leaked
+    // applicationId alone can never be used to overwrite someone else's
+    // admission documents.
+    uploadFormData.append(
+      'applicationNumber',
+      String(applicationNumber)
     );
 
     const documentFields = [
@@ -932,7 +1171,8 @@ export default function AdmissionPage() {
       saveAdmissionPaymentDraft();
 
       await uploadAdmissionDocuments(
-        applicationId
+        applicationId,
+        result.data.applicationNumber
       );
 
       const checkoutUrl =
@@ -1073,9 +1313,9 @@ export default function AdmissionPage() {
     width: '100%',
     padding: '12px 15px',
     borderRadius: '8px',
-    border: '1px solid #e2e8f0',
-    backgroundColor: '#ffffff',
-    color: '#0f172a',
+    border: '1px solid var(--border)',
+    backgroundColor: 'var(--surface)',
+    color: 'var(--ink)',
     fontSize: '15px',
     boxSizing: 'border-box',
     marginTop: '6px',
@@ -1085,29 +1325,322 @@ export default function AdmissionPage() {
     display: 'block',
     fontSize: '12px',
     fontWeight: 'bold',
-    color: '#475569',
+    color: 'var(--ink-soft)',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
   };
 
+  // Model 16 "Apply Now" wizard card/back-link styling.
+  const wizardCardStyle = (isSelected) => ({
+    textAlign: 'left',
+    border: isSelected ? '2px solid var(--brand)' : '1px solid var(--border)',
+    background: isSelected ? 'var(--brand-tint)' : 'var(--surface)',
+    borderRadius: '14px',
+    padding: '18px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    boxShadow: isSelected ? '0 5px 18px rgba(21, 128, 61, 0.14)' : '0 2px 8px rgba(15, 23, 42, 0.04)',
+  });
+
+  const wizardBackLinkStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    marginBottom: '16px',
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    color: 'var(--ink-soft)',
+    fontSize: '13.5px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+  };
+
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f1f5f9', color: '#14532d', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ fontFamily: 'var(--font-body)', backgroundColor: 'var(--border-soft)', color: 'var(--brand)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       
       <main style={{ maxWidth: '900px', width: '100%', margin: '60px auto', padding: '0 20px', flex: 1 }}>
-        <div style={{ backgroundColor: '#ffffff', padding: '40px 50px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+        {!submitted && (
+          <Link
+            href="/"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '16px',
+              color: 'var(--ink-soft)',
+              fontSize: '13.5px',
+              fontWeight: 'bold',
+              textDecoration: 'none',
+            }}
+          >
+            <span aria-hidden="true">←</span>
+            {t('Back to Home')}
+          </Link>
+        )}
+
+        <div style={{ backgroundColor: 'var(--surface)', padding: '40px 50px', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
           
           <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-            <h1 style={{ fontSize: '32px', color: '#14532d', margin: '0 0 8px 0' }}>Apply for Admission</h1>
-            <p style={{ fontSize: '15px', color: '#64748b', margin: 0 }}>
-              Complete your applicant profile, select programmes & pay admission fees.
+            <h1 style={{ fontSize: '32px', color: 'var(--brand)', margin: '0 0 8px 0' }}>{t('Admission Application')}</h1>
+            <p style={{ fontSize: '15px', color: 'var(--ink-soft)', margin: '0 0 18px 0' }}>
+              {t('Complete your applicant profile, select programmes & pay application fees.')}
             </p>
           </div>
 
-          {!submitted && !isPaymentReturn && (
+          {paymentCancelledNotice && !submitted && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '14px 18px',
+                borderRadius: '10px',
+                border: '1px solid var(--warning)',
+                backgroundColor: 'var(--warning-tint)',
+                color: 'var(--warning)',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                marginBottom: '24px',
+              }}
+            >
+              <span aria-hidden="true">⚠</span>
+              <span>
+                {t("Your payment was cancelled — nothing was charged. You can try again below whenever you're ready.")}
+              </span>
+            </div>
+          )}
+
+          {!submitted && isPaymentReturn && (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '60px 20px',
+                color: 'var(--ink-soft)',
+              }}
+            >
+              <div
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  margin: '0 auto 18px',
+                  border: '4px solid var(--border)',
+                  borderTopColor: 'var(--brand)',
+                  borderRadius: '50%',
+                  animation: 'ilm-admission-spin 0.8s linear infinite',
+                }}
+              />
+              <p style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--brand)', margin: '0 0 6px' }}>
+                {t('Verifying your payment…')}
+              </p>
+              <p style={{ fontSize: '13px', margin: 0 }}>
+                {t("This only takes a few seconds. Please don't close this page.")}
+              </p>
+              <style jsx>{`
+                @keyframes ilm-admission-spin {
+                  to { transform: rotate(360deg); }
+                }
+              `}</style>
+            </div>
+          )}
+
+          {!submitted && !isPaymentReturn && !wizardComplete && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '28px' }}>
+                {[1, 2, 3].map((step) => (
+                  <div
+                    key={step}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                      color: step <= wizardStep ? 'var(--on-accent, #fff)' : 'var(--ink-soft)',
+                      background: step <= wizardStep ? 'var(--brand)' : 'var(--border-soft)',
+                      border: step === wizardStep ? '2px solid var(--gold)' : '2px solid transparent',
+                    }}
+                  >
+                    {step}
+                  </div>
+                ))}
+              </div>
+
+              {wizardStep === 1 && (
+                <div>
+                  <h2 style={{ fontSize: '20px', color: 'var(--ink)', textAlign: 'center', margin: '0 0 6px 0', fontWeight: 'bold' }}>
+                    {t('Step 1 of 3: Who Are You Applying As?')}
+                  </h2>
+                  <p style={{ fontSize: '13.5px', color: 'var(--ink-soft)', textAlign: 'center', margin: '0 0 26px 0' }}>
+                    {t('This determines your application fee currency and payment method. You can still refine your country of residence in the application itself.')}
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setWizardResidency('RESIDENT'); setWizardStep(2); }}
+                      style={wizardCardStyle(wizardResidency === 'RESIDENT')}
+                    >
+                      <div style={{ fontSize: '28px', marginBottom: '10px' }} aria-hidden="true">🇬🇭</div>
+                      <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--brand)', marginBottom: '6px' }}>
+                        {t('New Student — Resident')}
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--ink-soft)' }}>
+                        {t('Living in Ghana. Application fee is charged in GHS via Mobile Money or card.')}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { setWizardResidency('INTERNATIONAL'); setWizardStep(2); }}
+                      style={wizardCardStyle(wizardResidency === 'INTERNATIONAL')}
+                    >
+                      <div style={{ fontSize: '28px', marginBottom: '10px' }} aria-hidden="true">🌍</div>
+                      <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--brand)', marginBottom: '6px' }}>
+                        {t('New Student — International')}
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--ink-soft)' }}>
+                        {t('Living outside Ghana. Application fee is charged in USD by card.')}
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {wizardStep === 2 && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(1)}
+                    style={wizardBackLinkStyle}
+                  >
+                    ← {t('Back')}
+                  </button>
+
+                  <h2 style={{ fontSize: '20px', color: 'var(--ink)', textAlign: 'center', margin: '0 0 6px 0', fontWeight: 'bold' }}>
+                    {t('Step 2 of 3: Choose Your Programme')}
+                  </h2>
+                  <p style={{ fontSize: '13.5px', color: 'var(--ink-soft)', textAlign: 'center', margin: '0 0 26px 0' }}>
+                    {t('These are the programmes currently open for admission.')}
+                  </p>
+
+                  {programmesLoading && (
+                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', color: 'var(--ink-soft)', fontSize: '13px', textAlign: 'center' }}>
+                      {t('Loading academic programmes...')}
+                    </div>
+                  )}
+
+                  {programmesError && (
+                    <div style={{ background: 'var(--danger-tint)', border: '1px solid var(--danger-tint)', borderRadius: '12px', padding: '12px 14px', color: 'var(--danger)', fontSize: '13px', marginBottom: '12px' }}>
+                      {programmesError}
+                    </div>
+                  )}
+
+                  {!programmesLoading && !programmesError && activeProgrammes.length === 0 && (
+                    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', color: 'var(--ink-soft)', fontSize: '13px', textAlign: 'center' }}>
+                      {t('No programmes are currently open for admission. Please check back soon.')}
+                    </div>
+                  )}
+
+                  {!programmesLoading && !programmesError && activeProgrammes.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                      {activeProgrammes.map((programme) => (
+                        <button
+                          key={programme.id}
+                          type="button"
+                          onClick={() => { setWizardProgramId(programme.id); setWizardStep(3); }}
+                          style={wizardCardStyle(wizardProgramId === programme.id)}
+                        >
+                          <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--brand)', marginBottom: '6px' }}>
+                            {programmeDisplayName(programme.name)}
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
+                            {programme.level}{programme.duration ? ` · ${programme.duration}` : ''}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {wizardStep === 3 && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep(2)}
+                    style={wizardBackLinkStyle}
+                  >
+                    ← {t('Back')}
+                  </button>
+
+                  <h2 style={{ fontSize: '20px', color: 'var(--ink)', textAlign: 'center', margin: '0 0 6px 0', fontWeight: 'bold' }}>
+                    {t('Step 3 of 3: Ready to Apply')}
+                  </h2>
+                  <p style={{ fontSize: '13.5px', color: 'var(--ink-soft)', textAlign: 'center', margin: '0 0 26px 0' }}>
+                    {t("Here's what you told us. You can change your specific country and programme details inside the application.")}
+                  </p>
+
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '22px', marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-soft)' }}>
+                      <span style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-soft)', fontWeight: 'bold' }}>
+                        {t('Applying as')}
+                      </span>
+                      <strong style={{ color: 'var(--ink)' }}>
+                        {wizardResidency === 'RESIDENT'
+                          ? `🇬🇭 ${t('New Student — Resident')}`
+                          : `🌍 ${t('New Student — International')}`}
+                      </strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
+                      <span style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-soft)', fontWeight: 'bold' }}>
+                        {t('Programme')}
+                      </span>
+                      <strong style={{ color: 'var(--ink)', textAlign: 'right' }}>
+                        {wizardSelectedProgramme ? programmeDisplayName(wizardSelectedProgramme.name) : '—'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={restartWizard}
+                      style={{ padding: '12px 26px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink-soft)', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}
+                    >
+                      {t('Start Over')}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!wizardResidency || !wizardProgramId}
+                      onClick={startApplicationFromWizard}
+                      style={{
+                        padding: '12px 32px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: (!wizardResidency || !wizardProgramId) ? 'var(--border)' : 'var(--brand)',
+                        color: 'var(--on-accent, #fff)',
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        cursor: (!wizardResidency || !wizardProgramId) ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {t('Go to Application →')}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!submitted && !isPaymentReturn && wizardComplete && (
             <>
               {/* Stepper navigation bar */}
-              <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '40px' }}>
-                {['1. Account & Personal', '2. Contacts & Education', '3. Programme & Session', '4. Fee & Payment'].map((step, idx) => {
+              <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '40px' }}>
+                {[t('1. Account & Personal'), t('2. Contacts & Education'), t('3. Programme & Session'), t('4. Fee & Payment')].map((step, idx) => {
                   const stepNum = idx + 1;
                   const isActive = currentStage === stepNum;
                   // Only show green if completed, gray otherwise until filled
@@ -1126,7 +1659,7 @@ export default function AdmissionPage() {
                         fontSize: '12px', 
                         fontWeight: 'bold', 
                         letterSpacing: '0.05em', 
-                        color: isActive ? '#16a34a' : isCompleted ? '#16a34a' : '#94a3b8', 
+                        color: isActive ? 'var(--success)' : isCompleted ? 'var(--success)' : 'var(--ink-soft)', 
                         textAlign: 'center', 
                         padding: '15px 0', 
                         position: 'relative',
@@ -1134,20 +1667,20 @@ export default function AdmissionPage() {
                         transition: 'color 0.2s ease'
                       }}
                     >
-                      {step} {isCompleted && stepNum < currentStage && '(Done)'}
+                      {step} {isCompleted && stepNum < currentStage && t('(Done)')}
                       {isActive && (
-                        <div style={{ position: 'absolute', bottom: -1, left: '10%', width: '80%', height: '3px', backgroundColor: '#16a34a', borderRadius: '3px' }}></div>
+                        <div style={{ position: 'absolute', bottom: -1, left: '10%', width: '80%', height: '3px', backgroundColor: 'var(--success)', borderRadius: '3px' }}></div>
                       )}
                     </button>
                   );
                 })}
               </div>
 
-              <h2 style={{ fontSize: '18px', color: '#0f172a', margin: '0 0 25px 0', fontWeight: 'bold' }}>
-                {currentStage === 1 && "Step 1: Account & Personal Details"}
-                {currentStage === 2 && "Step 2: Contacts & Education Background"}
-                {currentStage === 3 && "Step 3: Programme, Session & Document Uploads"}
-                {currentStage === 4 && "Step 4: Admission Fee & Payment"}
+              <h2 style={{ fontSize: '18px', color: 'var(--ink)', margin: '0 0 25px 0', fontWeight: 'bold' }}>
+                {currentStage === 1 && t("Step 1: Account & Personal Details")}
+                {currentStage === 2 && t("Step 2: Contacts & Education Background")}
+                {currentStage === 3 && t("Step 3: Programme, Session & Document Uploads")}
+                {currentStage === 4 && t("Step 4: Application Fee & Payment")}
               </h2>
 
               <form onSubmit={currentStage === 4 ? handleSubmit : nextStage} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1157,7 +1690,7 @@ export default function AdmissionPage() {
                   <>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                       <div>
-                        <label style={commonLabelStyle}>Email Address *</label>
+                        <label style={commonLabelStyle}>{t('Email Address *')}</label>
                         <input
                           type="email"
                           name="email"
@@ -1171,82 +1704,95 @@ export default function AdmissionPage() {
                               email: e.target.value,
                             })
                           }
-                          placeholder="Enter your email address"
+                          placeholder={t('Enter your email address')}
                           style={{
                             ...commonInputStyle,
-                            backgroundColor: '#f0f9ff',
-                            border: '1px solid #bae6fd',
+                            backgroundColor: 'var(--info-tint)',
+                            border: '1px solid var(--info-tint)',
                           }}
                         />
                       </div>
                       <div>
-                        <label style={commonLabelStyle}>Password *</label>
+                        <label style={commonLabelStyle}>{t('Password *')}</label>
                         <input
                           type="password"
                           name="admission-password"
                           autoComplete="new-password"
                           required
-                          value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} style={{...commonInputStyle, backgroundColor: '#f0f9ff', border: '1px solid #bae6fd'}} />
+                          value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} style={{...commonInputStyle, backgroundColor: 'var(--info-tint)', border: '1px solid var(--info-tint)'}} />
                       </div>
                     </div>
                     
                     <div>
-                      <label style={commonLabelStyle}>Full Name *</label>
-                      <input type="text" required placeholder="Enter full legal name..." value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} style={commonInputStyle} />
+                      <label style={commonLabelStyle}>{t('Full Name *')}</label>
+                      <input type="text" required placeholder={t('Enter full legal name...')} value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} style={commonInputStyle} />
+                    </div>
+
+                    <div>
+                      <label style={commonLabelStyle}>{t('Preferred Name')}</label>
+                      <input type="text" placeholder={t('What you\'d like to be called, if different from your legal name')} value={formData.preferredName} onChange={(e) => setFormData({...formData, preferredName: e.target.value})} style={commonInputStyle} />
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                       <div>
-                        <label style={commonLabelStyle}>Date of Birth *</label>
+                        <label style={commonLabelStyle}>{t('Date of Birth *')}</label>
                         <input type="date" required value={formData.dateOfBirth} onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})} style={commonInputStyle} />
                       </div>
                       <div>
-                        <label style={commonLabelStyle}>Gender *</label>
+                        <label style={commonLabelStyle}>{t('Gender *')}</label>
                         <select required value={formData.gender} onChange={(e) => setFormData({...formData, gender: e.target.value})} style={commonInputStyle}>
-                          <option value="">Select Gender</option>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
+                          <option value="">{t('Select Gender')}</option>
+                          <option value="Male">{t('Male')}</option>
+                          <option value="Female">{t('Female')}</option>
                         </select>
                       </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                       <div>
-                        <label style={commonLabelStyle}>Nationality *</label>
+                        <label style={commonLabelStyle}>{t('Nationality *')}</label>
                         <select required value={formData.nationality} onChange={(e) => setFormData({...formData, nationality: e.target.value})} style={commonInputStyle}>
                           {countryList.map((c, i) => <option key={i} value={c}>{c}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label style={commonLabelStyle}>Country of Residence *</label>
+                        <label style={commonLabelStyle}>{t('Country of Residence *')}</label>
                         <select required value={formData.countryOfResidence} onChange={(e) => setFormData({...formData, countryOfResidence: e.target.value})} style={commonInputStyle}>
+                          {!formData.countryOfResidence && (
+                            <option value="" disabled>{t('-- Select your country --')}</option>
+                          )}
                           {countryList.map((c, i) => <option key={i} value={c}>{c}</option>)}
                         </select>
+                        {wizardResidency === 'INTERNATIONAL' && !formData.countryOfResidence && (
+                          <p style={{ fontSize: '12px', color: 'var(--gold-dark)', margin: '6px 0 0' }}>
+                            {t('You told us you are applying as an International student -- please select your specific country.')}
+                          </p>
+                        )}
                       </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                       <div>
-                        <label style={commonLabelStyle}>Phone Number *</label>
+                        <label style={commonLabelStyle}>{t('Phone Number *')}</label>
                         <input type="tel" required placeholder="+..." value={formData.phoneNumber} onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})} style={commonInputStyle} />
                       </div>
                       <div>
-                        <label style={commonLabelStyle}>Passport / ID Number *</label>
+                        <label style={commonLabelStyle}>{t('Passport / ID Number *')}</label>
                         <input type="text" required value={formData.idNumber} onChange={(e) => setFormData({...formData, idNumber: e.target.value})} style={commonInputStyle} />
                       </div>
                     </div>
 
                     <div>
-                      <label style={commonLabelStyle}>Residential Address *</label>
+                      <label style={commonLabelStyle}>{t('Residential Address *')}</label>
                       <textarea rows="3" required value={formData.residentialAddress} onChange={(e) => setFormData({...formData, residentialAddress: e.target.value})} style={{...commonInputStyle, resize: 'none'}} />
                     </div>
 
                     <div>
-                      <label style={commonLabelStyle}>Applicant Classification *</label>
-                      <select required value={formData.applicantCategory} onChange={(e) => setFormData({...formData, applicantCategory: e.target.value})} style={{...commonInputStyle, border: '1px solid #16a34a', fontWeight: 'bold'}}>
-                        <option value="Junior Learner (4-13 years)">Junior Learner (4-13 years)</option>
-                        <option value="Senior Learner (15-20 years)">Senior Learner (15-20 years)</option>
-                        <option value="Mature Learner (21 years and above)">Mature Learner (21 years and above)</option>
+                      <label style={commonLabelStyle}>{t('Applicant Classification *')}</label>
+                      <select required value={formData.applicantCategory} onChange={(e) => setFormData({...formData, applicantCategory: e.target.value})} style={{...commonInputStyle, border: '1px solid var(--success)', fontWeight: 'bold'}}>
+                        <option value="Junior Learner (4-13 years)">{t('Junior Learner (4-13 years)')}</option>
+                        <option value="Senior Learner (15-20 years)">{t('Senior Learner (15-20 years)')}</option>
+                        <option value="Mature Learner (21 years and above)">{t('Mature Learner (21 years and above)')}</option>
                       </select>
                     </div>
                   </>
@@ -1255,54 +1801,98 @@ export default function AdmissionPage() {
                 {/* STAGE 2: Contacts & Education */}
                 {currentStage === 2 && (
                   <>
-                    <h4 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#475569', fontWeight: 'bold', margin: '0 0 10px 0', letterSpacing: '0.05em' }}>
-                      Parent / Guardian Details
+                    <h4 style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold', margin: '0 0 10px 0', letterSpacing: '0.05em' }}>
+                      {t('Parent / Guardian Details')}
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr', gap: '15px' }}>
-                      <input type="text" placeholder="Guardian Name" value={formData.guardianName} onChange={(e) => setFormData({...formData, guardianName: e.target.value})} style={commonInputStyle} />
-                      <input type="tel" placeholder="Guardian Phone" value={formData.guardianPhone} onChange={(e) => setFormData({...formData, guardianPhone: e.target.value})} style={commonInputStyle} />
+                      <input type="text" placeholder={t('Guardian Name')} value={formData.guardianName} onChange={(e) => setFormData({...formData, guardianName: e.target.value})} style={commonInputStyle} />
+                      <input type="tel" placeholder={t('Guardian Phone')} value={formData.guardianPhone} onChange={(e) => setFormData({...formData, guardianPhone: e.target.value})} style={commonInputStyle} />
                       <select value={formData.guardianRelationship} onChange={(e) => setFormData({...formData, guardianRelationship: e.target.value})} style={commonInputStyle}>
-                        <option value="Father">Father</option>
-                        <option value="Mother">Mother</option>
-                        <option value="Spouse">Spouse</option>
-                        <option value="Guardian">Guardian</option>
-                        <option value="Relative">Relative</option>
-                        <option value="Other">Other</option>
+                        <option value="Father">{t('Father')}</option>
+                        <option value="Mother">{t('Mother')}</option>
+                        <option value="Spouse">{t('Spouse')}</option>
+                        <option value="Guardian">{t('Guardian')}</option>
+                        <option value="Relative">{t('Relative')}</option>
+                        <option value="Other">{t('Other')}</option>
                       </select>
                     </div>
 
-                    <h4 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#475569', fontWeight: 'bold', margin: '20px 0 10px 0', letterSpacing: '0.05em' }}>
-                      Emergency Contact *
+                    <h4 style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold', margin: '20px 0 10px 0', letterSpacing: '0.05em' }}>
+                      {t('Emergency Contact *')}
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr', gap: '15px' }}>
-                      <input type="text" placeholder="Name *" required value={formData.emergencyName} onChange={(e) => setFormData({...formData, emergencyName: e.target.value})} style={commonInputStyle} />
-                      <input type="tel" placeholder="Phone *" required value={formData.emergencyPhone} onChange={(e) => setFormData({...formData, emergencyPhone: e.target.value})} style={commonInputStyle} />
+                      <input type="text" placeholder={t('Name *')} required value={formData.emergencyName} onChange={(e) => setFormData({...formData, emergencyName: e.target.value})} style={commonInputStyle} />
+                      <input type="tel" placeholder={t('Phone *')} required value={formData.emergencyPhone} onChange={(e) => setFormData({...formData, emergencyPhone: e.target.value})} style={commonInputStyle} />
                       <select required value={formData.emergencyRelationship} onChange={(e) => setFormData({...formData, emergencyRelationship: e.target.value})} style={commonInputStyle}>
-                        <option value="Father">Father</option>
-                        <option value="Mother">Mother</option>
-                        <option value="Spouse">Spouse</option>
-                        <option value="Guardian">Guardian</option>
-                        <option value="Relative">Relative</option>
-                        <option value="Other">Other</option>
+                        <option value="Father">{t('Father')}</option>
+                        <option value="Mother">{t('Mother')}</option>
+                        <option value="Spouse">{t('Spouse')}</option>
+                        <option value="Guardian">{t('Guardian')}</option>
+                        <option value="Relative">{t('Relative')}</option>
+                        <option value="Other">{t('Other')}</option>
                       </select>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
                       <div>
-                        <label style={commonLabelStyle}>Highest Education Level *</label>
+                        <label style={commonLabelStyle}>{t('Highest Education Level *')}</label>
                         <select required value={formData.highestEducation} onChange={(e) => setFormData({...formData, highestEducation: e.target.value})} style={commonInputStyle}>
-                          <option value="High School">High School</option>
-                          <option value="Diploma">Diploma</option>
-                          <option value="Bachelor Degree">Bachelor Degree</option>
-                          <option value="Master Degree">Master Degree</option>
-                          <option value="Doctorate">Doctorate</option>
-                          <option value="Other">Other</option>
+                          <option value="High School">{t('High School')}</option>
+                          <option value="Diploma">{t('Diploma')}</option>
+                          <option value="Bachelor Degree">{t('Bachelor Degree')}</option>
+                          <option value="Master Degree">{t('Master Degree')}</option>
+                          <option value="Doctorate">{t('Doctorate')}</option>
+                          <option value="Other">{t('Other')}</option>
                         </select>
                       </div>
                       <div>
-                        <label style={commonLabelStyle}>Institution Name *</label>
+                        <label style={commonLabelStyle}>{t('Institution Name *')}</label>
                         <input type="text" required value={formData.institutionName} onChange={(e) => setFormData({...formData, institutionName: e.target.value})} style={commonInputStyle} />
                       </div>
+                    </div>
+
+                    <h4 style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold', margin: '20px 0 10px 0', letterSpacing: '0.05em' }}>
+                      {t('Islamic Studies & Placement Background')}
+                    </h4>
+                    <p style={{ fontSize: '12px', color: 'var(--ink-soft)', margin: '0 0 15px 0' }}>
+                      {t('Your own account of your current level — used as a starting point for the placement assessment that follows admission, not as the placement result itself.')}
+                    </p>
+
+                    <div>
+                      <label style={commonLabelStyle}>{t('Islamic Studies Background')}</label>
+                      <textarea rows="3" placeholder={t('Any prior Islamic education, self-study, or memorization — in your own words')} value={formData.islamicStudiesBackground} onChange={(e) => setFormData({...formData, islamicStudiesBackground: e.target.value})} style={{...commonInputStyle, resize: 'none'}} />
+                    </div>
+
+                    <h4 style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold', margin: '18px 0 10px 0', letterSpacing: '0.05em' }}>
+                      {t("Qur'an")}
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                      {renderSelfLevelField('Reading', 'quranReadingSelf')}
+                      {renderSelfLevelField('Tajweed', 'quranTajweedSelf')}
+                      {renderSelfLevelField('Hifz (memorization)', 'quranHifzSelf')}
+                      {renderSelfLevelField('Recitation', 'quranRecitationSelf')}
+                    </div>
+
+                    <h4 style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold', margin: '18px 0 10px 0', letterSpacing: '0.05em' }}>
+                      {t('Arabic')}
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                      {renderSelfLevelField('Reading', 'arabicReadingSelf')}
+                      {renderSelfLevelField('Writing', 'arabicWritingSelf')}
+                      {renderSelfLevelField('Grammar', 'arabicGrammarSelf')}
+                      {renderSelfLevelField('Vocabulary', 'arabicVocabularySelf')}
+                      {renderSelfLevelField('Conversation', 'arabicConversationSelf')}
+                      {renderSelfLevelField("Qur'anic Arabic", 'quranicArabicSelf')}
+                    </div>
+
+                    <div style={{ marginTop: '18px' }}>
+                      <label style={commonLabelStyle}>{t('Learning Goals')}</label>
+                      <textarea rows="2" placeholder={t('What are you hoping to achieve by studying here?')} value={formData.learningGoals} onChange={(e) => setFormData({...formData, learningGoals: e.target.value})} style={{...commonInputStyle, resize: 'none'}} />
+                    </div>
+
+                    <div>
+                      <label style={commonLabelStyle}>{t('Accessibility / Support Needs')}</label>
+                      <textarea rows="2" placeholder={t('Anything the Academy should know to support your learning (optional)')} value={formData.supportNeeds} onChange={(e) => setFormData({...formData, supportNeeds: e.target.value})} style={{...commonInputStyle, resize: 'none'}} />
                     </div>
                   </>
                 )}
@@ -1312,8 +1902,8 @@ export default function AdmissionPage() {
                   <>
                     <div
                       style={{
-                        background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 55%, #fffbeb 100%)',
-                        border: '1px solid #bbf7d0',
+                        background: 'linear-gradient(135deg, var(--brand-tint) 0%, var(--surface) 55%, var(--warning-tint) 100%)',
+                        border: '1px solid var(--success-tint)',
                         borderRadius: '18px',
                         padding: '22px',
                         marginBottom: '22px',
@@ -1334,8 +1924,8 @@ export default function AdmissionPage() {
                               width: '38px',
                               height: '38px',
                               borderRadius: '12px',
-                              background: '#14532d',
-                              color: '#facc15',
+                              background: 'var(--brand)',
+                              color: 'var(--warning)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -1350,22 +1940,22 @@ export default function AdmissionPage() {
                             <h3
                               style={{
                                 margin: 0,
-                                color: '#14532d',
+                                color: 'var(--brand)',
                                 fontSize: '20px',
                                 fontWeight: '800',
                               }}
                             >
-                              Choose Your Academic Programme
+                              {t('Choose Your Academic Programme')}
                             </h3>
 
                             <p
                               style={{
                                 margin: '4px 0 0',
-                                color: '#64748b',
+                                color: 'var(--ink-soft)',
                                 fontSize: '13px',
                               }}
                             >
-                              Select the programme you wish to apply for.
+                              {t('Select the programme you wish to apply for.')}
                             </p>
                           </div>
                         </div>
@@ -1373,26 +1963,26 @@ export default function AdmissionPage() {
                         {programmesLoading && (
                           <div
                             style={{
-                              background: '#ffffff',
-                              border: '1px solid #e2e8f0',
+                              background: 'var(--surface)',
+                              border: '1px solid var(--border)',
                               borderRadius: '12px',
                               padding: '16px',
-                              color: '#64748b',
+                              color: 'var(--ink-soft)',
                               fontSize: '13px',
                             }}
                           >
-                            Loading academic programmes...
+                            {t('Loading academic programmes...')}
                           </div>
                         )}
 
                         {programmesError && (
                           <div
                             style={{
-                              background: '#fef2f2',
-                              border: '1px solid #fecaca',
+                              background: 'var(--danger-tint)',
+                              border: '1px solid var(--danger-tint)',
                               borderRadius: '12px',
                               padding: '12px 14px',
-                              color: '#b91c1c',
+                              color: 'var(--danger)',
                               fontSize: '13px',
                               marginBottom: '12px',
                             }}
@@ -1421,14 +2011,15 @@ export default function AdmissionPage() {
                                       ...formData,
                                       programId: programme.id,
                                       academicProgramme: programme.name,
+                                      academicProgrammeLevel: programme.level,
                                     })
                                   }
                                   style={{
                                     textAlign: 'left',
                                     border: isSelected
-                                      ? '2px solid #15803d'
-                                      : '1px solid #dbe5df',
-                                    background: isSelected ? '#f0fdf4' : '#ffffff',
+                                      ? '2px solid var(--brand)'
+                                      : '1px solid var(--border)',
+                                    background: isSelected ? 'var(--brand-tint)' : 'var(--surface)',
                                     borderRadius: '14px',
                                     padding: '16px',
                                     cursor: 'pointer',
@@ -1449,13 +2040,13 @@ export default function AdmissionPage() {
                                     <div>
                                       <div
                                         style={{
-                                          color: '#14532d',
+                                          color: 'var(--brand)',
                                           fontSize: '15px',
                                           fontWeight: '800',
                                           lineHeight: 1.35,
                                         }}
                                       >
-                                        {programme.name}
+                                        {programmeDisplayName(programme.name)}
                                       </div>
 
                                       <div
@@ -1468,8 +2059,8 @@ export default function AdmissionPage() {
                                       >
                                         <span
                                           style={{
-                                            background: '#dcfce7',
-                                            color: '#166534',
+                                            background: 'var(--success-tint)',
+                                            color: 'var(--brand-light)',
                                             borderRadius: '999px',
                                             padding: '4px 8px',
                                             fontSize: '11px',
@@ -1481,8 +2072,8 @@ export default function AdmissionPage() {
 
                                         <span
                                           style={{
-                                            background: '#fef3c7',
-                                            color: '#92400e',
+                                            background: 'var(--warning-tint)',
+                                            color: 'var(--warning)',
                                             borderRadius: '999px',
                                             padding: '4px 8px',
                                             fontSize: '11px',
@@ -1501,9 +2092,9 @@ export default function AdmissionPage() {
                                         minWidth: '23px',
                                         borderRadius: '50%',
                                         border: isSelected
-                                          ? '6px solid #15803d'
-                                          : '2px solid #cbd5e1',
-                                        background: '#ffffff',
+                                          ? '6px solid var(--brand)'
+                                          : '2px solid var(--border)',
+                                        background: 'var(--surface)',
                                       }}
                                     />
                                   </div>
@@ -1511,7 +2102,7 @@ export default function AdmissionPage() {
                                   <p
                                     style={{
                                       margin: '12px 0 0',
-                                      color: '#64748b',
+                                      color: 'var(--ink-soft)',
                                       fontSize: '12px',
                                       lineHeight: 1.55,
                                     }}
@@ -1535,12 +2126,12 @@ export default function AdmissionPage() {
                           <p
                             style={{
                               margin: '12px 0 0',
-                              color: '#b45309',
+                              color: 'var(--warning)',
                               fontSize: '12px',
                               fontWeight: '600',
                             }}
                           >
-                            Please select an academic programme to continue.
+                            {t('Please select an academic programme to continue.')}
                           </p>
                         )}
                       </div>
@@ -1550,8 +2141,8 @@ export default function AdmissionPage() {
                           style={{
                             marginTop: '16px',
                             padding: '14px 16px',
-                            background: '#14532d',
-                            color: '#ffffff',
+                            background: 'var(--brand)',
+                            color: 'var(--on-accent)',
                             borderRadius: '12px',
                             display: 'flex',
                             justifyContent: 'space-between',
@@ -1566,11 +2157,11 @@ export default function AdmissionPage() {
                                 fontSize: '10px',
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.08em',
-                                color: '#bbf7d0',
+                                color: 'var(--success-tint)',
                                 fontWeight: '700',
                               }}
                             >
-                              Selected Programme
+                              {t('Selected Programme')}
                             </div>
 
                             <div
@@ -1586,7 +2177,7 @@ export default function AdmissionPage() {
 
                           <div
                             style={{
-                              color: '#facc15',
+                              color: 'var(--warning)',
                               fontSize: '12px',
                               fontWeight: '700',
                             }}
@@ -1598,72 +2189,119 @@ export default function AdmissionPage() {
                     </div>
 
                     <div>
-                      <label style={commonLabelStyle}>Select Study Session *</label>
+                      <label style={commonLabelStyle}>{t('Select Study Session *')}</label>
                       <select required value={formData.studySession} onChange={(e) => setFormData({...formData, studySession: e.target.value})} style={commonInputStyle}>
-                        <option value="Morning Session">Morning Session</option>
-                        <option value="Evening Session">Evening Session</option>
-                        <option value="Weekend Session">Weekend Session</option>
+                        <option value="Morning Session">{t('Morning Session')}</option>
+                        <option value="Evening Session">{t('Evening Session')}</option>
+                        <option value="Weekend Session">{t('Weekend Session')}</option>
                       </select>
                     </div>
 
-                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px', marginTop: '10px' }}>
-                      <h4 style={{ fontSize: '13px', textTransform: 'uppercase', color: '#14532d', fontWeight: 'bold', margin: '0 0 5px 0', letterSpacing: '0.05em' }}>
-                        Required Document Uploads
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div>
+                        <label style={commonLabelStyle}>{t('Pathway Preference')}</label>
+                        <select value={formData.pathwayPreference} onChange={(e) => setFormData({...formData, pathwayPreference: e.target.value})} style={commonInputStyle}>
+                          <option value="">{t("Not sure — let placement decide")}</option>
+                          {PATHWAY_OPTIONS.map((p) => <option key={p} value={p}>{t(p)}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={commonLabelStyle}>{t('Preferred Department')}</label>
+                        <select value={formData.preferredDepartmentId} onChange={(e) => setFormData({...formData, preferredDepartmentId: e.target.value})} style={commonInputStyle}>
+                          <option value="">{t('No preference')}</option>
+                          {departmentOptions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div>
+                        <label style={commonLabelStyle}>{t('Specialization (if any)')}</label>
+                        <input type="text" placeholder={t('e.g. a specific area of interest within your pathway')} value={formData.specialization} onChange={(e) => setFormData({...formData, specialization: e.target.value})} style={commonInputStyle} />
+                      </div>
+                      <div>
+                        <label style={commonLabelStyle}>{t('Study Mode')}</label>
+                        <select value={formData.studyMode} onChange={(e) => setFormData({...formData, studyMode: e.target.value})} style={commonInputStyle}>
+                          <option value="">{t('Select study mode')}</option>
+                          <option value="FULL_TIME">{t('Full-time')}</option>
+                          <option value="PART_TIME">{t('Part-time')}</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', marginTop: '10px' }}>
+                      <h4 style={{ fontSize: '13px', textTransform: 'uppercase', color: 'var(--brand)', fontWeight: 'bold', margin: '0 0 5px 0', letterSpacing: '0.05em' }}>
+                        {t('Required Document Uploads')}
                       </h4>
-                      <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 15px 0' }}>
-                        {formData.academicProgramme === 'Diploma in Islamic Sciences' 
-                          ? 'Diploma applicants must provide all supporting academic and identification documents.'
-                          : 'Please upload identity and passport photos to proceed.'}
+                      <p style={{ fontSize: '12px', color: 'var(--ink-soft)', margin: '0 0 15px 0' }}>
+                        {formData.academicProgrammeLevel === 'DIPLOMA'
+                          ? t('Diploma applicants must provide all supporting academic and identification documents.')
+                          : t('Please upload identity and passport photos to proceed.')}
                       </p>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                         
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                           <div>
-                            <label style={commonLabelStyle}>Select Official Identity Doc *</label>
+                            <label style={commonLabelStyle}>{t('Select Official Identity Doc *')}</label>
                             <select value={formData.identityDocType} onChange={(e) => setFormData({...formData, identityDocType: e.target.value})} style={commonInputStyle}>
-                              <option value="Ghana Card">Ghana Card</option>
-                              <option value="National Identification Card">National Identification Card</option>
-                              <option value="Green Card">Green Card</option>
-                              <option value="International Passport">International Passport</option>
-                              <option value="Birth Certificate">Birth Certificate</option>
+                              <option value="Ghana Card">{t('Ghana Card')}</option>
+                              <option value="National Identification Card">{t('National Identification Card')}</option>
+                              <option value="Green Card">{t('Green Card')}</option>
+                              <option value="International Passport">{t('International Passport')}</option>
+                              <option value="Birth Certificate">{t('Birth Certificate')}</option>
                             </select>
                           </div>
                           <div>
-                            <label style={commonLabelStyle}>Upload {formData.identityDocType} *</label>
+                            <label style={commonLabelStyle}>{t('Upload')} {formData.identityDocType} *</label>
                             <input type="file" required onChange={(e) => handleFileChange('identityDocument', e.target.files[0])} style={commonInputStyle} />
                           </div>
                         </div>
 
                         <div>
-                          <label style={commonLabelStyle}>Passport Picture *</label>
+                          <label style={commonLabelStyle}>{t('Passport Picture *')}</label>
                           <input type="file" required accept="image/*" onChange={(e) => handleFileChange('passportPicture', e.target.files[0])} style={commonInputStyle} />
                         </div>
 
-                        {formData.academicProgramme === 'Diploma in Islamic Sciences' && (
+                        {formData.academicProgrammeLevel === 'DIPLOMA' && (
                           <>
                             <div>
-                              <label style={commonLabelStyle}>Transcripts *</label>
+                              <label style={commonLabelStyle}>{t('Transcripts *')}</label>
                               <input type="file" required onChange={(e) => handleFileChange('transcripts', e.target.files[0])} style={commonInputStyle} />
                             </div>
 
                             <div>
-                              <label style={commonLabelStyle}>Certificate *</label>
+                              <label style={commonLabelStyle}>{t('Certificate *')}</label>
                               <input type="file" required onChange={(e) => handleFileChange('certificate', e.target.files[0])} style={commonInputStyle} />
                             </div>
 
                             <div>
-                              <label style={commonLabelStyle}>Testimonial *</label>
+                              <label style={commonLabelStyle}>{t('Testimonial *')}</label>
                               <input type="file" required onChange={(e) => handleFileChange('testimonial', e.target.files[0])} style={commonInputStyle} />
                             </div>
 
                             <div>
-                              <label style={commonLabelStyle}>Recommendation Letter *</label>
+                              <label style={commonLabelStyle}>{t('Recommendation Letter *')}</label>
                               <input type="file" required onChange={(e) => handleFileChange('recommendation', e.target.files[0])} style={commonInputStyle} />
                             </div>
                           </>
                         )}
                       </div>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', marginTop: '10px' }}>
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: 'var(--ink)', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          required
+                          checked={formData.declarationAccepted}
+                          onChange={(e) => setFormData({...formData, declarationAccepted: e.target.checked})}
+                          style={{ marginTop: '3px' }}
+                        />
+                        <span>
+                          {t('I declare that the information provided in this application is accurate and complete to the best of my knowledge, and I understand that any document or document upload may be verified. *')}
+                        </span>
+                      </label>
                     </div>
                   </>
                 )}
@@ -1673,10 +2311,10 @@ export default function AdmissionPage() {
                   <>
                     <div
                       style={{
-                        backgroundColor: '#f0fdf4',
+                        backgroundColor: 'var(--brand-tint)',
                         padding: '25px',
                         borderRadius: '12px',
-                        border: '1px solid #bbf7d0',
+                        border: '1px solid var(--success-tint)',
                         textAlign: 'center',
                       }}
                     >
@@ -1685,17 +2323,17 @@ export default function AdmissionPage() {
                           textTransform: 'uppercase',
                           fontSize: '12px',
                           fontWeight: 'bold',
-                          color: '#166534',
+                          color: 'var(--brand-light)',
                           letterSpacing: '0.05em',
                         }}
                       >
-                        Auto-Calculated Admission Fee
+                        {t('Auto-Calculated Application Fee')}
                       </span>
 
                       <div
                         style={{
                           fontSize: '42px',
-                          color: '#14532d',
+                          color: 'var(--brand)',
                           fontWeight: 'bold',
                           margin: '10px 0',
                         }}
@@ -1706,7 +2344,7 @@ export default function AdmissionPage() {
                       <p
                         style={{
                           fontSize: '13px',
-                          color: '#64748b',
+                          color: 'var(--ink-soft)',
                           margin: 0,
                         }}
                       >
@@ -1716,32 +2354,32 @@ export default function AdmissionPage() {
 
                     <div
                       style={{
-                        backgroundColor: '#f8fafc',
+                        backgroundColor: 'var(--paper)',
                         padding: '20px',
                         borderRadius: '10px',
-                        border: '1px solid #e2e8f0',
+                        border: '1px solid var(--border)',
                       }}
                     >
                       <h4
                         style={{
                           fontSize: '13px',
                           textTransform: 'uppercase',
-                          color: '#0f172a',
+                          color: 'var(--ink)',
                           fontWeight: 'bold',
                           margin: '0 0 8px 0',
                         }}
                       >
-                        Payment Method
+                        {t('Payment Method')}
                       </h4>
 
                       <p
                         style={{
                           fontSize: '13px',
-                          color: '#64748b',
+                          color: 'var(--ink-soft)',
                           margin: '0 0 15px 0',
                         }}
                       >
-                        Choose how you would like to pay your admission fee.
+                        {t('Choose how you would like to pay your application fee.')}
                       </p>
 
                       <div
@@ -1764,18 +2402,18 @@ export default function AdmissionPage() {
                             borderRadius: '8px',
                             border:
                               formData.paymentMethod === 'ADMISSION_PAYSTACK'
-                                ? '2px solid #16a34a'
-                                : '1px solid #cbd5e1',
+                                ? '2px solid var(--success)'
+                                : '1px solid var(--border)',
                             backgroundColor:
                               formData.paymentMethod === 'ADMISSION_PAYSTACK'
-                                ? '#f0fdf4'
-                                : '#ffffff',
-                            color: '#14532d',
+                                ? 'var(--brand-tint)'
+                                : 'var(--surface)',
+                            color: 'var(--brand)',
                             fontWeight: 'bold',
                             cursor: 'pointer',
                           }}
                         >
-                          Pay with Paystack
+                          {t('Pay with Paystack')}
                         </button>
 
                         <button
@@ -1791,18 +2429,18 @@ export default function AdmissionPage() {
                             borderRadius: '8px',
                             border:
                               formData.paymentMethod === 'STRIPE'
-                                ? '2px solid #16a34a'
-                                : '1px solid #cbd5e1',
+                                ? '2px solid var(--success)'
+                                : '1px solid var(--border)',
                             backgroundColor:
                               formData.paymentMethod === 'STRIPE'
-                                ? '#f0fdf4'
-                                : '#ffffff',
-                            color: '#14532d',
+                                ? 'var(--brand-tint)'
+                                : 'var(--surface)',
+                            color: 'var(--brand)',
                             fontWeight: 'bold',
                             cursor: 'pointer',
                           }}
                         >
-                          Stripe Payment
+                          {t('Stripe Payment')}
                         </button>
                       </div>
                     </div>
@@ -1810,32 +2448,31 @@ export default function AdmissionPage() {
                     {formData.paymentMethod === 'ADMISSION_PAYSTACK' && (
                       <div
                         style={{
-                          backgroundColor: '#eff6ff',
+                          backgroundColor: 'var(--info-tint)',
                           padding: '20px',
                           borderRadius: '10px',
-                          border: '1px solid #bfdbfe',
+                          border: '1px solid var(--info-tint)',
                         }}
                       >
                         <h4
                           style={{
                             fontSize: '14px',
-                            color: '#1e3a8a',
+                            color: 'var(--info)',
                             fontWeight: 'bold',
                             margin: '0 0 8px 0',
                           }}
                         >
-                          Paystack Payment
+                          {t('Paystack Payment')}
                         </h4>
 
                         <p
                           style={{
                             fontSize: '13px',
-                            color: '#475569',
+                            color: 'var(--ink-soft)',
                             margin: '0 0 15px 0',
                           }}
                         >
-                          You will be securely redirected to Paystack to
-                          complete your admission fee payment.
+                          {t('You will be securely redirected to Paystack to complete your application fee payment.')}
                         </p>
 
                         <button
@@ -1846,9 +2483,9 @@ export default function AdmissionPage() {
                             width: '100%',
                             padding: '13px',
                             backgroundColor: isProcessingPayment
-                              ? '#94a3b8'
-                              : '#0284c7',
-                            color: '#ffffff',
+                              ? 'var(--ink-soft)'
+                              : 'var(--info)',
+                            color: 'var(--on-accent)',
                             border: 'none',
                             borderRadius: '7px',
                             fontWeight: 'bold',
@@ -1859,8 +2496,8 @@ export default function AdmissionPage() {
                           }}
                         >
                           {isProcessingPayment
-                            ? 'Preparing Payment...'
-                            : `Pay ${formData.calculatedFee} with Paystack`}
+                            ? t('Preparing Payment...')
+                            : `${t('Pay')} ${formData.calculatedFee} ${t('with Paystack')}`}
                         </button>
                       </div>
                     )}
@@ -1868,33 +2505,31 @@ export default function AdmissionPage() {
                     {formData.paymentMethod === 'STRIPE' && (
                       <div
                         style={{
-                          backgroundColor: '#fffbeb',
+                          backgroundColor: 'var(--warning-tint)',
                           padding: '20px',
                           borderRadius: '10px',
-                          border: '1px solid #fde68a',
+                          border: '1px solid var(--warning-tint)',
                         }}
                       >
                         <h4
                           style={{
                             fontSize: '14px',
-                            color: '#92400e',
+                            color: 'var(--warning)',
                             fontWeight: 'bold',
                             margin: '0 0 8px 0',
                           }}
                         >
-                          Stripe Payment
+                          {t('Stripe Payment')}
                         </h4>
 
                         <p
                           style={{
                             fontSize: '13px',
-                            color: '#475569',
+                            color: 'var(--ink-soft)',
                             margin: '0 0 15px 0',
                           }}
                         >
-                          Pay your admission fee securely through Stripe.
-                          You will be redirected to Stripe Checkout to
-                          complete your payment.
+                          {t('Pay your application fee securely through Stripe. You will be redirected to Stripe Checkout to complete your payment.')}
                         </p>
 
                         <button
@@ -1906,9 +2541,9 @@ export default function AdmissionPage() {
                             padding: '13px',
                             backgroundColor:
                               isProcessingPayment || isPaymentProcessed
-                                ? '#94a3b8'
+                                ? 'var(--ink-soft)'
                                 : '#635bff',
-                            color: '#ffffff',
+                            color: 'var(--on-accent)',
                             border: 'none',
                             borderRadius: '7px',
                             fontWeight: 'bold',
@@ -1920,10 +2555,10 @@ export default function AdmissionPage() {
                           }}
                         >
                           {isProcessingPayment
-                            ? 'Preparing Stripe Payment...'
+                            ? t('Preparing Stripe Payment...')
                             : isPaymentProcessed
-                              ? 'Payment Verified'
-                              : `Pay ${formData.calculatedFee} with Stripe`}
+                              ? t('Payment Verified')
+                              : `${t('Pay')} ${formData.calculatedFee} ${t('with Stripe')}`}
                         </button>
                       </div>
                     )}
@@ -1934,10 +2569,10 @@ export default function AdmissionPage() {
                 <div style={{ display: 'flex', justifyContent: 'center', marginTop: '30px', gap: '15px' }}>
                   {currentStage > 1 && (
                     <button type="button" onClick={prevStage} style={{ 
-                      width: '200px', padding: '14px', backgroundColor: '#f1f5f9', color: '#14532d', 
-                      border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' 
+                      width: '200px', padding: '14px', backgroundColor: 'var(--border-soft)', color: 'var(--brand)', 
+                      border: '1px solid var(--border)', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' 
                     }}>
-                      &lt;- Back
+                      {t('<- Back')}
                     </button>
                   )}
 
@@ -1947,8 +2582,8 @@ export default function AdmissionPage() {
                     style={{ 
                       width: currentStage === 1 ? '100%' : '300px', 
                       padding: '14px', 
-                      backgroundColor: !isStageValid(currentStage) ? '#94a3b8' : '#16a34a', 
-                      color: '#ffffff', 
+                      backgroundColor: !isStageValid(currentStage) ? 'var(--ink-soft)' : 'var(--success)', 
+                      color: 'var(--on-accent)', 
                       border: 'none', 
                       borderRadius: '8px', 
                       fontWeight: 'bold', 
@@ -1957,10 +2592,10 @@ export default function AdmissionPage() {
                       transition: 'background-color 0.2s ease'
                     }}
                   >
-                    {currentStage === 1 && "Next: Contacts & Education ->"}
-                    {currentStage === 2 && "Next: Programme & Session ->"}
-                    {currentStage === 3 && "Next: Fee & Payment ->"}
-                    {currentStage === 4 && (isPaymentProcessed ? "Submit Application & Complete" : "Complete Payment First to Submit")}
+                    {currentStage === 1 && t("Next: Contacts & Education ->")}
+                    {currentStage === 2 && t("Next: Programme & Session ->")}
+                    {currentStage === 3 && t("Next: Fee & Payment ->")}
+                    {currentStage === 4 && (isPaymentProcessed ? t("Submit Application & Complete") : t("Complete Payment First to Submit"))}
                   </button>
                 </div>
 
@@ -1975,31 +2610,30 @@ export default function AdmissionPage() {
 
                 <h3
                   style={{
-                    color: '#14532d',
+                    color: 'var(--brand)',
                     fontSize: '24px',
                     margin: '0 0 10px 0',
                   }}
                 >
-                  Application Submitted Successfully!
+                  {t('Application Submitted Successfully!')}
                 </h3>
 
                 <p
                   style={{
-                    color: '#64748b',
+                    color: 'var(--ink-soft)',
                     fontSize: '15px',
                     margin: 0,
                   }}
                 >
-                  Thank you,{' '}
-                  <strong>{formData.fullName || 'Applicant'}</strong>. Your
-                  admission application has been recorded successfully.
+                  {t('Thank you,')}{' '}
+                  <strong>{formData.fullName || t('Applicant')}</strong>. {t('admission application has been recorded successfully.')}
                 </p>
               </div>
 
               <div
                 style={{
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #cbd5e1',
+                  backgroundColor: 'var(--paper)',
+                  border: '1px solid var(--border)',
                   borderRadius: '12px',
                   padding: '25px',
                   marginBottom: '30px',
@@ -2009,15 +2643,15 @@ export default function AdmissionPage() {
                   style={{
                     fontSize: '14px',
                     textTransform: 'uppercase',
-                    color: '#14532d',
-                    borderBottom: '2px solid #cbd5e1',
+                    color: 'var(--brand)',
+                    borderBottom: '2px solid var(--border)',
                     paddingBottom: '10px',
                     marginTop: 0,
                     marginBottom: '15px',
                     letterSpacing: '0.05em',
                   }}
                 >
-                  Official Admission & Payment Summary Report
+                  {t('Official Admission & Payment Summary Report')}
                 </h4>
 
                 <div
@@ -2026,73 +2660,73 @@ export default function AdmissionPage() {
                     gridTemplateColumns: '1fr 1fr',
                     gap: '15px',
                     fontSize: '14px',
-                    color: '#334155',
+                    color: 'var(--ink-soft)',
                   }}
                 >
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
-                      Applicant Full Name
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold' }}>
+                      {t('Applicant Full Name')}
                     </span>
                     <strong>{formData.fullName}</strong>
                   </div>
 
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
-                      Email Address
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold' }}>
+                      {t('Email Address')}
                     </span>
                     <strong>{formData.email}</strong>
                   </div>
 
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
-                      Selected Programme
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold' }}>
+                      {t('Selected Programme')}
                     </span>
-                    <strong style={{ color: '#16a34a' }}>
+                    <strong style={{ color: 'var(--success)' }}>
                       {formData.academicProgramme}
                     </strong>
                   </div>
 
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
-                      Study Session
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold' }}>
+                      {t('Study Session')}
                     </span>
                     <strong>{formData.studySession}</strong>
                   </div>
 
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
-                      Applicant Classification
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold' }}>
+                      {t('Applicant Classification')}
                     </span>
                     <strong>{formData.applicantCategory}</strong>
                   </div>
 
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
-                      Country of Residence
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold' }}>
+                      {t('Country of Residence')}
                     </span>
                     <strong>{formData.countryOfResidence}</strong>
                   </div>
 
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
-                      Payment Method
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold' }}>
+                      {t('Payment Method')}
                     </span>
                     <strong>
                       {formData.paymentMethod === 'ADMISSION_PAYSTACK'
-                        ? 'Paystack'
+                        ? t('Paystack')
                         : formData.paymentMethod === 'STRIPE'
-                          ? 'Stripe'
+                          ? t('Stripe')
                           : formData.paymentMethod}
                     </strong>
                   </div>
 
                   <div>
-                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 'bold' }}>
-                      Admission Fee
+                    <span style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', color: 'var(--ink-soft)', fontWeight: 'bold' }}>
+                      {t('Application Fee')}
                     </span>
                     <strong
                       style={{
-                        color: '#0284c7',
+                        color: 'var(--info)',
                         fontSize: '16px',
                       }}
                     >
@@ -2107,12 +2741,12 @@ export default function AdmissionPage() {
                       padding: '12px',
                       backgroundColor:
                         formData.paymentMethod === 'ADMISSION_PAYSTACK'
-                          ? '#dcfce7'
-                          : '#fffbeb',
+                          ? 'var(--success-tint)'
+                          : 'var(--warning-tint)',
                       border:
                         formData.paymentMethod === 'ADMISSION_PAYSTACK'
-                          ? '1px solid #86efac'
-                          : '1px solid #fde68a',
+                          ? '1px solid var(--success-tint)'
+                          : '1px solid var(--warning-tint)',
                       borderRadius: '8px',
                     }}
                   >
@@ -2121,12 +2755,12 @@ export default function AdmissionPage() {
                         display: 'block',
                         fontSize: '11px',
                         textTransform: 'uppercase',
-                        color: '#64748b',
+                        color: 'var(--ink-soft)',
                         fontWeight: 'bold',
                         marginBottom: '4px',
                       }}
                     >
-                      Payment Status
+                      {t('Payment Status')}
                     </span>
 
                     <strong
@@ -2134,38 +2768,103 @@ export default function AdmissionPage() {
                         color:
                           formData.paymentMethod === 'ADMISSION_PAYSTACK'
                             ? isPaymentProcessed
-                              ? '#166534'
-                              : '#92400e'
-                            : '#92400e',
+                              ? 'var(--brand-light)'
+                              : 'var(--warning)'
+                            : 'var(--warning)',
                       }}
                     >
                       {formData.paymentMethod === 'ADMISSION_PAYSTACK'
                         ? isPaymentProcessed
-                          ? 'Payment verified successfully through Paystack.'
+                          ? t('Payment verified successfully through Paystack.')
                           : isProcessingPayment
-                            ? 'Verifying your Paystack payment...'
-                            : 'Payment not yet verified. Complete the Paystack payment above.'
-                        : 'Bank transfer selected. Payment will be confirmed after transfer verification.'}
+                            ? t('Verifying your Paystack payment...')
+                            : t('Payment not yet verified. Complete the Paystack payment above.')
+                        : t('Bank transfer selected. Payment will be confirmed after transfer verification.')}
                     </strong>
                   </div>
                 </div>
               </div>
 
-              <div style={{ textAlign: 'center' }}>
+              {submittedApplicationNumber && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    marginBottom: '25px',
+                    padding: '18px',
+                    backgroundColor: 'var(--brand-tint, var(--paper))',
+                    border: '1px solid var(--border)',
+                    borderRadius: '10px',
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: '11px',
+                      textTransform: 'uppercase',
+                      color: 'var(--ink-soft)',
+                      fontWeight: 'bold',
+                      letterSpacing: '0.05em',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    {t('Your Application Number — Save This')}
+                  </span>
+                  <strong
+                    style={{
+                      fontSize: '20px',
+                      color: 'var(--brand)',
+                      letterSpacing: '0.03em',
+                    }}
+                  >
+                    {submittedApplicationNumber}
+                  </strong>
+                  <p
+                    style={{
+                      fontSize: '13px',
+                      color: 'var(--ink-soft)',
+                      margin: '8px 0 0',
+                    }}
+                  >
+                    {t('Use this number any time to check your application and payment status.')}
+                  </p>
+                </div>
+              )}
+
+              <div style={{ textAlign: 'center', display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <Link
-                  href="/"
+                  href={
+                    submittedApplicationNumber
+                      ? `/admission/track?ref=${encodeURIComponent(submittedApplicationNumber)}`
+                      : '/admission/track'
+                  }
                   style={{
                     display: 'inline-block',
                     padding: '12px 28px',
-                    backgroundColor: '#14532d',
-                    color: '#ffffff',
+                    backgroundColor: 'var(--gold)',
+                    color: 'var(--on-accent)',
                     borderRadius: '6px',
                     fontWeight: 'bold',
                     textDecoration: 'none',
                     fontSize: '15px',
                   }}
                 >
-                  Return to Home Page
+                  {t('Track Admission Progress')}
+                </Link>
+
+                <Link
+                  href="/"
+                  style={{
+                    display: 'inline-block',
+                    padding: '12px 28px',
+                    backgroundColor: 'var(--brand)',
+                    color: 'var(--on-accent)',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    textDecoration: 'none',
+                    fontSize: '15px',
+                  }}
+                >
+                  {t('Return to Home Page')}
                 </Link>
               </div>
             </div>

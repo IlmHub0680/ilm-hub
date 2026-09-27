@@ -2,16 +2,17 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import type { Role, AuthorStatus } from "@prisma/client";
 
 const SESSION_COOKIE_NAME = "memo_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
-type SessionUser = {
+export type SessionUser = {
   id: string;
   name: string;
   email: string;
-  role: "USER" | "STUDENT" | "AUTHOR" | "ADMIN" | "SUPER_ADMIN";
-  authorStatus: "PENDING" | "APPROVED" | "REJECTED";
+  role: Role;
+  authorStatus: AuthorStatus;
 };
 
 function getAuthSecret(): string {
@@ -24,32 +25,38 @@ function getAuthSecret(): string {
   return secret;
 }
 
-function createSessionToken(userId: string): string {
+function createSessionToken(userId: string, tokenVersion: number): string {
   const secret = getAuthSecret();
-
   const timestamp = Date.now().toString();
 
   const signature = crypto
     .createHmac("sha256", secret)
-    .update(`${userId}.${timestamp}`)
+    .update(`${userId}.${tokenVersion}.${timestamp}`)
     .digest("hex");
 
-  return `${userId}.${timestamp}.${signature}`;
+  return `${userId}.${tokenVersion}.${timestamp}.${signature}`;
 }
 
-function verifySessionToken(token: string): string | null {
+function verifySessionToken(
+  token: string
+): { userId: string; tokenVersion: number } | null {
   try {
     const secret = getAuthSecret();
-
     const parts = token.split(".");
 
-    if (parts.length !== 3) {
+    if (parts.length !== 4) {
       return null;
     }
 
-    const [userId, timestamp, signature] = parts;
+    const [userId, tokenVersionRaw, timestamp, signature] = parts;
 
-    if (!userId || !timestamp || !signature) {
+    if (!userId || !tokenVersionRaw || !timestamp || !signature) {
+      return null;
+    }
+
+    const tokenVersion = Number(tokenVersionRaw);
+
+    if (!Number.isFinite(tokenVersion) || tokenVersion < 0) {
       return null;
     }
 
@@ -67,12 +74,13 @@ function verifySessionToken(token: string): string | null {
 
     const expectedSignature = crypto
       .createHmac("sha256", secret)
-      .update(`${userId}.${timestamp}`)
+      .update(`${userId}.${tokenVersion}.${timestamp}`)
       .digest("hex");
 
     const providedBuffer = new Uint8Array(
       Buffer.from(signature, "hex")
     );
+
     const expectedBuffer = new Uint8Array(
       Buffer.from(expectedSignature, "hex")
     );
@@ -85,15 +93,19 @@ function verifySessionToken(token: string): string | null {
       return null;
     }
 
-    return userId;
+    return { userId, tokenVersion };
   } catch {
     return null;
   }
 }
 
 export async function createLoginSession(userId: string) {
-  const token = createSessionToken(userId);
+  const currentUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { tokenVersion: true },
+  });
 
+  const token = createSessionToken(userId, currentUser?.tokenVersion ?? 0);
   const cookieStore = await cookies();
 
   cookieStore.set(SESSION_COOKIE_NAME, token, {
@@ -117,25 +129,31 @@ export async function clearLoginSession() {
   });
 }
 
+// Security audit fix -- invalidates every session token issued before
+// the user's most recent password change (or a future "log out of all
+// devices" action), by comparing the tokenVersion embedded in the
+// cookie against the User row's current tokenVersion. A stale token
+// (old version) is rejected here even though its HMAC signature is
+// still cryptographically valid, closing the "stolen token still works
+// after password change" gap.
 export async function getCurrentUser(): Promise<SessionUser | null> {
   try {
     const cookieStore = await cookies();
-
     const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
     if (!token) {
       return null;
     }
 
-    const userId = verifySessionToken(token);
+    const verified = verifySessionToken(token);
 
-    if (!userId) {
+    if (!verified) {
       return null;
     }
 
     const user = await prisma.user.findUnique({
       where: {
-        id: userId,
+        id: verified.userId,
       },
       select: {
         id: true,
@@ -143,6 +161,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
         email: true,
         role: true,
         authorStatus: true,
+        tokenVersion: true,
       },
     });
 
@@ -151,7 +170,14 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       return null;
     }
 
-    return user;
+    if (user.tokenVersion !== verified.tokenVersion) {
+      await clearLoginSession();
+      return null;
+    }
+
+    const { tokenVersion, ...sessionUser } = user;
+
+    return sessionUser;
   } catch (error) {
     console.error("Get current user error:", error);
     return null;
@@ -168,10 +194,25 @@ export async function requireUser(): Promise<SessionUser> {
   return user;
 }
 
+export async function requireInstructor(): Promise<SessionUser> {
+  const { requireModulePermission } = await import("@/lib/permissions");
+
+  return requireModulePermission("COURSES_GRADES", "view");
+}
+
+export async function requireInstructorEdit(): Promise<SessionUser> {
+  const { requireModulePermission } = await import("@/lib/permissions");
+
+  return requireModulePermission("COURSES_GRADES", "edit");
+}
+
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
 
-  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
+  if (
+    user.role !== "ADMIN" &&
+    user.role !== "SUPER_ADMIN"
+  ) {
     throw new Error("FORBIDDEN");
   }
 

@@ -195,7 +195,7 @@ export default function BooksPage() {
     <main
       style={{
         minHeight: '100vh',
-        background: '#f5f7fb',
+        background: 'var(--paper)',
         padding: '32px',
         fontFamily:
           'Inter, Arial, sans-serif',
@@ -213,8 +213,8 @@ export default function BooksPage() {
         <header
           style={{
             background:
-              'linear-gradient(135deg, #172554, #1e40af)',
-            color: '#fff',
+              'linear-gradient(135deg, var(--brand-deepest), var(--brand-dark))',
+            color: 'var(--on-accent)',
             borderRadius: '20px',
             padding: '30px',
             boxShadow:
@@ -233,7 +233,7 @@ export default function BooksPage() {
             <div>
               <div
                 style={{
-                  color: '#bfdbfe',
+                  color: 'var(--info-tint)',
                   fontSize: 12,
                   fontWeight: 800,
                   letterSpacing: '.1em',
@@ -255,7 +255,7 @@ export default function BooksPage() {
               <p
                 style={{
                   margin: 0,
-                  color: '#dbeafe',
+                  color: 'var(--info-tint)',
                 }}
               >
                 Manage the complete bookstore
@@ -266,8 +266,8 @@ export default function BooksPage() {
             <Link
               href="/admin/bookstore/books/new"
               style={{
-                background: '#fff',
-                color: '#1d4ed8',
+                background: 'var(--surface)',
+                color: 'var(--brand-dark)',
                 padding: '12px 18px',
                 borderRadius: 10,
                 textDecoration: 'none',
@@ -298,12 +298,12 @@ export default function BooksPage() {
               style={{
                 border:
                   filter === item.key
-                    ? '2px solid #2563eb'
-                    : '1px solid #e2e8f0',
+                    ? '2px solid var(--brand)'
+                    : '1px solid var(--border)',
                 background:
                   filter === item.key
-                    ? '#eff6ff'
-                    : '#fff',
+                    ? 'var(--info-tint)'
+                    : 'var(--surface)',
                 borderRadius: 14,
                 padding: '16px',
                 textAlign: 'left',
@@ -312,7 +312,7 @@ export default function BooksPage() {
             >
               <div
                 style={{
-                  color: '#64748b',
+                  color: 'var(--ink-soft)',
                   fontSize: 13,
                   fontWeight: 700,
                 }}
@@ -323,7 +323,7 @@ export default function BooksPage() {
               <div
                 style={{
                   marginTop: 5,
-                  color: '#0f172a',
+                  color: 'var(--ink)',
                   fontSize: 25,
                   fontWeight: 800,
                 }}
@@ -339,10 +339,10 @@ export default function BooksPage() {
             style={{
               marginTop: 20,
               padding: 15,
-              background: '#fee2e2',
-              color: '#991b1b',
+              background: 'var(--danger-tint)',
+              color: 'var(--danger)',
               borderRadius: 10,
-              border: '1px solid #fecaca',
+              border: '1px solid var(--danger-tint)',
             }}
           >
             {error}
@@ -351,7 +351,7 @@ export default function BooksPage() {
 
         <section
           style={{
-            background: '#fff',
+            background: 'var(--surface)',
             marginTop: 20,
             borderRadius: 16,
             padding: 18,
@@ -370,7 +370,7 @@ export default function BooksPage() {
               boxSizing: 'border-box',
               padding: '13px 15px',
               border:
-                '1px solid #cbd5e1',
+                '1px solid var(--border)',
               borderRadius: 10,
               fontSize: 15,
               outline: 'none',
@@ -380,7 +380,7 @@ export default function BooksPage() {
 
         <section
           style={{
-            background: '#fff',
+            background: 'var(--surface)',
             marginTop: 20,
             borderRadius: 16,
             overflow: 'hidden',
@@ -393,7 +393,7 @@ export default function BooksPage() {
               style={{
                 padding: 40,
                 textAlign: 'center',
-                color: '#64748b',
+                color: 'var(--ink-soft)',
               }}
             >
               Loading bookstore catalogue...
@@ -420,7 +420,7 @@ export default function BooksPage() {
 
               <p
                 style={{
-                  color: '#64748b',
+                  color: 'var(--ink-soft)',
                 }}
               >
                 Try another filter or add a
@@ -434,7 +434,7 @@ export default function BooksPage() {
                 style={{
                   padding: 22,
                   borderBottom:
-                    '1px solid #e5e7eb',
+                    '1px solid var(--border)',
                   display: 'flex',
                   justifyContent:
                     'space-between',
@@ -459,7 +459,7 @@ export default function BooksPage() {
                         height: 92,
                         objectFit: 'cover',
                         borderRadius: 8,
-                        background: '#e2e8f0',
+                        background: 'var(--border)',
                       }}
                     />
                   ) : (
@@ -469,7 +469,7 @@ export default function BooksPage() {
                         height: 92,
                         borderRadius: 8,
                         background:
-                          '#e2e8f0',
+                          'var(--border)',
                         display: 'grid',
                         placeItems: 'center',
                         fontSize: 24,
@@ -483,7 +483,7 @@ export default function BooksPage() {
                     <h3
                       style={{
                         margin: 0,
-                        color: '#0f172a',
+                        color: 'var(--ink)',
                       }}
                     >
                       {book.titleEn}
@@ -494,7 +494,7 @@ export default function BooksPage() {
                         dir="rtl"
                         style={{
                           marginTop: 4,
-                          color: '#64748b',
+                          color: 'var(--ink-soft)',
                         }}
                       >
                         {book.titleAr}
@@ -530,7 +530,7 @@ export default function BooksPage() {
                     <div
                       style={{
                         marginTop: 10,
-                        color: '#64748b',
+                        color: 'var(--ink-soft)',
                         fontSize: 14,
                       }}
                     >
@@ -553,7 +553,7 @@ export default function BooksPage() {
                     style={{
                       fontSize: 19,
                       fontWeight: 800,
-                      color: '#0f172a',
+                      color: 'var(--ink)',
                     }}
                   >
                     $
@@ -579,8 +579,8 @@ export default function BooksPage() {
                           '8px 12px',
                         borderRadius: 8,
                         background:
-                          '#eff6ff',
-                        color: '#1d4ed8',
+                          'var(--info-tint)',
+                        color: 'var(--brand-dark)',
                         textDecoration:
                           'none',
                         fontWeight: 700,
@@ -608,8 +608,8 @@ export default function BooksPage() {
                           )
                         }
                         style={buttonStyle(
-                          '#166534',
-                          '#dcfce7'
+                          'var(--brand-light)',
+                          'var(--success-tint)'
                         )}
                       >
                         Publish
@@ -634,8 +634,8 @@ export default function BooksPage() {
                           )
                         }
                         style={buttonStyle(
-                          '#92400e',
-                          '#fef3c7'
+                          'var(--warning)',
+                          'var(--warning-tint)'
                         )}
                       >
                         Unpublish
@@ -651,8 +651,8 @@ export default function BooksPage() {
                         deleteBook(book)
                       }
                       style={buttonStyle(
-                        '#991b1b',
-                        '#fee2e2'
+                        'var(--danger)',
+                        'var(--danger-tint)'
                       )}
                     >
                       Delete
@@ -670,11 +670,11 @@ export default function BooksPage() {
 
 function StatusBadge({ status }) {
   const styles = {
-    PUBLISHED: ['#166534', '#dcfce7'],
-    APPROVED: ['#1d4ed8', '#dbeafe'],
-    DRAFT: ['#475569', '#e2e8f0'],
-    PENDING_REVIEW: ['#92400e', '#fef3c7'],
-    REJECTED: ['#991b1b', '#fee2e2'],
+    PUBLISHED: ['var(--brand-light)', 'var(--success-tint)'],
+    APPROVED: ['var(--brand-dark)', 'var(--info-tint)'],
+    DRAFT: ['var(--ink-soft)', 'var(--border)'],
+    PENDING_REVIEW: ['var(--warning)', 'var(--warning-tint)'],
+    REJECTED: ['var(--danger)', 'var(--danger-tint)'],
   };
 
   const [color, background] =
@@ -703,8 +703,8 @@ function Badge({ children }) {
       style={{
         padding: '5px 9px',
         borderRadius: 999,
-        background: '#f1f5f9',
-        color: '#475569',
+        background: 'var(--border-soft)',
+        color: 'var(--ink-soft)',
         fontSize: 11,
         fontWeight: 800,
       }}

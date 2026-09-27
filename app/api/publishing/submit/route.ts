@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { requireApprovedAuthor } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -7,9 +7,32 @@ export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   try {
-    const user = await getCurrentUser();
+    let user;
 
-    if (!user) {
+    try {
+      user = await requireApprovedAuthor();
+    } catch (authError) {
+      if (authError instanceof Error && authError.message === 'AUTHOR_NOT_APPROVED') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Your author application has not been approved yet.',
+            code: 'AUTHOR_NOT_APPROVED',
+          },
+          { status: 403 }
+        );
+      }
+
+      if (authError instanceof Error && authError.message === 'FORBIDDEN') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Only approved authors can submit manuscripts.',
+          },
+          { status: 403 }
+        );
+      }
+
       return NextResponse.json(
         {
           success: false,

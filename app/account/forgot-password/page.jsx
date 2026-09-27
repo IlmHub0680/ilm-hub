@@ -74,7 +74,7 @@ export default function ForgotPasswordPage() {
 
 const page = {
   minHeight: '100vh',
-  background: 'linear-gradient(135deg,#052e16,#14532d)',
+  background: 'linear-gradient(135deg,var(--brand-deepest),var(--brand))',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -85,14 +85,14 @@ const page = {
 const card = {
   width: '100%',
   maxWidth: '470px',
-  background: '#fff',
+  background: 'var(--surface)',
   borderRadius: '22px',
   padding: '40px',
   boxShadow: '0 30px 80px rgba(0,0,0,.25)',
 };
 
 const back = {
-  color: '#14532d',
+  color: 'var(--brand)',
   textDecoration: 'none',
   fontWeight: '700',
 };
@@ -101,8 +101,8 @@ const logo = {
   width: '60px',
   height: '60px',
   borderRadius: '16px',
-  background: '#14532d',
-  color: '#c59d5f',
+  background: 'var(--brand)',
+  color: 'var(--gold)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -113,7 +113,7 @@ const logo = {
 
 const title = {
   textAlign: 'center',
-  color: '#14532d',
+  color: 'var(--brand)',
   fontFamily: 'Georgia, serif',
   fontSize: '32px',
   marginBottom: '10px',
@@ -121,7 +121,7 @@ const title = {
 
 const subtitle = {
   textAlign: 'center',
-  color: '#64748b',
+  color: 'var(--ink-soft)',
   lineHeight: 1.6,
 };
 
@@ -135,7 +135,7 @@ const form = {
 const input = {
   padding: '14px',
   borderRadius: '9px',
-  border: '1px solid #dbe4e8',
+  border: '1px solid var(--border)',
   fontSize: '15px',
   outline: 'none',
 };
@@ -144,17 +144,17 @@ const button = {
   padding: '14px',
   borderRadius: '9px',
   border: 'none',
-  background: '#14532d',
-  color: '#fff',
+  background: 'var(--brand)',
+  color: 'var(--on-accent)',
   fontWeight: '800',
   cursor: 'pointer',
 };
 
 const messageBox = {
   padding: '12px',
-  background: '#f0fdf4',
-  border: '1px solid #bbf7d0',
-  color: '#166534',
+  background: 'var(--brand-tint)',
+  border: '1px solid var(--success-tint)',
+  color: 'var(--brand-light)',
   borderRadius: '8px',
   fontSize: '13px',
 };

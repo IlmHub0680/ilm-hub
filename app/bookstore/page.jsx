@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
+import SiteHeader from '@/components/SiteHeader';
+import { useSiteBranding } from '@/components/SiteBrandingProvider';
+import { useSectionBanner } from '@/components/SectionBannerProvider';
+
 import BookCard from '@/components/bookstore/BookCard';
 import CartDrawer from '@/components/bookstore/CartDrawer';
 import { currencies, formatPrice } from '@/lib/bookstore';
@@ -64,6 +68,7 @@ function cleanText(value) {
 }
 
 export default function BookstorePage() {
+  const { logoUrl } = useSiteBranding();
   const [books, setBooks] = useState([]);
   const [loadingBooks, setLoadingBooks] = useState(true);
   const [booksError, setBooksError] = useState('');
@@ -74,7 +79,60 @@ export default function BookstorePage() {
   const [currency, setCurrency] = useState('USD');
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [mobileMenu, setMobileMenu] = useState(false);
+
+  // Page copy (hero, section headings, value cards, publisher CTA,
+  // footer About text) -- admin-editable at /admin/bookstore/page-content
+  // (Model 27). Seeded with the site's original hardcoded copy so
+  // nothing changes on screen until an admin edits something there.
+  const [pageContent, setPageContent] = useState({
+    hero: {
+      eyebrow: 'ULUL AZM BOOKSTORE',
+      title: 'Books that accompany the journey of knowledge.',
+      subtitle:
+        'Discover an expertly curated collection of authentic Islamic scholarship, timeless classical works, and foundational academic resources designed to support seekers of knowledge at every stage of their journey.',
+      trust: ['Curated Islamic literature', 'Secure checkout', 'Digital editions'],
+    },
+    category: { label: 'EXPLORE', heading: 'Browse by discipline' },
+    featured: {
+      label: "EDITOR'S SELECTION",
+      heading: 'Featured Books',
+      subtitle: 'Distinguished works selected for serious students and readers.',
+    },
+    valueCards: [
+      { icon: '📚', title: 'Curated Collection', text: 'Selected literature for meaningful Islamic study.' },
+      { icon: '🔒', title: 'Secure Checkout', text: 'Protected online payment and order processing.' },
+      { icon: '📱', title: 'Digital Access', text: 'Selected publications available in digital format.' },
+      { icon: '🌍', title: 'Learning Without Borders', text: 'Resources designed for students wherever they are.' },
+    ],
+    collection: { label: 'THE COLLECTION', heading: 'Islamic Books' },
+    publisher: {
+      label: 'AUTHORS & PUBLISHERS',
+      heading: 'Have a book to publish?',
+      text: 'Ulul Azm welcomes authors and publishers whose works contribute to beneficial Islamic knowledge.',
+    },
+    footerAboutText:
+      'A dedicated bookstore providing beneficial Islamic literature, classical texts and educational resources.',
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/bookstore/content')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((result) => {
+        if (cancelled || !result?.success) return;
+        setPageContent((prev) => ({ ...prev, ...result.data }));
+      })
+      .catch(() => {
+        // Keep the seeded defaults above -- the bookstore page must
+        // never break because the CMS content couldn't be fetched.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const bannerUrl = useSectionBanner();
 
   useEffect(() => {
     let cancelled = false;
@@ -122,10 +180,10 @@ export default function BookstorePage() {
                   typeof book.author === 'object'
                     ? book.author?.name ||
                         book.author?.nameEn ||
-                        'Ilm-Hub Academic Collection'
+                        'Ulul Azm Academic Collection'
                     : book.author ||
                         book.authorName ||
-                        'Ilm-Hub Academic Collection'
+                        'Ulul Azm Academic Collection'
                 ),
 
                 category: categoryName,
@@ -425,131 +483,91 @@ export default function BookstorePage() {
         </div>
       </div>
 
-      <header className="site-header">
-        <div className="container header-inner">
-          <Link
-            href="/"
-            className="brand"
-          >
-            <div className="brand-logo">
-              ع
-            </div>
-
-            <div>
-              <strong>Ilm-Hub</strong>
-
-              <small>
-                Academic Bookstore
-              </small>
-            </div>
-          </Link>
-
-          <nav
-            className={
-              mobileMenu
-                ? 'main-nav mobile-open'
-                : 'main-nav'
-            }
-          >
-            <Link href="/">
-              Home
-            </Link>
-
-            <Link
-              href="/bookstore"
-              className="active"
+      <SiteHeader
+        showSearch={false}
+        sectionMode="bookstore"
+        rightExtra={
+          <>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--ink-soft)',
+                whiteSpace: 'nowrap',
+              }}
             >
-              Bookstore
-            </Link>
-
-            <Link href="/lectures">
-              Lectures Library
-            </Link>
-
-            <Link href="/programs">
-              Academics
-            </Link>
-          </nav>
-
-          <div className="header-actions">
-            <select
-              value={currency}
-              onChange={(event) =>
-                setCurrency(
-                  event.target.value
-                )
-              }
-              aria-label="Select currency"
-            >
-              <option value="USD">
-                USD — US Dollar
-              </option>
-
-              <option value="GHS">
-                GHS — Ghanaian Cedi
-              </option>
-            </select>
-
-            <Link
-              href="/login"
-              className="login-link"
-            >
-              Login
-            </Link>
+              Currency
+              <select
+                value={currency}
+                onChange={(event) => setCurrency(event.target.value)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  fontFamily: 'inherit',
+                  color: 'var(--ink)',
+                  background: 'var(--surface)',
+                }}
+              >
+                <option value="USD">USD ($)</option>
+                <option value="GHS">GHS (₵)</option>
+              </select>
+            </label>
 
             <button
               type="button"
-              className="cart-button"
-              onClick={() =>
-                setCartOpen(true)
-              }
+              onClick={() => setCartOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '9px 14px',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--paper)',
+                color: 'var(--brand)',
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
             >
-              🛒
-
-              <span>Cart</span>
-
-              {cartCount > 0 && (
-                <b>{cartCount}</b>
-              )}
+              🛒 Cart{cartCount > 0 ? ` (${cartCount})` : ''}
             </button>
+          </>
+        }
+      />
 
-            <button
-              type="button"
-              className="menu-button"
-              onClick={() =>
-                setMobileMenu(
-                  (value) => !value
-                )
+      <section
+        className="hero"
+        style={
+          bannerUrl
+            ? {
+                backgroundImage: `linear-gradient(135deg, rgba(3,31,16,.82), rgba(20,83,45,.55)), url(${bannerUrl})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
               }
-              aria-label="Toggle navigation"
-            >
-              {mobileMenu
-                ? '×'
-                : '☰'}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <section className="hero">
+            : undefined
+        }
+      >
         <div className="hero-pattern" />
 
         <div className="hero-content">
           <span className="eyebrow">
-            ILM-HUB ACADEMIC BOOKSTORE
+            {pageContent.hero.eyebrow}
           </span>
 
           <h1>
-            Books that accompany
-            <br />
-            the journey of knowledge.
+            {pageContent.hero.title}
           </h1>
 
           <p>
-            Discover carefully selected Islamic
-            literature, classical works, academic
-            texts and student resources for every
-            stage of learning.
+            {pageContent.hero.subtitle}
           </p>
 
           <div className="hero-search">
@@ -582,17 +600,11 @@ export default function BookstorePage() {
           </div>
 
           <div className="hero-trust">
-            <span>
-              ✓ Curated Islamic literature
-            </span>
-
-            <span>
-              ✓ Secure checkout
-            </span>
-
-            <span>
-              ✓ Digital editions
-            </span>
+            {pageContent.hero.trust.map((item, i) => (
+              <span key={i}>
+                ✓ {item}
+              </span>
+            ))}
           </div>
         </div>
       </section>
@@ -602,11 +614,11 @@ export default function BookstorePage() {
           <div className="category-heading">
             <div>
               <span className="gold-label">
-                EXPLORE
+                {pageContent.category.label}
               </span>
 
               <h2>
-                Browse by discipline
+                {pageContent.category.heading}
               </h2>
             </div>
 
@@ -643,16 +655,15 @@ export default function BookstorePage() {
           <div className="section-heading">
             <div>
               <span className="gold-label">
-                EDITOR'S SELECTION
+                {pageContent.featured.label}
               </span>
 
               <h2>
-                Featured Books
+                {pageContent.featured.heading}
               </h2>
 
               <p>
-                Distinguished works selected
-                for serious students and readers.
+                {pageContent.featured.subtitle}
               </p>
             </div>
 
@@ -725,29 +736,9 @@ export default function BookstorePage() {
 
       <section className="value-strip">
         <div className="container value-grid">
-          <Value
-            icon="📚"
-            title="Curated Collection"
-            text="Selected literature for meaningful Islamic study."
-          />
-
-          <Value
-            icon="🔒"
-            title="Secure Checkout"
-            text="Protected online payment and order processing."
-          />
-
-          <Value
-            icon="📱"
-            title="Digital Access"
-            text="Selected publications available in digital format."
-          />
-
-          <Value
-            icon="🌍"
-            title="Learning Without Borders"
-            text="Resources designed for students wherever they are."
-          />
+          {pageContent.valueCards.map((card, i) => (
+            <Value key={i} icon={card.icon} title={card.title} text={card.text} />
+          ))}
         </div>
       </section>
 
@@ -759,11 +750,11 @@ export default function BookstorePage() {
           <div className="section-heading">
             <div>
               <span className="gold-label">
-                THE COLLECTION
+                {pageContent.collection.label}
               </span>
 
               <h2>
-                Islamic Books
+                {pageContent.collection.heading}
               </h2>
             </div>
 
@@ -880,17 +871,15 @@ export default function BookstorePage() {
         <div className="publisher-inner">
           <div>
             <span className="gold-label light">
-              AUTHORS & PUBLISHERS
+              {pageContent.publisher.label}
             </span>
 
             <h2>
-              Have a book to publish?
+              {pageContent.publisher.heading}
             </h2>
 
             <p>
-              Ilm-Hub welcomes authors and
-              publishers whose works contribute
-              to beneficial Islamic knowledge.
+              {pageContent.publisher.text}
             </p>
           </div>
 
@@ -905,22 +894,23 @@ export default function BookstorePage() {
           <div className="footer-grid">
             <div>
               <div className="footer-brand">
-                <div>ع</div>
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Ulul Azm Institute" className="footer-brand-logo" />
+                ) : (
+                  <div>ع</div>
+                )}
 
                 <strong>
-                  Ilm-Hub Institute
+                  Ulul Azm
 
                   <small>
-                    Academic Bookstore
+                    Bookstore
                   </small>
                 </strong>
               </div>
 
               <p>
-                A dedicated academic bookstore
-                providing beneficial Islamic
-                literature, classical texts and
-                educational resources.
+                {pageContent.footerAboutText}
               </p>
             </div>
 
@@ -945,18 +935,22 @@ export default function BookstorePage() {
             </div>
 
             <div>
-              <h3>Ilm-Hub</h3>
+              <h3>Ulul Azm</h3>
 
               <Link href="/">
                 Home
               </Link>
 
-              <Link href="/programs">
-                Academics
+              <Link href="/academy">
+                Academy
               </Link>
 
-              <Link href="/lectures">
-                Lectures
+              <Link href="/media">
+                Media
+              </Link>
+
+              <Link href="/library">
+                Library
               </Link>
 
               <Link href="/admission">
@@ -968,11 +962,11 @@ export default function BookstorePage() {
               <h3>Support</h3>
 
               <span>
-                info@ilmhub.org
+                info@ululazm.org
               </span>
 
               <span>
-                bookstore@ilmhub.org
+                bookstore@ululazm.org
               </span>
 
               <span>
@@ -988,7 +982,7 @@ export default function BookstorePage() {
           <div className="footer-bottom">
             <span>
               © {new Date().getFullYear()}
-              {' '}Ilm-Hub Institute. All rights
+              {' '}Ulul Azm Bookstore. All rights
               reserved.
             </span>
 
@@ -1269,7 +1263,7 @@ export default function BookstorePage() {
 
         .hero-content {
           position: relative;
-          max-width: 900px;
+          max-width: 1300px;
           margin: auto;
           padding: 100px 24px 90px;
           text-align: center;
@@ -1278,18 +1272,21 @@ export default function BookstorePage() {
         .eyebrow,
         .gold-label {
           color: #d7b76d;
-          font-size: 11px;
+          font-size: 13.5px;
           font-weight: 900;
           letter-spacing: 1.5px;
         }
 
         .hero h1 {
           margin: 20px 0;
-          font:
-            68px/1.04
-            Georgia,
-            serif;
-          letter-spacing: -2px;
+          font-family: var(--font-display), Georgia, serif;
+          /* Sized (together with the wider .hero-content above) to sit
+             on one line at normal desktop widths instead of breaking
+             "Books that accompany the journey of knowledge." in two. */
+          font-size: clamp(24px, 2.6vw, 42px);
+          line-height: 1.15;
+          letter-spacing: -0.5px;
+          text-wrap: balance;
         }
 
         .hero p {
@@ -1345,7 +1342,8 @@ export default function BookstorePage() {
           gap: 20px;
           margin-top: 25px;
           color: #bfd1c7;
-          font-size: 12px;
+          font-size: 14.5px;
+          font-weight: 700;
         }
 
         .category-section {
@@ -1788,6 +1786,14 @@ export default function BookstorePage() {
             serif;
         }
 
+        .footer-brand-logo {
+          height: 46px;
+          width: auto;
+          max-width: 130px;
+          object-fit: contain;
+          flex-shrink: 0;
+        }
+
         .footer-brand strong {
           color: white;
         }
@@ -1892,7 +1898,7 @@ export default function BookstorePage() {
           }
 
           .hero h1 {
-            font-size: 43px;
+            font-size: 34px;
           }
 
           .hero-search {

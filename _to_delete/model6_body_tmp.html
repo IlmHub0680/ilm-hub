@@ -1,0 +1,254 @@
+      <p><strong>Model 6 — Course Catalogue &amp; Coding System.</strong> Models 1–5 are fixed foundations here, not renegotiated. This model turns every course named across Models 4 and 5 into one master catalogue: a permanent coding system (closing Model 4 decision 23), a numbering framework that encodes academic level without guesswork, full course-level detail for all 42 courses identified so far, and the quality-control and gap audits a real catalogue needs before any of it becomes actual <code>Course</code> records. Codes in Models 4 and 5 have been updated to match this model throughout. No weekly syllabi yet.</p>
+
+      <h2>1. Coding System</h2>
+      <p>Every code follows <strong><code>[DEPT]-[LEVEL][SEQ]</code></strong> — a two-letter department code, a one-digit level, and a two-digit sequence number within that department and level.</p>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Code</th><th>Department / unit</th></tr></thead>
+      <tbody>
+      <tr><td>IS</td><td>Islamic Studies</td></tr>
+      <tr><td>QS</td><td>Qur'anic Studies</td></tr>
+      <tr><td>AR</td><td>Arabic Language</td></tr>
+      <tr><td>IE</td><td>Islamic Education &amp; Tarbiyah</td></tr>
+      <tr><td>IC</td><td>Islamic Civilization &amp; Society</td></tr>
+      <tr><td>RL</td><td>Research &amp; Learning Skills (cross-cutting unit, not a department — Model 2 §4)</td></tr>
+      </tbody>
+      </table></div>
+      <p>This finalizes and replaces Model 4's temporary <code>[PATHWAY]-[DEPT]-[SEQ]</code> placeholders (decision 23). It keeps Model 4's original numbers unchanged and simply drops the redundant pathway-name prefix, since the level digit already carries that information — see §2. The one substantive change is department lettering: Islamic Education &amp; Tarbiyah moves from Model 4's ad hoc "ED" to "IE", and Islamic Civilization &amp; Society from "CS" to "IC", both closer to the department's actual name. <strong>Who assigns new codes:</strong> proposed as the Registrar's responsibility going forward, matching Model 4 decision 23's original framing — open for your confirmation (decision 31, §10).</p>
+
+      <h2>2. Course Numbering Framework</h2>
+      <p>The level digit is not decorative — it is the rule, applied without exception across all 42 courses below:</p>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Digit</th><th>Level</th></tr></thead>
+      <tbody>
+      <tr><td>1</td><td>Foundation</td></tr>
+      <tr><td>2</td><td>Intermediate</td></tr>
+      <tr><td>3</td><td>Advanced</td></tr>
+      <tr><td>4</td><td>Diploma</td></tr>
+      <tr><td>5</td><td>Specialized Certificate (reserved — no certificate has a defined course list yet, §9)</td></tr>
+      </tbody>
+      </table></div>
+      <p>The sequence digits (the last two) simply order courses within a department and level — IS-301, IS-302, IS-303, IS-304 carry no meaning individually beyond "the 1st through 4th Islamic Studies courses at Advanced." One exception: the Advanced pathway's single specialization elective keeps a floating, department-agnostic placeholder — <code>SPEC-3xx</code> — because which department it eventually draws from varies by learner choice (Model 4 §6); it is not itself a numbered course.</p>
+
+      <h2>3. Master Course Catalogue</h2>
+      <p>All 42 courses identified across Models 4 and 5, grouped by owning department — grouping by department here serves as both the master catalogue and the department course lists Model 6 §6 asks for. Each department's quick-reference table is followed by every course's description, primary learning outcome, and assessment type. <strong>Teaching hours</strong> use an illustrative 1 unit = 15 teaching hours conversion — not a confirmed credit system, still pending Model 4 decision 22 (see decision 30, §10). Courses new to this catalogue (first named in Model 5) are marked <em>New</em>.</p>
+
+      <h3>Islamic Studies (IS)</h3>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Code</th><th>Course</th><th>Pathway</th><th>Level</th><th>Units</th><th>Hours</th><th>Prerequisite</th><th>Type</th></tr></thead>
+      <tbody>
+      <tr><td>IS-101</td><td>Islamic Foundations</td><td>Foundation Studies</td><td>Foundation</td><td>3</td><td>45</td><td>—</td><td>Core</td></tr>
+      <tr><td>IS-201</td><td>Intermediate Aqeedah</td><td>Intermediate Islamic Studies</td><td>Intermediate</td><td>3</td><td>45</td><td>IS-101</td><td>Core</td></tr>
+      <tr><td>IS-202</td><td>Intermediate Fiqh</td><td>Intermediate Islamic Studies</td><td>Intermediate</td><td>3</td><td>45</td><td>IS-101</td><td>Core</td></tr>
+      <tr><td>IS-203</td><td>Seerah I</td><td>Intermediate Islamic Studies</td><td>Intermediate</td><td>2</td><td>30</td><td>IS-101</td><td>Core</td></tr>
+      <tr><td>IS-301</td><td>Advanced Aqeedah</td><td>Advanced Islamic Studies</td><td>Advanced</td><td>3</td><td>45</td><td>IS-201</td><td>Core</td></tr>
+      <tr><td>IS-302</td><td>Usul al-Fiqh</td><td>Advanced Islamic Studies</td><td>Advanced</td><td>3</td><td>45</td><td>IS-202</td><td>Core</td></tr>
+      <tr><td>IS-303</td><td>Hadith Sciences</td><td>Advanced Islamic Studies</td><td>Advanced</td><td>3</td><td>45</td><td>IS-202</td><td>Core</td></tr>
+      <tr><td>IS-304</td><td>Islamic Thought <em>(New)</em></td><td>Advanced Islamic Studies</td><td>Advanced</td><td>2</td><td>30</td><td>IS-301</td><td>Core</td></tr>
+      <tr><td>IS-305</td><td>Islamic Ethics <em>(New)</em></td><td>Advanced Islamic Studies</td><td>Advanced</td><td>2</td><td>30</td><td>IS-301</td><td>Core</td></tr>
+      <tr><td>IS-401</td><td>Comparative Fiqh</td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>3</td><td>45</td><td>IS-302</td><td>Core</td></tr>
+      <tr><td>IS-402</td><td>Hadith Methodology (Takhrij)</td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>3</td><td>45</td><td>IS-303</td><td>Core</td></tr>
+      <tr><td>IS-403</td><td>Contemporary Islamic Issues <em>(New)</em></td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>2</td><td>30</td><td>IS-401</td><td>Core</td></tr>
+      </tbody>
+      </table></div>
+      <p><strong>IS-101 — Islamic Foundations.</strong> Core Aqeedah and Fiqh essentials for a learner starting from zero (Model 3's zero-prior-knowledge entry point). Outcome: recall essential Aqeedah and Fiqh accurately. Assessment: written examination.</p>
+      <p><strong>IS-201 — Intermediate Aqeedah.</strong> Aqeedah taught as a connected, systematic body of knowledge rather than scattered facts. Outcome: explain Aqeedah systematically, not just recall it. Assessment: written examination.</p>
+      <p><strong>IS-202 — Intermediate Fiqh.</strong> Systematic Fiqh instruction building on Foundation's essentials. Outcome: apply basic Fiqh rulings to everyday situations. Assessment: written examination.</p>
+      <p><strong>IS-203 — Seerah I.</strong> The learner's first dedicated Seerah course, broken out from "Islamic foundations" (Model 4 §2). Outcome: recall and narrate the essential events of the Prophetic biography. Assessment: written examination.</p>
+      <p><strong>IS-301 — Advanced Aqeedah.</strong> Deepens Aqeedah to independent, argument-following engagement. Outcome: reason independently within the Academy's manhaj on Aqeedah questions. Assessment: written examination.</p>
+      <p><strong>IS-302 — Usul al-Fiqh.</strong> The methodology behind Fiqh rulings, not just the rulings themselves. Outcome: analyze how a Fiqh ruling is derived from its sources. Assessment: written examination.</p>
+      <p><strong>IS-303 — Hadith Sciences.</strong> Hadith introduced and developed as its own dedicated discipline at Advanced tier. Outcome: explain Hadith classification and basic authentication criteria. Assessment: written examination.</p>
+      <p><strong>IS-304 — Islamic Thought.</strong> Classical and contemporary Islamic intellectual tradition — kalam, philosophical theology, schools of thought — the Advanced-tier competency named in Model 3 §5, previously mis-housed under Islamic Civilization &amp; Society before Model 5 corrected it. Outcome: engage the broader intellectual tradition, not only rulings. Assessment: written examination plus a short research essay.</p>
+      <p><strong>IS-305 — Islamic Ethics.</strong> Akhlaq as a reasoned discipline — the theoretical counterpart to Tazkiyah's practiced formation. Outcome: reason about moral questions using Islamic ethical frameworks, not only rules. Assessment: written examination.</p>
+      <p><strong>IS-401 — Comparative Fiqh.</strong> Comparative treatment of Fiqh positions across schools, the Diploma's mastery-tier Fiqh course. Outcome: compare and evaluate differing Fiqh positions on a given issue. Assessment: written examination.</p>
+      <p><strong>IS-402 — Hadith Methodology (Takhrij).</strong> Hadith authentication methodology at mastery level. Outcome: trace and evaluate a Hadith's chain of transmission. Assessment: research project (a takhrij exercise).</p>
+      <p><strong>IS-403 — Contemporary Islamic Issues.</strong> Fiqh- and Aqeedah-based reasoning applied to modern questions — bioethics, Islamic finance, technology — the juristic "can/should" question, distinct from Islamic Civilization &amp; Society's sociological IC-401 (Model 5 §9). Outcome: apply juristic reasoning to a genuinely contemporary question. Assessment: written examination plus a case-study essay.</p>
+
+      <h3>Qur'anic Studies (QS)</h3>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Code</th><th>Course</th><th>Pathway</th><th>Level</th><th>Units</th><th>Hours</th><th>Prerequisite</th><th>Type</th></tr></thead>
+      <tbody>
+      <tr><td>QS-101</td><td>Qur'an Reading Foundations</td><td>Foundation Studies</td><td>Foundation</td><td>3</td><td>45</td><td>—</td><td>Recitation/Hifz</td></tr>
+      <tr><td>QS-102</td><td>Tajweed Foundations</td><td>Foundation Studies</td><td>Foundation</td><td>2</td><td>30</td><td>QS-101</td><td>Recitation/Hifz</td></tr>
+      <tr><td>QS-201</td><td>Applied Tajweed</td><td>Intermediate Islamic Studies</td><td>Intermediate</td><td>2</td><td>30</td><td>QS-102</td><td>Recitation/Hifz</td></tr>
+      <tr><td>QS-202</td><td>Qur'an Comprehension I</td><td>Intermediate Islamic Studies</td><td>Intermediate</td><td>2</td><td>30</td><td>QS-101</td><td>Core</td></tr>
+      <tr><td>QS-301</td><td>Advanced Tajweed</td><td>Advanced Islamic Studies</td><td>Advanced</td><td>2</td><td>30</td><td>QS-201</td><td>Recitation/Hifz</td></tr>
+      <tr><td>QS-302</td><td>Tafsir I</td><td>Advanced Islamic Studies</td><td>Advanced</td><td>3</td><td>45</td><td>QS-202</td><td>Core</td></tr>
+      <tr><td>QS-401</td><td>Tafsir II</td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>3</td><td>45</td><td>QS-302</td><td>Core</td></tr>
+      <tr><td>QS-402</td><td>Ulum al-Qur'an <em>(New)</em></td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>2</td><td>30</td><td>QS-302</td><td>Core</td></tr>
+      </tbody>
+      </table></div>
+      <p><strong>QS-101 — Qur'an Reading Foundations.</strong> Correct Qur'anic reading from a zero-prior-knowledge start. Outcome: read Qur'anic Arabic correctly at a foundational level. Assessment: oral recitation assessment.</p>
+      <p><strong>QS-102 — Tajweed Foundations.</strong> Foundational Tajwid rules applied to correct recitation. Outcome: apply foundational Tajweed rules while reading. Assessment: oral recitation assessment.</p>
+      <p><strong>QS-201 — Applied Tajweed.</strong> Tajwid applied with growing fluency across longer passages. Outcome: recite with improved fluency and Tajwid accuracy. Assessment: oral recitation assessment.</p>
+      <p><strong>QS-202 — Qur'an Comprehension I.</strong> The beginning of Qur'anic comprehension, not just correct reading. Outcome: demonstrate basic comprehension of recited passages. Assessment: written and oral assessment.</p>
+      <p><strong>QS-301 — Advanced Tajweed.</strong> Tajwid mastered — the last dedicated Tajwid course before it is assumed rather than re-taught (Model 4 §3). Outcome: recite with mastery-level Tajwid accuracy. Assessment: oral recitation assessment.</p>
+      <p><strong>QS-302 — Tafsir I.</strong> Verse-by-verse exegesis, comprehension deepened from Intermediate. Outcome: explain the meaning of assigned verses using established Tafsir. Assessment: written examination.</p>
+      <p><strong>QS-401 — Tafsir II.</strong> Tafsir mastered at Diploma tier. Outcome: independently research and present a Tafsir analysis. Assessment: research project.</p>
+      <p><strong>QS-402 — Ulum al-Qur'an.</strong> Sciences of the Qur'an — revelation circumstances, makki/madani, compilation history — the contextual scaffolding Tafsir depends on but does not itself teach (Model 5 §3). Outcome: explain how a verse's revelation context shapes its interpretation. Assessment: written examination.</p>
+
+      <h3>Arabic Language (AR)</h3>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Code</th><th>Course</th><th>Pathway</th><th>Level</th><th>Units</th><th>Hours</th><th>Prerequisite</th><th>Type</th></tr></thead>
+      <tbody>
+      <tr><td>AR-101</td><td>Arabic Foundations</td><td>Foundation Studies</td><td>Foundation</td><td>3</td><td>45</td><td>—</td><td>Language</td></tr>
+      <tr><td>AR-201</td><td>Arabic Grammar I</td><td>Intermediate Islamic Studies</td><td>Intermediate</td><td>3</td><td>45</td><td>AR-101</td><td>Language</td></tr>
+      <tr><td>AR-301</td><td>Arabic Grammar II</td><td>Advanced Islamic Studies</td><td>Advanced</td><td>3</td><td>45</td><td>AR-201</td><td>Language</td></tr>
+      <tr><td>AR-302</td><td>Conversation <em>(New)</em></td><td>Advanced Islamic Studies</td><td>Advanced</td><td>2</td><td>30</td><td>AR-201</td><td>Language</td></tr>
+      <tr><td>AR-401</td><td>Classical Arabic &amp; Source Reading</td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>3</td><td>45</td><td>AR-301</td><td>Language</td></tr>
+      <tr><td>AR-402</td><td>Writing <em>(New)</em></td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>2</td><td>30</td><td>AR-401</td><td>Language</td></tr>
+      </tbody>
+      </table></div>
+      <p><strong>AR-101 — Arabic Foundations.</strong> Zero-Arabic entry point building basic vocabulary and sentence structure. Outcome: recognize basic vocabulary and sentence structure. Assessment: written examination.</p>
+      <p><strong>AR-201 — Arabic Grammar I.</strong> Grammar sufficient to reduce dependence on translation. Outcome: apply basic grammar rules to read simple texts. Assessment: written examination.</p>
+      <p><strong>AR-301 — Arabic Grammar II.</strong> Grammar deepened toward reading primary texts directly. Outcome: read primary texts with reduced reliance on secondary summaries. Assessment: written examination.</p>
+      <p><strong>AR-302 — Conversation.</strong> Spoken fluency and applied dialogue — the department's one topic that is not text-facing (Model 5 §4); needs only Intermediate grammar, not the full Advanced Grammar II, so it runs alongside AR-301 rather than after it. Outcome: hold a basic conversational exchange in Arabic. Assessment: oral/practical assessment.</p>
+      <p><strong>AR-401 — Classical Arabic &amp; Source Reading.</strong> Source-reading mastery, the proficiency level that makes direct source engagement possible. Outcome: read a classical source text directly, without translation support. Assessment: written examination.</p>
+      <p><strong>AR-402 — Writing.</strong> Composition and written expression — distinct from grammar's rules and reading's comprehension (Model 5 §4). Outcome: compose a structured piece of Arabic writing on a given topic. Assessment: written composition assessment.</p>
+
+      <h3>Islamic Education &amp; Tarbiyah (IE)</h3>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Code</th><th>Course</th><th>Pathway</th><th>Level</th><th>Units</th><th>Hours</th><th>Prerequisite</th><th>Type</th></tr></thead>
+      <tbody>
+      <tr><td>IE-101</td><td>Islamic Character &amp; Adab</td><td>Foundation Studies</td><td>Foundation</td><td>2</td><td>30</td><td>—</td><td>Core</td></tr>
+      <tr><td>IE-201</td><td>Communication &amp; Leadership</td><td>Intermediate Islamic Studies</td><td>Intermediate</td><td>2</td><td>30</td><td>—</td><td>Core</td></tr>
+      <tr><td>IE-202</td><td>Tazkiyah I</td><td>Intermediate Islamic Studies</td><td>Intermediate</td><td>2</td><td>30</td><td>IE-101</td><td>Core</td></tr>
+      <tr><td>IE-401</td><td>Islamic Education &amp; Teaching Methodology</td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>2</td><td>30</td><td>IE-101</td><td>Required specialization (teaching track)</td></tr>
+      <tr><td>IE-402</td><td>Da'wah &amp; Outreach <em>(New)</em></td><td>Diploma in Islamic Studies</td><td>Diploma — provisional</td><td>2</td><td>30</td><td>IE-201 — provisional</td><td>Elective — provisional</td></tr>
+      <tr><td>IE-403</td><td>Islamic Curriculum Design <em>(New)</em></td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>2</td><td>30</td><td>IE-101</td><td>Required specialization (teaching track)</td></tr>
+      <tr><td>IE-404</td><td>Youth Education <em>(New)</em></td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>2</td><td>30</td><td>IE-101</td><td>Required specialization (teaching track)</td></tr>
+      <tr><td>IE-405</td><td>Family Education <em>(New)</em></td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>2</td><td>30</td><td>IE-101</td><td>Required specialization (teaching track)</td></tr>
+      </tbody>
+      </table></div>
+      <p><strong>IE-101 — Islamic Character &amp; Adab.</strong> The Foundation-tier adab/character anchor, the entry point into the Tazkiyah chain. Outcome: demonstrate Islamic adab consistently in conduct and interaction. Assessment: practical, instructor-observed assessment.</p>
+      <p><strong>IE-201 — Communication &amp; Leadership.</strong> Early responsibility and expressing what has been learned clearly, in writing and speech. Outcome: communicate learned material clearly, in writing and speech. Assessment: presentation/practical assessment.</p>
+      <p><strong>IE-202 — Tazkiyah I.</strong> Builds on Foundation's adab rather than re-teaching it — Model 1's Knowledge → Character chain made explicit as a course. Outcome: apply Tazkiyah principles to personal conduct. Assessment: reflective portfolio / practical assessment.</p>
+      <p><strong>IE-401 — Islamic Education &amp; Teaching Methodology.</strong> Teacher-preparation for the Diploma's teaching-track learners. Outcome: design and deliver a basic Islamic-studies lesson. Assessment: teaching demonstration plus written assessment.</p>
+      <p><strong>IE-402 — Da'wah &amp; Outreach.</strong> Outreach methodology, reassigned here from Islamic Civilization &amp; Society (Model 5 §1, §9). Its exact tier, prerequisite, and track placement remain open — Model 5 decision 26, restated as decision 32 (§10) at catalogue level. Outcome: apply basic da'wah/outreach methodology to a sample scenario. Assessment: practical assessment, pending decision 32.</p>
+      <p><strong>IE-403 — Islamic Curriculum Design.</strong> How to design and sequence Islamic teaching material — a companion to IE-401 for the same teaching-track learners (Model 5 §5). Outcome: sequence a short unit of Islamic teaching material. Assessment: practical/portfolio assessment.</p>
+      <p><strong>IE-404 — Youth Education.</strong> Age-specific pedagogy for younger learners, distinct from IE-401's general teaching methodology. Outcome: adapt a lesson for a younger age group. Assessment: teaching demonstration.</p>
+      <p><strong>IE-405 — Family Education.</strong> How to raise and teach children Islamically — parent-facing, distinct from Islamic Civilization &amp; Society's IC-402 (Model 5 §5, §9). Outcome: advise on age-appropriate Islamic upbringing practices. Assessment: written/practical assessment.</p>
+
+      <h3>Islamic Civilization &amp; Society (IC)</h3>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Code</th><th>Course</th><th>Pathway</th><th>Level</th><th>Units</th><th>Hours</th><th>Prerequisite</th><th>Type</th></tr></thead>
+      <tbody>
+      <tr><td>IC-201</td><td>Islamic History &amp; Civilization I</td><td>Intermediate Islamic Studies</td><td>Intermediate</td><td>2</td><td>30</td><td>—</td><td>Core</td></tr>
+      <tr><td>IC-301</td><td>Islamic Social Thought</td><td>Advanced Islamic Studies</td><td>Advanced</td><td>2</td><td>30</td><td>IC-201</td><td>Core</td></tr>
+      <tr><td>IC-401</td><td>Contemporary Muslim Issues</td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>2</td><td>30</td><td>IC-301</td><td>Required specialization (community track)</td></tr>
+      <tr><td>IC-402</td><td>Family &amp; Society <em>(New)</em></td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>2</td><td>30</td><td>IC-301</td><td>Required specialization (community track)</td></tr>
+      </tbody>
+      </table></div>
+      <p><strong>IC-201 — Islamic History &amp; Civilization I.</strong> The learner's first structured exposure to the department's subject matter. Outcome: recall the essential arc of Islamic history and civilization. Assessment: written examination.</p>
+      <p><strong>IC-301 — Islamic Social Thought.</strong> Civilizational and social application of Islamic thought — renamed from "Islamic Thought" to avoid duplicating Islamic Studies' own IS-304 (Model 5 §1, §9). Outcome: explain how Islamic thought has shaped social and civilizational life. Assessment: written examination.</p>
+      <p><strong>IC-401 — Contemporary Muslim Issues.</strong> Sociological and communal challenges facing Muslim societies — renamed to drop its former da'wah component, now IE-402 (Model 5 §1). Outcome: analyze a contemporary challenge facing a Muslim community. Assessment: written examination plus a case-study essay.</p>
+      <p><strong>IC-402 — Family &amp; Society.</strong> The family as a social institution within Muslim civilization — a sociological/historical lens, distinct from Islamic Education &amp; Tarbiyah's parent-facing IE-405 (Model 5 §5, §9). Outcome: analyze the family's role as a social institution within Muslim civilization. Assessment: written examination.</p>
+
+      <h3>Research &amp; Learning Skills (RL — cross-cutting unit)</h3>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Code</th><th>Course</th><th>Pathway</th><th>Level</th><th>Units</th><th>Hours</th><th>Prerequisite</th><th>Type</th></tr></thead>
+      <tbody>
+      <tr><td>RL-101</td><td>Basic Study Skills</td><td>Foundation Studies</td><td>Foundation</td><td>1</td><td>15</td><td>—</td><td>Core</td></tr>
+      <tr><td>RL-201</td><td>Introductory Analytical Skills</td><td>Intermediate Islamic Studies</td><td>Intermediate</td><td>1</td><td>15</td><td>RL-101</td><td>Core</td></tr>
+      <tr><td>RL-301</td><td>Research Preparation</td><td>Advanced Islamic Studies</td><td>Advanced</td><td>2</td><td>30</td><td>RL-201</td><td>Research</td></tr>
+      <tr><td>RL-401</td><td>Capstone Research Project</td><td>Diploma in Islamic Studies</td><td>Diploma</td><td>3</td><td>45</td><td>RL-301</td><td>Research</td></tr>
+      </tbody>
+      </table></div>
+      <p><strong>RL-101 — Basic Study Skills.</strong> How to learn, take notes, and prepare for assessment. Outcome: apply basic study and note-taking techniques. Assessment: practical/portfolio assessment.</p>
+      <p><strong>RL-201 — Introductory Analytical Skills.</strong> The first step toward reasoning within an Islamic epistemological framework, still guided rather than independent. Outcome: apply guided analytical reasoning to a given text. Assessment: written assessment.</p>
+      <p><strong>RL-301 — Research Preparation.</strong> Foundational research and source-verification skills, readying a learner for the Diploma's capstone. Outcome: verify a source and apply basic research methodology. Assessment: research exercise.</p>
+      <p><strong>RL-401 — Capstone Research Project.</strong> The Diploma's mastery-tier research or capstone component. Outcome: produce and defend an independent research or capstone project. Assessment: research project plus defense.</p>
+
+      <h3>Advanced specialization slot (not a department)</h3>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Code</th><th>Course</th><th>Pathway</th><th>Level</th><th>Units</th><th>Hours</th><th>Prerequisite</th><th>Type</th></tr></thead>
+      <tbody>
+      <tr><td>SPEC-3xx</td><td>Specialization Elective (one required)</td><td>Advanced Islamic Studies</td><td>Advanced</td><td>2</td><td>30</td><td>Varies by choice</td><td>Elective</td></tr>
+      </tbody>
+      </table></div>
+      <p><strong>SPEC-3xx — Specialization Elective.</strong> Previews a future Specialized Certificate track (Model 4 §2, Model 5 §8); department, prerequisite, outcome and assessment all vary by the learner's chosen preview.</p>
+
+      <h2>4. Program Course Lists</h2>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Program</th><th>Core courses</th><th>Elective / specialization courses</th></tr></thead>
+      <tbody>
+      <tr><td>Foundation Studies</td><td>IS-101, QS-101, QS-102, AR-101, IE-101, RL-101 (6, all core)</td><td>none</td></tr>
+      <tr><td>Intermediate Islamic Studies</td><td>IS-201, IS-202, IS-203, QS-201, QS-202, AR-201, IC-201, IE-201, IE-202, RL-201 (10, all core)</td><td>none</td></tr>
+      <tr><td>Advanced Islamic Studies</td><td>IS-301, IS-302, IS-303, IS-304, IS-305, QS-301, QS-302, AR-301, AR-302, IC-301, RL-301 (11)</td><td>SPEC-3xx (1 elective slot)</td></tr>
+      <tr><td>Diploma in Islamic Studies</td><td>IS-401, IS-402, IS-403, QS-401, QS-402, AR-401, AR-402, RL-401 (8, universal core)</td><td>Teaching track: IE-401, IE-403, IE-404, IE-405 (4). Community track: IC-401, IC-402 (2). Provisional: IE-402 (1, decision 32).</td></tr>
+      <tr><td>Specialized Certificate Programs</td><td>3–5 courses per certificate, single department, per Model 4 §2</td><td>No certificate has a real course list yet — see §9</td></tr>
+      </tbody>
+      </table></div>
+      <p>Course counts grow with tier depth — 6 → 10 → 12 → 15 — consistent with Model 1's progressive Educational Philosophy chain, not padded for symmetry (§7).</p>
+
+      <h2>5. Prerequisite Map</h2>
+      <ul>
+      <li><strong>Aqeedah/Thought:</strong> IS-101 → IS-201 → IS-301 → {IS-304, IS-305} (both branch from IS-301)</li>
+      <li><strong>Fiqh:</strong> IS-101 → IS-202 → IS-302 → IS-401 → IS-403</li>
+      <li><strong>Hadith:</strong> IS-101 → IS-202 → IS-303 → IS-402</li>
+      <li><strong>Seerah:</strong> IS-101 → IS-203 — stops here; a genuine gap, not a design choice (Model 5 decision 28, restated §9).</li>
+      <li><strong>Tajweed/Recitation:</strong> QS-101 → QS-102 → QS-201 → QS-301 — stops at Advanced, by design (Model 4 §3).</li>
+      <li><strong>Qur'an/Tafsir:</strong> QS-101 → QS-202 → QS-302 → QS-401, with QS-302 → QS-402 as a parallel branch.</li>
+      <li><strong>Arabic:</strong> AR-101 → AR-201 → AR-301 → AR-401 → AR-402, with AR-201 → AR-302 as a parallel branch.</li>
+      <li><strong>Character/Tazkiyah:</strong> IE-101 → IE-202 — stops here, by design (assumed and exercised past Intermediate, Model 4 §3, §9).</li>
+      <li><strong>Teaching track:</strong> IE-101 → {IE-401, IE-403, IE-404, IE-405} (all four branch from the same Foundation prerequisite as Diploma companions).</li>
+      <li><strong>Da'wah:</strong> IE-201 → IE-402 — provisional, pending decision 32.</li>
+      <li><strong>Civilization/Social Thought:</strong> IC-201 → IC-301 → {IC-401, IC-402} (both branch from IC-301).</li>
+      <li><strong>Research:</strong> RL-101 → RL-201 → RL-301 → RL-401</li>
+      </ul>
+
+      <h2>6. Course Type Classification</h2>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Type</th><th>Courses</th><th>Purpose</th></tr></thead>
+      <tbody>
+      <tr><td>Core</td><td>IS-101, IS-201, IS-202, IS-203, IS-301, IS-302, IS-303, IS-304, IS-305, IS-401, IS-402, IS-403, QS-202, QS-302, QS-401, QS-402, IE-101, IE-201, IE-202, IC-201, IC-301, RL-101, RL-201 (23 courses)</td><td>Required of every learner on the program, no choice involved.</td></tr>
+      <tr><td>Recitation/Hifz</td><td>QS-101, QS-102, QS-201, QS-301 (4)</td><td>Tajwid and recitation performance specifically, as opposed to comprehension or exegesis.</td></tr>
+      <tr><td>Language</td><td>AR-101, AR-201, AR-301, AR-302, AR-401, AR-402 (6)</td><td>Arabic proficiency itself, independent of Islamic-sciences content.</td></tr>
+      <tr><td>Research</td><td>RL-301, RL-401 (2)</td><td>Research methodology and the capstone, as distinct from general study skills (RL-101, RL-201, kept Core).</td></tr>
+      <tr><td>Required specialization</td><td>IE-401, IE-403, IE-404, IE-405 (teaching track); IC-401, IC-402 (community track) (6)</td><td>Not freely elective — once a Diploma track is chosen, these are mandatory within it.</td></tr>
+      <tr><td>Elective</td><td>SPEC-3xx; IE-402 provisionally (2)</td><td>Genuine learner choice among options, or not yet locked to a track.</td></tr>
+      <tr><td>Practical</td><td>none yet</td><td>No placement/practicum-style course exists in the catalogue yet — a real gap, not an unused label. See §9.</td></tr>
+      </tbody>
+      </table></div>
+
+      <h2>7. Course Quality Control</h2>
+      <ul>
+      <li><strong>No unnecessary duplication.</strong> Confirmed against Model 5's seven-case audit, re-checked here with final codes assigned: IS-304/IC-301, IS-403/IC-401, and IE-405/IC-402 all read as close names but distinct disciplines by design; no new duplication was introduced by assigning codes. Full detail in §8.</li>
+      <li><strong>Prerequisites are logical.</strong> Every prerequisite in §5 points to either the immediately preceding course in its own chain or a lower-tier grounding course — no forward references, no skipped tiers, no course listing a prerequisite from a level above it.</li>
+      <li><strong>Advanced courses have sufficient preparation.</strong> Every Advanced-tier course requires at least one Intermediate-tier course, except AR-302 (Conversation), which intentionally requires only AR-201 rather than the full AR-301 chain, since conversational fluency does not depend on completing Advanced grammar first (Model 5 §4).</li>
+      <li><strong>Courses belong to appropriate departments.</strong> Reconfirms Model 5 §9's resolutions now that real codes exist: IS-304 (Islamic Thought) sits under Islamic Studies, not Islamic Civilization &amp; Society; IE-402 (Da'wah &amp; Outreach) sits under Islamic Education &amp; Tarbiyah, not Islamic Civilization &amp; Society; IS-403/IC-401 and IE-405/IC-402 keep their department split by scope.</li>
+      <li><strong>Programs contain enough relevant courses.</strong> 6 → 10 → 12 → 15 across Foundation → Intermediate → Advanced → Diploma (§4) — growing depth at every tier, no thin pathway.</li>
+      <li><strong>No course exists only to fill space.</strong> Every course traces either to an explicit Model 1–4 requirement or a specific gap Model 5 named by discipline — none was added merely to make a department's course count match another's, which Model 2's Academic Design Rule and Model 4 §1's blockquote both rule out. Islamic Education &amp; Tarbiyah's four new Diploma companions (IE-402–405) look like the largest single addition, but each answers a distinct, separately-named Model 5 gap (da'wah, curriculum design, youth education, family education), not one topic split four ways for volume.</li>
+      </ul>
+
+      <h2>8. Duplication Audit</h2>
+      <p>Re-run at catalogue-build stage, now that every course in Model 5's audit has a real code:</p>
+      <div class="table-wrap"><table>
+      <thead><tr><th>Pair</th><th>Status</th><th>Why it isn't a duplication</th></tr></thead>
+      <tbody>
+      <tr><td>IS-304 Islamic Thought vs. IC-301 Islamic Social Thought</td><td>Resolved (Model 5 §9)</td><td>Classical intellectual tradition vs. its civilizational/social application — different disciplines, confirmed distinct at coding stage.</td></tr>
+      <tr><td>IS-403 Contemporary Islamic Issues vs. IC-401 Contemporary Muslim Issues</td><td>Resolved (Model 5 §9)</td><td>Juristic "can/should" reasoning vs. sociological "what's happening" analysis — different departments, different questions.</td></tr>
+      <tr><td>IE-405 Family Education vs. IC-402 Family &amp; Society</td><td>Resolved (Model 5 §9)</td><td>Parent-facing tarbiyah skill vs. the family as a civilizational/social institution — flagged for founder sign-off as Model 5 decision 29, still open.</td></tr>
+      <tr><td>IE-402 Da'wah &amp; Outreach vs. any Islamic Civilization &amp; Society course</td><td>Resolved (Model 5 §1, §9)</td><td>Da'wah is pedagogical/outreach, not historical or civilizational study — reassigned, not duplicated.</td></tr>
+      <tr><td>SPEC-3xx vs. any named course</td><td>Not a duplication</td><td>SPEC-3xx has no defined content of its own — it is a placeholder slot filled by whichever department's certificate preview a learner chooses, never a competing course.</td></tr>
+      </tbody>
+      </table></div>
+      <p>No new duplication was found while assigning final codes.</p>
+
+      <h2>9. Missing-Course Audit</h2>
+      <ul>
+      <li><strong>No "Practical" type course exists.</strong> A genuine placement/practicum course — a teaching practicum for the teaching track, a da'wah practicum for IE-402, or a community-service placement tied to Model 1 Objective 10 — is absent from the catalogue. This is a real gap, not a naming oversight; a future model should decide whether to add one.</li>
+      <li><strong>Specialized Certificate course lists don't exist yet.</strong> Model 3 §7 names candidate certificates and owning departments; Model 4 §2 defines the shape (3–5 core courses per certificate); no certificate has an actual course list. Still open.</li>
+      <li><strong>Seerah has no Advanced or Diploma continuation.</strong> Only IS-203 exists; Model 5 decision 28 (is this deliberate, like Tazkiyah, or a genuine gap?) is still unresolved.</li>
+      <li><strong>IE-402's placement is still provisional.</strong> Tier, prerequisite, and track are all open pending decision 32 (§10) — the catalogue-level restatement of Model 5 decision 26.</li>
+      <li><strong>Hifz is not missing — it's a deliberate non-course.</strong> Model 5 §3 resolved this by tracking Hifz through the existing Qur'an reading/recitation chain and the Qur'an Memorization &amp; Recitation cross-cutting unit rather than a standalone course. Listed here only to confirm it was considered, not overlooked.</li>
+      </ul>
+
+      <h2>10. Decisions Requiring Approval</h2>
+      <p>Continuing the numbering from Models 1–5.</p>
+      <ol start="30">
+      <li><strong>Units-to-teaching-hours conversion — open.</strong> This catalogue applies an illustrative 1 unit = 15 teaching hours to answer §3's "teaching hours" field. The underlying credit system itself is still unresolved — Model 4 decision 22.</li>
+      <li><strong>Permanent coding system — proposed, pending confirmation.</strong> §1–§2 finalize the <code>[DEPT]-[LEVEL][SEQ]</code> system and close Model 4 decision 23 in substance; formal sign-off, and confirmation that the Registrar assigns future codes, is still yours to give.</li>
+      <li><strong>Da'wah &amp; Outreach (IE-402)'s placement — open.</strong> Restates Model 5 decision 26 at catalogue level: which Diploma track it belongs to, or whether it becomes a third track, is still undecided.</li>
+      <li><strong>Whether to add a Practical-type course — open.</strong> §6 and §9 both flag that no course currently uses this label. Worth a founder decision on whether a practicum belongs in the catalogue, and if so, where.</li>
+      </ol>
+      <p><em>Ulul Azm Academy — Course Catalogue &amp; Coding System, Model 6. Prepared for Founder review. This catalogue's 42 courses (plus the SPEC-3xx placeholder) are illustrative — not yet real Course records — and none should be created until decision 22 (Model 4) and decisions 30–33 above are resolved.</em></p>

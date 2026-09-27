@@ -224,7 +224,7 @@ export async function POST(request) {
         {
           success: false,
           error:
-            'Payment amount does not match the admission fee.',
+            'Payment amount does not match the application fee.',
         },
         { status: 409 }
       );

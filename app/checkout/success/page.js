@@ -136,7 +136,7 @@ export default async function CheckoutSuccessPage({
         </div>
 
         <div style={eyebrow}>
-          ILM-HUB BOOKSTORE
+          ULUL AZM BOOKSTORE
         </div>
 
         <h1 style={title}>
@@ -156,6 +156,7 @@ export default async function CheckoutSuccessPage({
           !isPaid && (
             <PaystackVerification
               orderId={order.id}
+              reference={order.paymentRef}
             />
           )}
 
@@ -320,11 +321,15 @@ export default async function CheckoutSuccessPage({
         </div>
 
         <div style={actions}>
+          {/* This is exclusively the Bookstore checkout confirmation
+              (book orders), so it goes straight to the Bookstore's own
+              dashboard -- not the shared /account/dashboard chooser and
+              never the Media dashboard. */}
           <Link
-            href="/dashboard"
+            href="/account/bookstore"
             style={primaryButton}
           >
-            Go to My Dashboard
+            Go to My Account
           </Link>
 
           <Link
@@ -336,7 +341,7 @@ export default async function CheckoutSuccessPage({
         </div>
 
         <div style={footerText}>
-          Ilm-Hub Institute
+          Ulul Azm Bookstore
           <span> • </span>
           Knowledge is a trust. Character is its companion.
         </div>

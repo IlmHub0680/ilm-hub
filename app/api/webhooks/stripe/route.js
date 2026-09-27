@@ -481,10 +481,7 @@ export async function POST(request) {
     return Response.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Webhook processing failed.',
+        error: 'Webhook processing failed.',
       },
       { status: 500 }
     );

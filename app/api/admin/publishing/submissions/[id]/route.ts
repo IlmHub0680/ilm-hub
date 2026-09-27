@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 
 const ALLOWED_STATUSES = [
   "SUBMITTED",
@@ -19,6 +20,18 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const admin = await requireUser();
+
+    if (admin.role !== "ADMIN" && admin.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Administrator access is required.",
+        },
+        { status: 403 }
+      );
+    }
+
     const submissionId = params.id?.trim();
 
     if (!submissionId) {
@@ -95,6 +108,13 @@ export async function PATCH(
       data: updatedSubmission,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { success: false, error: "Authentication required." },
+        { status: 401 }
+      );
+    }
+
     console.error(
       "Error updating manuscript submission status:",
       error

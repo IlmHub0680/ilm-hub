@@ -1,6 +1,4 @@
-import {
-  getAcademicProgrammes,
-} from '@/lib/academic-programmes';
+import { prisma } from '@/lib/prisma';
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -12,75 +10,83 @@ function jsonResponse(data, status = 200) {
   });
 }
 
+function formatProgramme(program) {
+  return {
+    id: program.id,
+    name: program.nameEn,
+    nameAr: program.nameAr,
+    code: program.code,
+    level: program.level,
+    duration: program.durationYears
+      ? `${program.durationYears} Year${program.durationYears === 1 ? '' : 's'}`
+      : 'Flexible',
+    description: program.descriptionEn || '',
+    descriptionAr: program.descriptionAr || '',
+    status: program.isActive ? 'Active' : 'Inactive',
+    coordinator: program.coordinator?.user?.name || 'Unassigned',
+    faculty: program.faculty?.nameEn || null,
+    department: program.department?.nameEn || null,
+    departmentId: program.department?.id || null,
+  };
+}
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'programs';
 
-    if (type === 'programs') {
-      return jsonResponse({
-        success: true,
-        data: getAcademicProgrammes(),
-      });
+    if (type !== 'programs') {
+      return jsonResponse(
+        {
+          success: false,
+          error: 'Invalid resource type requested',
+        },
+        400
+      );
     }
 
-    return jsonResponse(
-      {
-        success: false,
-        error: 'Invalid resource type requested',
+    const programmes = await prisma.program.findMany({
+      where: {
+        isActive: true,
+        // A programme sitting at DRAFT/UNDER_REVIEW/RETURNED_FOR_REVISION
+        // must never be publicly listed, even if left isActive -- backend
+        // permissions stay authoritative rather than relying on the UI to
+        // hide it (Model 15 Section 28).
+        approvalStatus: 'APPROVED',
       },
-      400
-    );
-  } catch (error) {
-    return jsonResponse(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
+      orderBy: {
+        id: 'asc',
       },
-      500
-    );
-  }
-}
-
-export async function POST(request) {
-  try {
-    const body = await request.json();
-
-    const {
-      action,
-      programName,
-      level,
-      description,
-      courses,
-    } = body;
-
-    if (action === 'submit_curriculum') {
-      return jsonResponse({
-        success: true,
-        message:
-          'Curriculum proposal submitted successfully and set to Pending Approval.',
-        status: 'Pending Approval',
-      });
-    }
+      select: {
+        id: true,
+        nameEn: true,
+        nameAr: true,
+        code: true,
+        level: true,
+        durationYears: true,
+        descriptionEn: true,
+        descriptionAr: true,
+        isActive: true,
+        faculty: { select: { nameEn: true } },
+        department: { select: { id: true, nameEn: true } },
+        coordinator: { select: { user: { select: { name: true } } } },
+      },
+    });
 
     return jsonResponse({
       success: true,
-      message: 'Academic program created successfully.',
-      data: {
-        programName,
-        level,
-        description,
-        courses,
-        status: 'Active',
-      },
+      data: programmes.map(formatProgramme),
     });
   } catch (error) {
+    console.error('Failed to load academic programmes:', error);
+
     return jsonResponse(
       {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: 'An unexpected error occurred. Please try again later.',
       },
       500
     );
   }
 }
+

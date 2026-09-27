@@ -9,12 +9,18 @@ interface Author {
   specialty?: string;
   bio?: string;
   createdAt?: string;
+  admissionId?: string;
+  applicationFee?: number | null;
+  currencyCode?: string | null;
+  feeBasis?: string | null;
+  countryOfResidence?: string | null;
 }
 
 export default function AdminAuthorApprovals() {
   const [pendingAuthors, setPendingAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedAuthor, setSelectedAuthor] =
     useState<Author | null>(null);
@@ -80,6 +86,47 @@ export default function AdminAuthorApprovals() {
     }
   };
 
+  const handleReject = async (userId: string) => {
+    if (
+      !window.confirm(
+        "Reject this author's application? They will not be granted author access."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setRejectingId(userId);
+
+      const res = await fetch("/api/admin/reject-author", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to reject author");
+      }
+
+      setPendingAuthors((prev) =>
+        prev.filter((author) => author.id !== userId)
+      );
+
+      if (selectedAuthor?.id === userId) {
+        setSelectedAuthor(null);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Unable to reject this author. Please try again.");
+    } finally {
+      setRejectingId(null);
+    }
+  };
+
   const filteredAuthors = useMemo(() => {
     const search = searchTerm.toLowerCase().trim();
 
@@ -129,13 +176,20 @@ export default function AdminAuthorApprovals() {
                 </span>
               </div>
 
+              <a
+                href="/admin"
+                className="mb-2 inline-block text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+              >
+                ← Back to Admin
+              </a>
+
               <h1 className="text-3xl font-bold tracking-tight text-slate-900">
                 Author Approvals
               </h1>
 
               <p className="mt-1 text-sm text-slate-500">
                 Review and approve scholars who have applied to
-                become published authors on Ilm-Hub.
+                become published authors on Ulul Azm.
               </p>
             </div>
 
@@ -152,7 +206,7 @@ export default function AdminAuthorApprovals() {
       <main className="mx-auto max-w-7xl px-6 py-8">
         {/* Summary */}
         <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg">
             <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
               Pending Applications
             </p>
@@ -166,7 +220,7 @@ export default function AdminAuthorApprovals() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 shadow-lg">
             <p className="text-xs font-bold uppercase tracking-wide text-amber-600">
               Requires Review
             </p>
@@ -180,7 +234,7 @@ export default function AdminAuthorApprovals() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-lg">
             <p className="text-xs font-bold uppercase tracking-wide text-emerald-600">
               Approval Status
             </p>
@@ -196,7 +250,7 @@ export default function AdminAuthorApprovals() {
         </div>
 
         {/* Search */}
-        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
           <input
             type="text"
             value={searchTerm}
@@ -210,7 +264,7 @@ export default function AdminAuthorApprovals() {
 
         {/* Loading */}
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white py-20 text-center shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white py-20 text-center shadow-lg">
             <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600" />
 
             <p className="text-sm font-medium text-slate-500">
@@ -243,10 +297,13 @@ export default function AdminAuthorApprovals() {
                 const isApproving =
                   approvingId === author.id;
 
+                const isRejecting =
+                  rejectingId === author.id;
+
                 return (
                   <div
                     key={author.id}
-                    className={`rounded-xl border bg-white p-6 shadow-sm transition ${
+                    className={`rounded-xl border bg-white p-6 shadow-lg transition ${
                       isSelected
                         ? "border-emerald-400 ring-2 ring-emerald-100"
                         : "border-slate-200 hover:border-slate-300"
@@ -283,6 +340,16 @@ export default function AdminAuthorApprovals() {
                               {author.specialty}
                             </p>
                           )}
+
+                          {author.applicationFee != null && (
+                            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                              ✓ Application fee paid — {author.currencyCode}{" "}
+                              {author.applicationFee.toFixed(2)}
+                              {author.countryOfResidence
+                                ? ` (${author.countryOfResidence})`
+                                : ""}
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -299,7 +366,7 @@ export default function AdminAuthorApprovals() {
 
                         <button
                           type="button"
-                          disabled={isApproving}
+                          disabled={isApproving || isRejecting}
                           onClick={() =>
                             handleApprove(author.id)
                           }
@@ -308,6 +375,19 @@ export default function AdminAuthorApprovals() {
                           {isApproving
                             ? "Approving..."
                             : "Approve Author"}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={isApproving || isRejecting}
+                          onClick={() =>
+                            handleReject(author.id)
+                          }
+                          className="rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {isRejecting
+                            ? "Rejecting..."
+                            : "Reject"}
                         </button>
                       </div>
                     </div>
@@ -343,7 +423,7 @@ export default function AdminAuthorApprovals() {
             {/* Review Panel */}
             <div>
               {selectedAuthor ? (
-                <div className="sticky top-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="sticky top-6 rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
                   <div className="mb-5 flex items-start justify-between">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-wide text-emerald-600">
@@ -426,7 +506,8 @@ export default function AdminAuthorApprovals() {
                     <button
                       type="button"
                       disabled={
-                        approvingId === selectedAuthor.id
+                        approvingId === selectedAuthor.id ||
+                        rejectingId === selectedAuthor.id
                       }
                       onClick={() =>
                         handleApprove(selectedAuthor.id)
@@ -436,6 +517,22 @@ export default function AdminAuthorApprovals() {
                       {approvingId === selectedAuthor.id
                         ? "Approving Author..."
                         : "Approve This Author"}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={
+                        approvingId === selectedAuthor.id ||
+                        rejectingId === selectedAuthor.id
+                      }
+                      onClick={() =>
+                        handleReject(selectedAuthor.id)
+                      }
+                      className="w-full rounded-lg bg-red-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {rejectingId === selectedAuthor.id
+                        ? "Rejecting Author..."
+                        : "Reject This Application"}
                     </button>
                   </div>
                 </div>

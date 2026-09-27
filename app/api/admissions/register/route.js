@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import {
-  getAcademicProgrammeById,
-} from '@/lib/academic-programmes';
+  getAdmissibleProgram,
+} from '@/lib/academicProgram';
 
 const SETTINGS_ID = 'default-admission-fees';
 
@@ -30,7 +30,7 @@ export async function POST(request) {
     // Programme selection is optional for fee calculation.
     // If a programme is supplied, validate it before returning programme details.
     const programme = programId
-      ? getAcademicProgrammeById(programId)
+      ? await getAdmissibleProgram(programId)
       : null;
 
     if (programId && !programme) {
@@ -101,7 +101,7 @@ export async function POST(request) {
     /*
      * IMPORTANT:
      *
-     * Admission fee is determined ONLY by country of residence.
+     * Application fee is determined ONLY by country of residence.
      *
      * Ghana:
      *   Junior -> juniorGhana
@@ -130,7 +130,7 @@ export async function POST(request) {
         {
           success: false,
           error:
-            'Admission fee settings are not configured by the administrator.',
+            'Application fee settings are not configured by the administrator.',
         },
         500
       );
@@ -186,7 +186,7 @@ export async function POST(request) {
     return json(
       {
         success: false,
-        error: error?.message || 'Unable to calculate admission fee.',
+        error: error?.message || 'Unable to calculate application fee.',
       },
       500
     );

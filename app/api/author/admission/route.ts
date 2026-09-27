@@ -3,6 +3,8 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 
+const SETTINGS_ID = "default-author-fees";
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -20,11 +22,17 @@ export async function POST(req: Request) {
         ? body.password
         : "";
 
-    if (!name || !email || !password) {
+    const countryOfResidence =
+      typeof body.countryOfResidence === "string"
+        ? body.countryOfResidence.trim()
+        : "";
+
+    if (!name || !email || !password || !countryOfResidence) {
       return NextResponse.json(
         {
           success: false,
-          error: "Name, email and password are required.",
+          error:
+            "Name, email, password and country of residence are required.",
         },
         { status: 400 }
       );
@@ -66,6 +74,71 @@ export async function POST(req: Request) {
       );
     }
 
+    // The Author Application Fee is configured separately from the
+    // Student Admission Fee (see AuthorFeeSettings / /admin/author-fees)
+    // and, like student fees, depends only on country of residence —
+    // not nationality.
+    const feeSettings = await prisma.authorFeeSettings.findUnique({
+      where: { id: SETTINGS_ID },
+    });
+
+    if (!feeSettings) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "The author application fee has not been configured by the administration yet. Please try again later.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!feeSettings.isActive) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Author applications are not currently being accepted. Please check back later.",
+        },
+        { status: 403 }
+      );
+    }
+
+    if (feeSettings.effectiveDate && feeSettings.effectiveDate > new Date()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Author applications are not yet open. Please check back after the announced opening date.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const isGhanaResident = countryOfResidence.toLowerCase() === "ghana";
+    const applicationFee = isGhanaResident
+      ? Number(feeSettings.ghana)
+      : Number(feeSettings.international);
+    const currencyCode = isGhanaResident
+      ? feeSettings.ghanaCurrency
+      : feeSettings.internationalCurrency;
+    const feeBasis = isGhanaResident
+      ? "Ghana Resident Rate"
+      : "International Resident Rate";
+    const feeExpiresAt = feeSettings.validityDays
+      ? new Date(Date.now() + feeSettings.validityDays * 24 * 60 * 60 * 1000)
+      : null;
+
+    if (!Number.isFinite(applicationFee) || applicationFee <= 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid author application fee configuration.",
+        },
+        { status: 500 }
+      );
+    }
+
     const passwordHash = await bcrypt.hash(password, 12);
     const now = new Date();
     const authorId = crypto.randomUUID();
@@ -83,6 +156,11 @@ export async function POST(req: Request) {
         authorAdmission: {
           create: {
             status: "PENDING",
+            countryOfResidence,
+            applicationFee,
+            currencyCode,
+            feeBasis,
+            feeExpiresAt,
           },
         },
       },
@@ -97,6 +175,8 @@ export async function POST(req: Request) {
           select: {
             id: true,
             status: true,
+            applicationFee: true,
+            currencyCode: true,
             createdAt: true,
           },
         },
@@ -107,7 +187,7 @@ export async function POST(req: Request) {
       {
         success: true,
         message:
-          "Your author application has been submitted for review.",
+          "Your author application has been created. Pay the application fee to submit it for review.",
         data: {
           authorId: author.id,
           admissionId: author.authorAdmission?.id ?? null,
@@ -116,6 +196,10 @@ export async function POST(req: Request) {
           status: author.authorStatus,
           admissionStatus:
             author.authorAdmission?.status ?? "PENDING",
+          applicationFee: author.authorAdmission?.applicationFee
+            ? Number(author.authorAdmission.applicationFee)
+            : applicationFee,
+          currencyCode: author.authorAdmission?.currencyCode ?? currencyCode,
           submittedAt: author.createdAt,
         },
       },

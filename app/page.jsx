@@ -2,8 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
+import { useSiteBranding } from '@/components/SiteBrandingProvider';
+import IslamicDateWidget from '@/components/IslamicDateWidget';
+import { LanguageProvider, useLanguage } from './HomeLanguageContext';
 
-export default function Home() {
+function HomeContent() {
+  const { t, dir, lang, setLang } = useLanguage();
+  const { heroImageUrl: brandedHeroImageUrl } = useSiteBranding();
+
   /* =========================================================
      DATE / TIME
   ========================================================= */
@@ -70,382 +78,299 @@ export default function Home() {
   }, []);
 
   /* =========================================================
+     HOMEPAGE CMS CONTENT
+     (Hero section, social links, footer navigation columns —
+     managed at /admin/homepage. Seeded with the same content
+     that used to be hardcoded here, so the page renders
+     identically until/unless an admin changes it, then
+     overwritten with live content from the API.)
+  ========================================================= */
+
+  const [hero, setHero] = useState({
+    badge: 'A DIGITAL HOME FOR ISLAMIC KNOWLEDGE',
+    title: "Excellence in Islamic Studies & Qur'anic Sciences",
+    subtitle:
+      'A structured environment for students seeking authentic, beneficial and disciplined Islamic knowledge through qualified instruction, classical texts, modern learning resources and academic programmes.',
+    primaryLabel: 'Apply Now →',
+    primaryHref: '/admission',
+    // Points at the narrative Academy Pathways framework page, not
+    // /programs -- the ACADEMICS section further down this same
+    // homepage already links to /programs ("Explore Academic
+    // Departments"), and the two used to point at the same place
+    // with near-identical labels. This is the hero's first-impression
+    // CTA, so it orients a new visitor to how the Academy is
+    // structured; /programs is for someone ready to browse the real
+    // programme directory.
+    secondaryLabel: 'How the Academy Works →',
+    secondaryHref: '/academy-pathways',
+    features: [
+      'Structured curriculum',
+      'Online learning',
+      'Academic resources',
+      'Global access',
+    ],
+    // Seeded from the root layout's server-side fetch (SiteBrandingProvider)
+    // so the hero background image is already there on first paint; the
+    // fetch below still overwrites this with the freshest CMS content.
+    heroImageUrl: brandedHeroImageUrl,
+  });
+
+  // Welcome section, its four feature cards, the Academy section and
+  // its eight subject icons, the Our Approach section and its three
+  // steps, and the closing Bismillah banner -- all admin-editable at
+  // /admin/homepage/sections. Seeded with the site's original
+  // hardcoded copy so nothing changes on screen until an admin edits
+  // something there.
+  const [welcome, setWelcome] = useState({
+    badge: 'WELCOME TO ULUL AZM',
+    title: 'A place to seek knowledge with sincerity',
+    subtitle:
+      'Ulul Azm Institute brings together structured academic learning, classical Islamic scholarship, digital resources, and a community committed to beneficial knowledge, upright character, and lifelong learning.',
+  });
+
+  const [featureCards, setFeatureCards] = useState([
+    {
+      icon: '📚',
+      title: 'Structured Learning',
+      text: 'Progress through carefully organized academic programmes and courses designed to build knowledge systematically.',
+    },
+    {
+      icon: '🕌',
+      title: 'Islamic Scholarship',
+      text: "Engage with the Qur'an, Sunnah, classical texts, and established Islamic disciplines through sound scholarly tradition.",
+    },
+    {
+      icon: '🎓',
+      title: 'Student Development',
+      text: 'Develop sound knowledge, disciplined study habits, research ability, humility, and beneficial character.',
+    },
+    {
+      icon: '🌐',
+      title: 'Learning Without Borders',
+      text: 'Access educational opportunities and digital resources designed to support students wherever they are.',
+    },
+  ]);
+
+  const [academySection, setAcademySection] = useState({
+    badge: 'ACADEMY',
+    title: 'Explore Our Academic Programmes',
+    subtitle:
+      "Explore our academic departments, programmes, courses, and areas of Islamic study, rooted in the Qur'an and Sunnah and presented through structured and disciplined learning.",
+  });
+
+  // Model 28 follow-up: the homepage's Academy section now shows real
+  // Department entities (fetched from the same /api/academic/departments
+  // the standalone /departments page already uses) instead of a
+  // curated icon/text marketing list. The admin-managed
+  // HomepageAcademyItem CRUD tool (/admin/homepage) is left completely
+  // untouched -- it's simply no longer read by this section, in case
+  // it's still wanted elsewhere or the change is ever reverted.
+  const [departments, setDepartments] = useState([]);
+  const [departmentsLoaded, setDepartmentsLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/academic/departments')
+      .then((res) => res.json())
+      .then((result) => {
+        if (cancelled) return;
+        if (result && result.success && Array.isArray(result.data)) {
+          setDepartments(result.data);
+        }
+      })
+      .catch(() => {
+        /* silently ignore -- the homepage should never break because
+           the departments feed is unavailable; the section below
+           simply falls back to its own static copy when empty */
+      })
+      .finally(() => {
+        if (!cancelled) setDepartmentsLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const [approachSection, setApproachSection] = useState({
+    badge: 'OUR APPROACH',
+    title: 'More than a website — a learning environment',
+    subtitle: 'We aim to make the pursuit of Islamic knowledge organized, accessible, responsible and beneficial.',
+  });
+
+  const [approachSteps, setApproachSteps] = useState([
+    {
+      number: '01',
+      title: 'Authentic Foundations',
+      text: 'Begin with foundational disciplines before progressing into advanced studies.',
+    },
+    {
+      number: '02',
+      title: 'Structured Programmes',
+      text: 'Study through clearly defined academic areas rather than disconnected lessons.',
+    },
+    {
+      number: '03',
+      title: 'Responsible Scholarship',
+      text: 'Approach Islamic knowledge with sincerity, humility, discipline and respect for scholarship.',
+    },
+  ]);
+
+  const [beneficialKnowledgeImage, setBeneficialKnowledgeImage] = useState('');
+  // Admin-editable heading/message for the "Beneficial Knowledge" box
+  // (SectionBanner.titleEn/bodyEn on the same 'homepage-beneficial-
+  // knowledge' row as the image above) -- empty string means "use the
+  // site's default wording" below, exactly like the image already does.
+  const [beneficialKnowledgeTitle, setBeneficialKnowledgeTitle] = useState('');
+  const [beneficialKnowledgeBody, setBeneficialKnowledgeBody] = useState('');
+
+  // Admin-editable picture + heading + description for the MEDIA &
+  // LIBRARY section's two cards (SectionBanner rows 'homepage-media-
+  // card' / 'homepage-library-card' -- same reused model/pattern as
+  // beneficial-knowledge above). Empty imageUrl means "keep the
+  // default emoji icon"; empty title/body means "keep the default
+  // wording" -- exactly like beneficial-knowledge's own fallback.
+  const [mediaCardImage, setMediaCardImage] = useState('');
+  const [mediaCardTitle, setMediaCardTitle] = useState('');
+  const [mediaCardBody, setMediaCardBody] = useState('');
+  const [libraryCardImage, setLibraryCardImage] = useState('');
+  const [libraryCardTitle, setLibraryCardTitle] = useState('');
+  const [libraryCardBody, setLibraryCardBody] = useState('');
+
+  // Up to 5 admin-managed hero banner images (Model 25) -- filled in by
+  // the /api/homepage-content fetch below, alongside hero/welcome/etc.
+  // Empty array is the normal, fully supported state: the hero section
+  // then falls back to hero.heroImageUrl exactly as it always has.
+  const [heroBanners, setHeroBanners] = useState([]);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const heroSlideCount = heroBanners.length;
+  const activeSlideIndex = heroSlideCount > 0 ? ((activeSlide % heroSlideCount) + heroSlideCount) % heroSlideCount : 0;
+
+  function goToSlide(index) {
+    setActiveSlide(index);
+  }
+
+  function goPrevSlide() {
+    setActiveSlide((prev) => (heroSlideCount > 0 ? (prev - 1 + heroSlideCount) % heroSlideCount : 0));
+  }
+
+  function goNextSlide() {
+    setActiveSlide((prev) => (heroSlideCount > 0 ? (prev + 1) % heroSlideCount : 0));
+  }
+
+  // Auto-advance every 5 seconds. Re-running this effect on every
+  // activeSlide change (rather than only on mount) means a manual
+  // prev/next/dot click resets the 5s countdown instead of the next
+  // auto-advance landing right after it.
+  useEffect(() => {
+    if (heroSlideCount <= 1) return;
+
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % heroSlideCount);
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [heroSlideCount, activeSlide]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/section-banners/homepage-beneficial-knowledge')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((result) => {
+        if (cancelled || !result?.success) return;
+        setBeneficialKnowledgeImage(result.data.imageUrl || '');
+        setBeneficialKnowledgeTitle(result.data.titleEn || '');
+        setBeneficialKnowledgeBody(result.data.bodyEn || '');
+      })
+      .catch(() => {
+        // Keep the plain gradient background and default wording --
+        // the homepage must never break because this optional content
+        // couldn't be fetched.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // MEDIA & LIBRARY cards' admin-uploaded pictures + text -- same
+  // "must never break the page" fallback behavior as the fetch above:
+  // any failure just leaves the default emoji icons and hardcoded
+  // wording in place.
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all([
+      fetch('/api/section-banners/homepage-media-card').then((res) => (res.ok ? res.json() : null)),
+      fetch('/api/section-banners/homepage-library-card').then((res) => (res.ok ? res.json() : null)),
+    ])
+      .then(([mediaResult, libraryResult]) => {
+        if (cancelled) return;
+        if (mediaResult?.success) {
+          setMediaCardImage(mediaResult.data.imageUrl || '');
+          setMediaCardTitle(mediaResult.data.titleEn || '');
+          setMediaCardBody(mediaResult.data.bodyEn || '');
+        }
+        if (libraryResult?.success) {
+          setLibraryCardImage(libraryResult.data.imageUrl || '');
+          setLibraryCardTitle(libraryResult.data.titleEn || '');
+          setLibraryCardBody(libraryResult.data.bodyEn || '');
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/homepage-content')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((result) => {
+        if (cancelled || !result?.success) return;
+
+        if (result.data.hero) setHero(result.data.hero);
+        if (Array.isArray(result.data.heroBanners)) setHeroBanners(result.data.heroBanners);
+        if (result.data.welcome) setWelcome(result.data.welcome);
+        if (Array.isArray(result.data.featureCards) && result.data.featureCards.length > 0) {
+          setFeatureCards(result.data.featureCards);
+        }
+        if (result.data.academySection) setAcademySection(result.data.academySection);
+        // academyItems is no longer consumed here -- see the
+        // departments state/fetch above.
+        if (result.data.approachSection) setApproachSection(result.data.approachSection);
+        if (Array.isArray(result.data.approachSteps) && result.data.approachSteps.length > 0) {
+          setApproachSteps(result.data.approachSteps);
+        }
+      })
+      .catch(() => {
+        // Keep the seeded defaults above — the homepage must never
+        // break because the CMS content couldn't be fetched.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* =========================================================
      MOBILE MENU
   ========================================================= */
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   /* =========================================================
      FOOTER MODALS
   ========================================================= */
 
-  const [footerModal, setFooterModal] = useState(null);
 
   /* =========================================================
      FOOTER CONTENT
   ========================================================= */
-
-  const footerContent = {
-    about: {
-      title: 'About Ilm-Hub Institute',
-      content: (
-        <>
-          <p>
-            <strong>Ilm-Hub Institute</strong> is an educational institution
-            dedicated to the pursuit, preservation, understanding, and
-            responsible transmission of beneficial Islamic knowledge.
-          </p>
-
-          <p>
-            Our aim is to provide structured and disciplined learning in
-            Quranic sciences, Arabic language, Hadith, Fiqh, Aqidah, Tajwid,
-            Seerah, and other foundational Islamic disciplines — rooted firmly
-            in the Quran and Sunnah, grounded in the rich scholarly tradition,
-            and delivered through an accessible, systematic, and
-            transformative academic approach.
-          </p>
-
-          <p>
-            We believe that beneficial knowledge must be pursued with
-            sincerity, sound methodology, humility, discipline, and respect
-            for the scholarly tradition, while cultivating students who embody
-            good character, live by what they learn, and use their knowledge
-            in service to their communities.
-          </p>
-
-          <div style={quoteBox}>
-            <strong>Our guiding principle</strong>
-
-            <br />
-
-            <span
-              style={{
-                fontFamily: 'Georgia, serif',
-                fontSize: '21px',
-              }}
-            >وَقُلْ رَبِّ زِدْنِي عِلْمًا</span>
-
-            <br />
-
-            <span style={{ fontSize: '15px' }}>
-              “And say: My Lord, increase me in knowledge.”
-            </span>
-
-            <br />
-
-            <span
-              style={{
-                display: 'block',
-                marginTop: '10px',
-                fontSize: '14px',
-              }}
-            >
-              Knowledge is a religion. We seek to learn it sincerely,
-              understand it responsibly, and share it beneficially.
-            </span>
-          </div>
-        </>
-      ),
-    },
-
-    resources: {
-      title: 'Student Resources',
-      content: (
-        <>
-          <p>
-            Ilm-Hub provides resources designed to help students remain
-            organized, consistent and purposeful in their pursuit of
-            knowledge.
-          </p>
-
-          <div style={resourceGridStyle}>
-            <ResourceCard
-              icon="📚"
-              title="Course Materials"
-              text="Access recommended texts, course information and learning materials through your programme."
-            />
-
-            <ResourceCard
-              icon="📖"
-              title="Digital Library"
-              text="Explore books and educational publications available through the Ilm-Hub Bookstore."
-              link="/bookstore"
-            />
-
-            <ResourceCard
-              icon="🎓"
-              title="Student Guidance"
-              text="Develop a regular study routine, attend lessons consistently and maintain good academic discipline."
-            />
-
-            <ResourceCard
-              icon="📚"
-              title="Academic Support"
-              text="Contact the institute for questions relating to programmes, admissions or academic matters."
-              action={() => setFooterModal('contact')}
-            />
-          </div>
-        </>
-      ),
-    },
-
-    faq: {
-      title: 'Frequently Asked Questions',
-      content: (
-        <>
-          <Faq
-            question="What does Ilm-Hub Institute teach?"
-            answer="Our academic areas include Qur'anic sciences, Arabic language, Tajwid, Hadith, Fiqh, Usul al-Fiqh, Aqidah, Seerah, Islamic methodology, and other foundational Islamic disciplines."
-          />
-
-          <Faq
-            question="How can I view the academic programmes?"
-            answer="Use the Academics or Programmes links to view the institute's dedicated Academic Programmes page and explore the available programmes."
-          />
-
-          <Faq
-            question="Can I study online?"
-            answer="Selected programmes and educational resources may be available digitally. Please check the relevant programme page or contact the institute for current availability."
-          />
-
-          <Faq
-            question="How do I apply for admission?"
-            answer="Use the Apply for Admission button or visit the Admissions section to begin the application process."
-          />
-
-          <Faq
-            question="Can I purchase Islamic books from Ilm-Hub?"
-            answer="Yes. Our Academic Bookstore provides access to selected Islamic academic texts, books, and educational publications. Some books and resources may be subject to applicable fees."
-          />
-
-          <Faq
-            question="Can authors and publishers submit their books?"
-            answer="Yes. Authors and publishers may use the Sell Your Books portal to submit their publications for consideration."
-          />
-
-          <Faq
-            question="Does every programme provide accreditation?"
-            answer="Not necessarily. Accreditation, certification, and academic recognition depend on the specific programme and the institute's applicable academic policies."
-          />
-
-          <Faq
-            question="Are all educational resources free?"
-            answer="Some educational resources may be available free of charge, while other programmes, books, or services may have applicable fees."
-          />
-
-          <Faq
-            question="How can I contact Ilm-Hub Institute?"
-            answer="Use the Contact section in the footer or the institute's official contact channels for enquiries regarding admissions, programmes, academic matters, bookstore services, authorship submissions, partnerships, and general enquiries."
-          />
-        </>
-      ),
-    },
-
-    privacy: {
-      title: 'Privacy Policy',
-      content: (
-        <>
-          <p>
-            Ilm-Hub Institute respects the privacy of students, applicants,
-            authors, customers, and visitors to its website.
-          </p>
-
-          <p>
-            Information submitted through admission forms, enquiries,
-            bookstore purchases, or other institutional services is collected
-            and used only for legitimate institutional purposes.
-          </p>
-
-          <p>
-            We aim to protect personal information and do not intentionally
-            sell personal information to third parties.
-          </p>
-
-          <p>
-            Payment information should be processed through appropriate secure
-            payment providers where applicable. Users should never submit
-            passwords, payment credentials, or other highly sensitive
-            information through ordinary website forms.
-          </p>
-
-          <p>
-            While we take reasonable measures to protect information, no
-            internet transmission or online system can be guaranteed to be
-            completely secure.
-          </p>
-        </>
-      ),
-    },
-
-    terms: {
-      title: 'Terms of Use',
-      content: (
-        <>
-          <p>
-            By accessing the Ilm-Hub website, visitors agree to use the
-            platform responsibly, lawfully, and in a manner consistent with
-            the institute's educational purpose.
-          </p>
-
-          <p>
-            Academic materials, publications, logos, written content, and
-            other institutional materials may not be reproduced, redistributed,
-            or commercially exploited without appropriate permission.
-          </p>
-
-          <p>
-            Users are responsible for providing accurate information when
-            submitting applications, purchases, enquiries, or other forms.
-          </p>
-
-          <p>
-            Ilm-Hub may update programmes, schedules, prices, availability,
-            policies, and website content when necessary.
-          </p>
-
-          <p>
-            Information provided on this website is intended for general
-            educational and institutional purposes and should not be
-            interpreted as a substitute for personalised scholarly, legal,
-            medical, or other professional advice.
-          </p>
-        </>
-      ),
-    },
-
-    refund: {
-      title: 'Refund Policy',
-      content: (
-        <>
-          <p>
-            Ilm-Hub Institute aims to provide clear information about
-            programme fees, books, digital resources, and other purchases
-            before payment is made.
-          </p>
-
-          <p>
-            Refund eligibility may depend on the nature of the purchase,
-            programme, digital delivery or access status, physical shipment
-            status, and applicable institutional policy.
-          </p>
-
-          <p>
-            Digital products that have already been delivered or accessed may
-            be subject to different refund conditions from physical books or
-            other products.
-          </p>
-
-          <p>
-            If a physical item arrives damaged, incorrect, or materially
-            different from the purchased item, customers should contact the
-            institute promptly with the relevant order information.
-          </p>
-
-          <p>
-            For specific refund requests, customers should contact the
-            institute directly with their order or programme details before
-            initiating a dispute through a payment provider.
-          </p>
-        </>
-      ),
-    },
-
-    contact: {
-      title: 'Contact Ilm-Hub Institute',
-      content: (
-        <>
-          <p>
-            We welcome enquiries from prospective students, current students,
-            parents, scholars, authors, publishers, and educational partners.
-          </p>
-
-          <div style={contactGridStyle}>
-            <ContactItem
-              icon="📚"
-              title="Institute Address"
-              text="Ilm-Hub Institute, [Street / Building Name], [Accra], [Ghana]"
-            />
-
-            <ContactItem
-              icon="📮"
-              title="P.O. Box"
-              text="P.O. Box [170], [Accra], [Ghana]"
-            />
-
-            <ContactItem
-              icon="☎️"
-              title="Telephone"
-              text="+233 1234568"
-            />
-
-            <ContactItem
-              icon="💬"
-              title="WhatsApp"
-              text="+000 000 000 0000"
-            />
-
-            <ContactItem
-              icon="✉️"
-              title="Email"
-              text="info@ilmhub.org"
-            />
-
-            <ContactItem
-              icon="🎓"
-              title="Admissions"
-              text="admissions@ilmhub.org"
-            />
-
-            <ContactItem
-              icon="📚"
-              title="Bookstore"
-              text="bookstore@ilmhub.org"
-            />
-
-            <ContactItem
-              icon="🕘"
-              title="Office Hours"
-              text="Monday – Friday: 8:00 AM – 5:00 PM"
-            />
-          </div>
-
-          <p style={{ marginTop: '20px' }}>
-            <strong>General enquiries:</strong> Please use the contact
-            information above for admissions, academic programmes, bookstore
-            enquiries, partnerships, authorship submissions, and general
-            institutional matters.
-          </p>
-        </>
-      ),
-    },
-  };
-
-  /* =========================================================
-     SOCIAL LINKS
-  ========================================================= */
-
-  const socialLinks = [
-    {
-      name: 'Facebook',
-      icon: 'f',
-      url: 'https://www.facebook.com/',
-    },
-    {
-      name: 'YouTube',
-      icon: '▶',
-      url: 'https://www.youtube.com/',
-    },
-    {
-      name: 'X',
-      icon: '𝕏',
-      url: 'https://x.com/',
-    },
-    {
-      name: 'Telegram',
-      icon: '✈',
-      url: 'https://t.me/',
-    },
-  ];
 
   return (
     <div style={pageStyle}>
@@ -469,7 +394,7 @@ export default function Home() {
 
           <div>
             <span style={{ color: '#e7d48b' }}>
-              <strong>Hijri:</strong>
+              <strong>{t('Hijri:')}</strong>
             </span>{' '}
 
             <strong>{islamicDate}</strong>
@@ -478,11 +403,28 @@ export default function Home() {
               style={{
                 marginLeft: '6px',
                 opacity: 0.65,
-                fontSize: '10px',
+                fontSize: '11.5px',
               }}
             >
-              (Umm al-Qura)
+              {t('(Umm al-Qura)')}
             </span>
+          </div>
+
+          <div style={langToggleRow}>
+            <button
+              type="button"
+              onClick={() => setLang('en')}
+              style={lang === 'en' ? langToggleBtnActive : langToggleBtn}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              onClick={() => setLang('ar')}
+              style={lang === 'ar' ? langToggleBtnActiveAr : langToggleBtnAr}
+            >
+              العربية
+            </button>
           </div>
 
         </div>
@@ -492,242 +434,150 @@ export default function Home() {
           HEADER
       ===================================================== */}
 
-      <header style={headerStyle}>
-        <div style={headerInner}>
-
-          <Link href="/" style={brandStyle}>
-            <div style={logoStyle}>
-              ع
-            </div>
-
-            <div>
-              <div style={brandName}>
-                Ilm-Hub
-              </div>
-
-              <div style={brandSubtitle}>
-                Institute of Islamic Studies
-              </div>
-            </div>
-          </Link>
-
-          {/* DESKTOP NAVIGATION */}
-
-          <nav style={navStyle}>
-
-            <NavLink href="/">
-              Home
-            </NavLink>
-
-            <NavLink href="/programs">
-              Academics
-            </NavLink>
-
-            <NavLink href="/bookstore">
-              Bookstore
-            </NavLink>
-
-            <NavLink href="/lectures">
-              Lectures
-            </NavLink>
-
-            <NavLink href="/admission">
-              Admissions
-            </NavLink>
-
-          </nav>
-
-          {/* HEADER ACTIONS */}
-
-          <div style={headerActions}>
-
-            <Link
-              href="/login"
-              style={loginButton}
-            >
-              Login
-            </Link>
-
-          </div>
-
-        </div>
-
-        {/* MOBILE MENU BUTTON */}
-
-        <div className="mobile-menu-button-container">
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            style={mobileMenuButton}
-            aria-label="Toggle navigation menu"
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? '✕' : '☰'}
-          </button>
-        </div>
-
-        {/* MOBILE NAVIGATION */}
-
-        {mobileMenuOpen && (
-          <div style={mobileMenuContainer}>
-
-            <Link
-              href="/"
-              style={mobileNavLink}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Home
-            </Link>
-
-            <Link
-              href="/programs"
-              style={mobileNavLink}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Academics
-            </Link>
-
-            <Link
-              href="/bookstore"
-              style={mobileNavLink}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Bookstore
-            </Link>
-
-            <Link
-              href="/lectures"
-              style={mobileNavLink}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Lectures
-            </Link>
-
-            <Link
-              href="/admission"
-              style={mobileNavLink}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Admissions
-            </Link>
-
-            <Link
-              href="/login"
-              style={mobileNavLink}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Login
-            </Link>
-
-          </div>
-        )}
-      </header>
+      <SiteHeader />
 
       {/* =====================================================
           HERO
       ===================================================== */}
 
-      <section style={heroStyle}>
+      <section style={heroStyle} dir={dir}>
+
+        {heroSlideCount > 0 ? (
+          <div style={heroSliderLayer} aria-hidden={heroSlideCount <= 1}>
+            {heroBanners.map((banner, i) => (
+              <div
+                key={banner.id || i}
+                style={{
+                  ...heroSlide,
+                  backgroundImage: `linear-gradient(135deg, rgba(8,32,24,.78), rgba(8,32,24,.5)), url(${banner.imageUrl})`,
+                  opacity: i === activeSlideIndex ? 1 : 0,
+                }}
+              />
+            ))}
+          </div>
+        ) : hero.heroImageUrl ? (
+          <div
+            style={{
+              ...heroSlide,
+              backgroundImage: `linear-gradient(135deg, rgba(8,32,24,.78), rgba(8,32,24,.5)), url(${hero.heroImageUrl})`,
+              opacity: 1,
+            }}
+          />
+        ) : null}
 
         <div style={heroOverlay} />
 
         <div style={heroInner}>
 
           <div style={heroBadge}>
-            KNOWLEDGE • CHARACTER • EXCELLENCE
+            {lang === 'ar' && hero.badgeAr ? hero.badgeAr : hero.badge}
           </div>
 
           <h1 style={heroTitle}>
-            Excellence in Islamic Studies & Qur'anic Sciences
+            {lang === 'ar' && hero.titleAr ? hero.titleAr : hero.title}
           </h1>
 
           <p style={heroText}>
-            A structured environment for students seeking authentic,
-            beneficial and disciplined Islamic knowledge through qualified
-            instruction, classical texts, modern learning resources and
-            academic programmes.
+            {lang === 'ar' && hero.subtitleAr ? hero.subtitleAr : hero.subtitle}
           </p>
 
           <div style={heroButtonRow}>
 
             <Link
-              href="/admission"
+              href={hero.primaryHref}
               style={heroPrimaryButton}
             >
-              Apply for Admission →
+              {lang === 'ar' && hero.primaryLabelAr ? hero.primaryLabelAr : hero.primaryLabel}
             </Link>
 
             <Link
-              href="/admin"
+              href={hero.secondaryHref}
               style={heroSecondaryButton}
             >
-⚙ Admin Portal
+              {lang === 'ar' && hero.secondaryLabelAr ? hero.secondaryLabelAr : hero.secondaryLabel}
             </Link>
 
           </div>
 
           <div style={heroFeatures}>
 
-            <span>✓ Structured curriculum</span>
-            <span>✓ Online learning</span>
-            <span>✓ Academic resources</span>
-            <span>✓ Global access</span>
+            {hero.features.map((feature, i) => (
+              <span key={feature}>✓ {lang === 'ar' && hero.featuresAr?.[i] ? hero.featuresAr[i] : feature}</span>
+            ))}
 
           </div>
 
         </div>
+
+        {heroSlideCount > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={goPrevSlide}
+              aria-label="Previous banner"
+              className="hero-slide-arrow hero-slide-arrow-prev"
+              style={heroArrow}
+            >
+              ‹
+            </button>
+
+            <button
+              type="button"
+              onClick={goNextSlide}
+              aria-label="Next banner"
+              className="hero-slide-arrow hero-slide-arrow-next"
+              style={heroArrow}
+            >
+              ›
+            </button>
+
+            <div className="hero-slide-dots" style={heroDots}>
+              {heroBanners.map((banner, i) => (
+                <button
+                  key={banner.id || i}
+                  type="button"
+                  onClick={() => goToSlide(i)}
+                  aria-label={`Go to banner ${i + 1}`}
+                  style={{
+                    ...heroDot,
+                    opacity: i === activeSlideIndex ? 1 : 0.45,
+                    transform: i === activeSlideIndex ? 'scale(1.25)' : 'scale(1)',
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {/* =====================================================
           WELCOME
       ===================================================== */}
 
-      <section style={sectionStyle}>
+      <section style={welcomeSection} dir={dir}>
 
-        <div style={headingContainer}>
+        <div style={headingContainerWelcome}>
 
-          <span style={goldLabel}>
-            WELCOME TO ILM-HUB
+          <span style={welcomeEyebrow}>
+            <span style={bookstoreEyebrowDot} aria-hidden="true" />
+            {t(welcome.badge)}
           </span>
 
-          <h2 style={sectionTitle}>
-            A place to seek knowledge with sincerity
+          <h2 style={sectionTitle} className="uai-welcome-title">
+            {t(welcome.title)}
           </h2>
 
-          <p style={sectionDescription}>
-            Ilm-Hub Institute brings together structured academic learning,
-            classical Islamic scholarship, digital resources, and a community
-            committed to beneficial knowledge, upright character, and lifelong
-            learning.
+          <p style={sectionDescriptionWelcome}>
+            {t(welcome.subtitle)}
           </p>
 
         </div>
 
         <div style={cardGrid}>
 
-          <FeatureCard
-            icon="📚"
-            title="Structured Learning"
-            text="Progress through carefully organized academic programmes and courses designed to build knowledge systematically."
-          />
-
-          <FeatureCard
-            icon="🕌"
-            title="Islamic Scholarship"
-            text="Engage with the Qur'an, Sunnah, classical texts, and established Islamic disciplines through sound scholarly tradition."
-          />
-
-          <FeatureCard
-            icon="🎓"
-            title="Student Development"
-            text="Develop sound knowledge, disciplined study habits, research ability, humility, and beneficial character."
-          />
-
-          <FeatureCard
-            icon="🌐"
-            title="Learning Without Borders"
-            text="Access educational opportunities and digital resources designed to support students wherever they are."
-          />
+          {featureCards.map((card, i) => (
+            <FeatureCard key={i} icon={card.icon} title={t(card.title)} text={t(card.text)} />
+          ))}
 
         </div>
       </section>
@@ -736,73 +586,59 @@ export default function Home() {
           ACADEMICS
       ===================================================== */}
 
-      <section style={greenSection}>
+      <section style={greenSection} dir={dir}>
 
-        <div style={sectionInner}>
+        <div style={academyGlow} aria-hidden="true" />
 
-          <span style={goldLabel}>
-            ACADEMICS
+        <div style={academySectionInner}>
+
+          <span style={academyEyebrow}>
+            <span style={academyEyebrowDot} aria-hidden="true" />
+            {t(academySection.badge)}
           </span>
 
           <h2 style={sectionTitleWhite}>
-            Explore Our Academic Programmes
+            {t(academySection.title)}
           </h2>
 
           <p style={whiteDescription}>
-            Explore our academic departments, programmes, courses, and areas
-            of Islamic study, rooted in the Qur'an and Sunnah and presented
-            through structured and disciplined learning.
+            {t(academySection.subtitle)}
           </p>
 
           <div style={miniFeatureGrid}>
 
-            <MiniFeature
-              icon="📖"
-              text="Qur'anic Sciences"
-            />
+            {departmentsLoaded && departments.length === 0 && (
+              <div style={{ gridColumn: '1 / -1', color: 'rgba(255,255,255,.75)', fontSize: 14 }}>
+                Academic departments will appear here once published.
+              </div>
+            )}
 
-            <MiniFeature
-              icon="🗣️"
-              text="Arabic Language"
-            />
-
-            <MiniFeature
-              icon="📚"
-              text="Hadith Studies"
-            />
-
-            <MiniFeature
-              icon="⚖️"
-              text="Fiqh & Usul"
-            />
-
-            <MiniFeature
-              icon="☪️"
-              text="Aqidah"
-            />
-
-            <MiniFeature
-              icon="🎙️"
-              text="Tajwid & Recitation"
-            />
-
-            <MiniFeature
-              icon="☪️"
-              text="Tauheed (Monotheism)"
-            />
-
-            <MiniFeature
-              icon="🌱"
-              text="Tarbiyah (Education)"
-            />
+            {departments.map((dept) => (
+              <DepartmentMiniCard key={dept.id} department={dept} />
+            ))}
 
           </div>
 
+          {/* This is the homepage's one link into the real programme
+              directory (/programs). The hero's own CTA used to point
+              here too, under the near-duplicate label "Explore
+              Academics" -- it was changed to link to the narrative
+              /academy-pathways framework page instead (see the hero
+              default above), so each of the homepage's academics
+              links now serves a distinct purpose:
+                - Hero CTA            -> /academy-pathways (orientation)
+                - This button         -> /programs (browse everything)
+                - Each Tier 1-5 card  -> /programs/[id] (one programme)
+                - "Read the Full ..." -> /academy-pathways (framework detail)
+              Nothing here needed deleting -- the duplication was only
+              in the destination, not in a whole section, so the fix
+              was re-routing one link rather than removing content. */}
           <Link
             href="/programs"
             style={goldButton}
+            className="uai-gold-btn"
           >
-            Explore Academic Departments →
+            {t('Explore Academic Departments →')}
           </Link>
 
         </div>
@@ -810,38 +646,45 @@ export default function Home() {
       </section>
 
       {/* =====================================================
+          ACADEMIC PROGRAMS
+          (Model 12 -- the Academy's five real pathway tiers; full
+          detail lives on /academy-pathways and each programme's own
+          page, not here)
+      ===================================================== */}
+
+      <AcademicProgramsSection />
+
+      {/* =====================================================
           BOOKSTORE
       ===================================================== */}
 
-      <section style={sectionStyle}>
+      <section style={bookstoreSection} dir={dir}>
 
         <div style={splitGrid}>
 
-          <div>
+          <div style={bookstoreCopyCol}>
 
-            <span style={goldLabel}>
-              ILM-HUB BOOKSTORE
+            <span style={bookstoreEyebrow}>
+              <span style={bookstoreEyebrowDot} aria-hidden="true" />
+              {t('ULUL AZM BOOKSTORE')}
             </span>
 
             <h2
               style={{
-                ...sectionTitle,
-                textAlign: 'left',
-                whiteSpace: 'normal',
+                ...bookstoreHeading,
+                textAlign: dir === 'rtl' ? 'right' : 'left',
               }}
             >
-              Academic Bookstore
+              {t('Islamic Bookstore')}
             </h2>
 
             <p
               style={{
-                ...sectionDescription,
-                textAlign: 'left',
-                margin: '0',
+                ...bookstoreLede,
+                textAlign: dir === 'rtl' ? 'right' : 'left',
               }}
             >
-              Explore selected Islamic books, classical texts, student
-              resources, workbooks and educational publications.
+              {t('Explore selected Islamic books, classical texts, student resources, workbooks and educational publications.')}
             </p>
 
             <div style={buttonRow}>
@@ -849,35 +692,55 @@ export default function Home() {
               <Link
                 href="/bookstore"
                 style={mainButton}
+                className="uai-gold-btn"
               >
-                Visit Academic Bookstore →
+                {t('Visit Islamic Bookstore →')}
               </Link>
 
               <Link
                 href="/author-portal/admission"
                 style={outlineButton}
+                className="uai-lift-card"
               >
-                Purchase & Sell Your Books
+                {t('Publish Your Book With Us →')}
               </Link>
 
             </div>
 
           </div>
 
-          <div style={bookstoreFeature}>
+          <div
+            style={
+              beneficialKnowledgeImage
+                ? {
+                    ...bookstoreFeature,
+                    // A dark scrim over the admin-uploaded photo, same
+                    // brand colors as the plain gradient below, so the
+                    // white heading/text stay readable over any image.
+                    background: `linear-gradient(135deg, rgba(20,40,32,.88), rgba(20,83,45,.82)), url(${beneficialKnowledgeImage})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }
+                : bookstoreFeature
+            }
+          >
 
-            <div style={{ fontSize: '50px' }}>
-              📚
+            <div style={bookstoreFeatureIconWrap}>
+              <span style={{ fontSize: '30px' }}>📚</span>
             </div>
 
             <h3 style={featureDarkTitle}>
-              Beneficial Knowledge
+              {beneficialKnowledgeTitle || t('Beneficial Knowledge')}
             </h3>
 
             <p style={featureDarkText}>
-              Quality books are companions for the serious student. Explore
-              our dedicated bookstore for academic and Islamic publications.
+              {beneficialKnowledgeBody || t('Quality books are companions for the serious student. Explore our dedicated bookstore for academic and Islamic publications.')}
             </p>
+
+            <div style={bookstoreFeatureFootnote}>
+              <span aria-hidden="true">✦</span>
+              {t('Curated for students, scholars and lifelong learners')}
+            </div>
 
           </div>
 
@@ -886,394 +749,168 @@ export default function Home() {
       </section>
 
       {/* =====================================================
-          LECTURES
+          LECTURES & MEDIA
       ===================================================== */}
 
-      <section style={lightSection}>
+      <section style={lightSection} dir={dir}>
 
         <div style={sectionInner}>
 
           <span style={goldLabel}>
-            LECTURES & MEDIA
+            {t('MEDIA & LIBRARY')}
           </span>
 
           <h2 style={sectionTitle}>
-            Learn, Listen & Revisit
+            {t('Learn, Listen & Read')}
           </h2>
 
           <p style={sectionDescription}>
-            Recorded lessons, Khutbahs, Mutun Al-Ilmiyyah, Manzumat and
-            educational programmes are now organized inside the dedicated
-            Lectures section.
+            {t('Two separate, dedicated sections: recorded lessons, Khutbahs, Mutun Al-Ilmiyyah and Manzumat live in Media; articles, fatwas, research papers and classical texts live in the Library.')}
           </p>
 
-          <Link
-            href="/lectures"
-            style={mainButton}
-          >
-            Open →</Link>
+          {/* Two distinct cards, not one shared block with two buttons --
+              the copy above says Media and Library are "two separate,
+              dedicated sections," so the layout now shows that instead
+              of contradicting it with a single merged block. Each
+              card's picture and text are admin-editable (SectionBanner
+              rows 'homepage-media-card' / 'homepage-library-card' --
+              see /admin/homepage/media-card and .../library-card): an
+              uploaded picture replaces the emoji icon as a banner
+              across the top of the card, and a custom heading/text
+              override the defaults, exactly like the Bookstore
+              section's "Beneficial Knowledge" box already works. */}
+          <div style={mediaLibraryGrid}>
+
+            <Link href="/media" style={mediaLibraryCard} className="uai-lift-card">
+              {mediaCardImage ? (
+                <div style={{ ...mediaLibraryCardBanner, backgroundImage: `url(${mediaCardImage})` }} />
+              ) : (
+                <div style={mediaLibraryIcon}>🎙️</div>
+              )}
+              <div style={mediaLibraryCardBody}>
+                <h3 style={mediaLibraryCardTitle}>{mediaCardTitle || t('Media')}</h3>
+                <p style={mediaLibraryCardText}>
+                  {mediaCardBody || t('Recorded lessons, Khutbahs, Mutun Al-Ilmiyyah and Manzumat.')}
+                </p>
+                <span style={mediaLibraryCardLink}>{t('Explore Media →')}</span>
+              </div>
+            </Link>
+
+            <Link href="/library" style={mediaLibraryCard} className="uai-lift-card">
+              {libraryCardImage ? (
+                <div style={{ ...mediaLibraryCardBanner, backgroundImage: `url(${libraryCardImage})` }} />
+              ) : (
+                <div style={mediaLibraryIcon}>📖</div>
+              )}
+              <div style={mediaLibraryCardBody}>
+                <h3 style={mediaLibraryCardTitle}>{libraryCardTitle || t('Library')}</h3>
+                <p style={mediaLibraryCardText}>
+                  {libraryCardBody || t('Articles, fatwas, research papers and classical texts.')}
+                </p>
+                <span style={mediaLibraryCardLink}>{t('Browse Library →')}</span>
+              </div>
+            </Link>
+
+          </div>
 
         </div>
 
       </section>
 
       {/* =====================================================
-          WHY ILM-HUB
+          WHY ULUL AZM
       ===================================================== */}
 
-      <section style={sectionStyle}>
+      <section style={sectionStyle} dir={dir}>
 
-        <div style={headingContainer}>
+        <div style={headingContainerWide}>
 
           <span style={goldLabel}>
-            OUR APPROACH
+            {t(approachSection.badge)}
           </span>
 
-          <h2 style={sectionTitle}>
-            More than a website — a learning environment
+          <h2 style={sectionTitle} className="uai-approach-title">
+            {t(approachSection.title)}
           </h2>
 
-          <p style={sectionDescription}>
-            We aim to make the pursuit of Islamic knowledge organized,
-            accessible, responsible and beneficial.
+          <p style={sectionDescription} className="uai-approach-subtitle">
+            {t(approachSection.subtitle)}
           </p>
 
         </div>
 
-        <div style={infoGrid}>
+        {/* A connected step sequence, not three disconnected cards --
+            the three steps genuinely progress from one to the next
+            (foundations, then structure, then scholarship), so the
+            layout now shows that relationship with a connecting line
+            and large sequence numerals, rather than the generic
+            InfoBox treatment shared with other, non-sequential
+            sections on this page. Data shape (number/title/text) is
+            unchanged, so /admin/homepage/sections still edits this
+            directly. */}
+        <div style={approachStepRow} className="uai-approach-row">
 
-          <InfoBox
-            number="01"
-            title="Authentic Foundations"
-            text="Begin with foundational disciplines before progressing into advanced studies."
-          />
-
-          <InfoBox
-            number="02"
-            title="Structured Programmes"
-            text="Study through clearly defined academic areas rather than disconnected lessons."
-          />
-
-          <InfoBox
-            number="03"
-            title="Responsible Scholarship"
-            text="Approach Islamic knowledge with sincerity, humility, discipline and respect for scholarship."
-          />
+          {approachSteps.map((step, i) => (
+            <ApproachStep
+              key={i}
+              number={step.number}
+              title={t(step.title)}
+              text={t(step.text)}
+              isLast={i === approachSteps.length - 1}
+            />
+          ))}
 
         </div>
 
       </section>
+
+      {/* The "Begin Your Journey of Knowledge" banner that used to
+          render here as its own standalone section now lives in
+          SiteFooter as that shared component's own masthead strip,
+          so it renders consistently on every page that has a
+          footer, not only this one -- see components/SiteFooter.jsx. */}
 
       {/* =====================================================
-          CTA
+          EVENTS & NEWS (Model 27)
+          Genuinely new public content -- both sections render
+          nothing at all when there is no published data (same
+          "return null when empty" convention as AnnouncementsStrip
+          and SponsorsStrip just below), so an Institute with no
+          events or news yet never shows a broken or fake-looking
+          homepage section.
       ===================================================== */}
 
-      <section style={ctaSection}>
+      <UpcomingEventsSection />
+      <LatestNewsSection />
 
-        <div style={ctaInner}>
+      {/* =====================================================
+          NOTICES & SPONSORS
+          Moved down from directly under the hero (per admin
+          request) -- these are reference/utility content, not the
+          institute's primary message, so they now sit just above
+          the footer in a single compact strip instead of pushing
+          the academic content further down the page. Both still
+          render nothing at all when there is no live data (no
+          active announcements / no public sponsors), exactly as
+          before.
+      ===================================================== */}
 
-          <div style={arabic}>
-            BISMILLAH • SEEK KNOWLEDGE • SERVE WITH EXCELLENCE
-          </div>
-
-          <h2 style={ctaTitle}>
-            Begin Your Journey of Knowledge
-          </h2>
-
-          <p style={whiteDescription}>
-            Explore academic programmes, educational resources, lectures and
-            admissions opportunities.
-          </p>
-
-          <div style={buttonRowCenter}>
-
-            <Link
-              href="/admission"
-              style={heroPrimaryButton}
-            >
-              Apply for Admission
-            </Link>
-
-            <Link
-              href="/programs"
-              style={heroSecondaryButton}
-            >
-              Explore Programmes
-            </Link>
-
-          </div>
-
-        </div>
-      </section>
+      <div style={utilityStripWrap}>
+        <AnnouncementsStrip />
+        <SponsorsStrip />
+      </div>
 
       {/* =====================================================
           FOOTER
       ===================================================== */}
 
-      <footer style={footerStyle}>
+      <SiteFooter />
 
-        <div style={footerInner}>
-
-          <div style={footerGrid}>
-
-            {/* ABOUT */}
-
-            <div>
-
-              <div style={footerBrand}>
-
-                <div style={footerLogo}>
-                  ع
-                </div>
-
-                <div>
-
-                  <div style={footerBrandName}>
-                    Ilm-Hub Institute
-                  </div>
-
-                  <div style={footerBrandTagline}>
-                    SEEK • LEARN • BENEFIT
-                  </div>
-
-                </div>
-
-              </div>
-
-              <p style={footerText}>
-                An institute dedicated to beneficial Islamic knowledge,
-                structured learning, scholarly study and the development of
-                students who combine knowledge with sound character.
-              </p>
-
-              <p style={footerArabic}>
-                وَقُلْ رَبِّ زِدْنِي عِلْمًا</p>
-
-              <p style={footerQuote}>
-                “And say: My Lord, increase me in knowledge.”
-              </p>
-
-              <div style={footerPrinciple}>
-
-                <strong style={footerPrincipleTitle}>
-                  Our guiding principle
-                </strong>
-
-                <p style={footerPrincipleText}>
-                  Knowledge is a trust. We seek to learn it sincerely,
-                  understand it responsibly, and share it beneficially.
-                </p>
-
-              </div>
-
-            </div>
-
-            {/* ACADEMICS */}
-
-            <FooterColumn title="Academics">
-
-              <FooterLink href="/programs">
-                Academic Departments
-              </FooterLink>
-
-              <FooterLink href="/programs">
-                Programmes
-              </FooterLink>
-
-              <FooterLink href="/admission">
-                Admissions
-              </FooterLink>
-
-              <FooterLink href="/lectures">
-                Lectures & Media
-              </FooterLink>
-
-            </FooterColumn>
-
-            {/* RESOURCES */}
-
-            <FooterColumn title="Resources">
-
-              <FooterButton
-                onClick={() => setFooterModal('resources')}
-              >
-                Student Resources
-              </FooterButton>
-
-              <FooterLink href="/bookstore">
-                Bookstore
-              </FooterLink>
-
-              <FooterLink href="/bookstore">
-                Digital Library
-              </FooterLink>
-
-              <FooterButton
-                onClick={() => setFooterModal('faq')}
-              >
-                Frequently Asked Questions
-              </FooterButton>
-
-            </FooterColumn>
-
-            {/* INSTITUTE */}
-
-            <FooterColumn title="Institute">
-
-              <FooterButton
-                onClick={() => setFooterModal('about')}
-              >
-                About Ilm-Hub
-              </FooterButton>
-
-              <FooterButton
-                onClick={() => setFooterModal('contact')}
-              >
-                Contact
-              </FooterButton>
-
-              <FooterButton
-                onClick={() => setFooterModal('privacy')}
-              >
-                Privacy Policy
-              </FooterButton>
-
-              <FooterButton
-                onClick={() => setFooterModal('terms')}
-              >
-                Terms of Use
-              </FooterButton>
-
-              <FooterButton
-                onClick={() => setFooterModal('refund')}
-              >
-                Refund Policy
-              </FooterButton>
-
-            </FooterColumn>
-
-            {/* FOLLOW US */}
-
-            <div>
-
-              <h3 style={footerHeading}>
-                Follow Us
-              </h3>
-
-              <p style={footerTextSmall}>
-                Stay connected with Ilm-Hub for lectures, announcements,
-                educational content, new programmes, and institute updates.
-              </p>
-
-              <div style={socialGrid}>
-
-                {socialLinks.map((social) => (
-                  <a
-                    key={social.name}
-                    href={social.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={`Follow Ilm-Hub on ${social.name}`}
-                    aria-label={`Follow Ilm-Hub on ${social.name}`}
-                    style={socialButton}
-                  >
-                    {social.icon}
-                  </a>
-                ))}
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* FOOTER CONTACT STRIP */}
-
-          <div style={footerContactStrip}>
-
-            <div>
-              <span>📚</span>
-              <strong> Address:</strong> [Accra-Ghana]
-            </div>
-
-            <div>
-              <span>☎️</span>
-              <strong> Phone:</strong> +233 561 9175 70
-            </div>
-
-            <div>
-              <span>✉️</span>
-              <strong> Email:</strong> info@ilmhub.org
-            </div>
-
-            <div>
-              <span>🎓</span>
-              <strong> Academic Enquiries:</strong>{' '}
-              admissions@ilmhub.org
-            </div>
-
-          </div>
-
-          {/* FOOTER BOTTOM */}
-
-          <div style={footerBottom}>
-
-            <div>
-              © {new Date().getFullYear()} Ilm-Hub Institute. All rights
-              reserved.
-            </div>
-
-            <div>
-              Knowledge is a trust. Character is its companion.
-            </div>
-
-          </div>
-
-        </div>
-
-      </footer>
+      <IslamicDateWidget />
 
       {/* =====================================================
           FOOTER MODAL
       ===================================================== */}
-
-      {footerModal && footerContent[footerModal] && (
-
-        <div
-          onClick={() => setFooterModal(null)}
-          style={modalOverlay}
-        >
-
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={modalBox}
-          >
-
-            <div style={modalHeader}>
-
-              <h2 style={modalTitle}>
-                {footerContent[footerModal].title}
-              </h2>
-
-              <button
-                onClick={() => setFooterModal(null)}
-                style={closeButton}
-                aria-label="Close"
-                type="button"
-              >
-                ✕</button>
-
-            </div>
-
-            <div style={modalContent}>
-              {footerContent[footerModal].content}
-            </div>
-
-          </div>
-
-        </div>
-
-      )}
 
       {/* =====================================================
           RESPONSIVE STYLES
@@ -1281,9 +918,83 @@ export default function Home() {
 
       <style jsx>{`
 
+        .uai-lift-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 18px 40px rgba(15,23,42,.12);
+          border-color: var(--gold);
+        }
+
+        .uai-lift-card-dark:hover {
+          transform: translateY(-3px);
+          background: rgba(255,255,255,.12);
+          border-color: rgba(255,255,255,.25);
+        }
+
+        .uai-gold-btn:hover {
+          transform: translateY(-2px);
+          filter: brightness(1.06);
+          box-shadow: 0 12px 26px rgba(197,157,95,.35);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .uai-lift-card,
+          .uai-lift-card-dark,
+          .uai-gold-btn {
+            transition: none !important;
+          }
+        }
+
         .mobile-menu-button-container {
           display: none;
           padding: 0 24px 15px;
+        }
+
+        .uai-approach-title {
+          white-space: nowrap;
+        }
+
+        .uai-welcome-title {
+          white-space: nowrap;
+        }
+
+        .uai-approach-subtitle {
+          white-space: nowrap;
+        }
+
+        .hero-slide-arrow {
+          left: 18px;
+        }
+
+        .hero-slide-arrow-next {
+          left: auto;
+          right: 18px;
+        }
+
+        .hero-slide-arrow:hover {
+          background: rgba(8,32,24,.7);
+          border-color: rgba(255,255,255,.6);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .hero-slide-arrow {
+            transition: none !important;
+          }
+        }
+
+        @media (max-width: 700px) {
+
+          .hero-slide-arrow {
+            width: 34px;
+            height: 34px;
+            font-size: 18px;
+            left: 10px;
+          }
+
+          .hero-slide-arrow-next {
+            left: auto;
+            right: 10px;
+          }
+
         }
 
         @media (max-width: 900px) {
@@ -1308,23 +1019,52 @@ export default function Home() {
 
         }
 
+        @media (max-width: 800px) {
+
+          .uai-approach-row {
+            grid-template-columns: 1fr !important;
+            gap: 34px !important;
+          }
+
+          .uai-approach-step {
+            padding: 0 !important;
+          }
+
+          .uai-approach-step .uai-approach-connector {
+            display: none;
+          }
+
+          .uai-approach-title {
+            white-space: normal !important;
+          }
+
+          .uai-welcome-title {
+            white-space: normal !important;
+          }
+
+          .uai-approach-subtitle {
+            white-space: normal !important;
+          }
+
+        }
+
       `}</style>
 
     </div>
   );
 }
 
+export default function Home() {
+  return (
+    <LanguageProvider>
+      <HomeContent />
+    </LanguageProvider>
+  );
+}
+
 /* ============================================================
    COMPONENTS
 ============================================================ */
-
-function NavLink({ href, children }) {
-  return (
-    <Link href={href} style={navLink}>
-      {children}
-    </Link>
-  );
-}
 
 function FooterColumn({ title, children }) {
   return (
@@ -1362,9 +1102,589 @@ function FooterButton({ onClick, children }) {
   );
 }
 
+function UpcomingEventsSection() {
+  const [events, setEvents] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/events')
+      .then((res) => res.json())
+      .then((result) => {
+        if (cancelled) return;
+        if (result && result.success && Array.isArray(result.data)) {
+          const now = Date.now();
+          const upcoming = result.data
+            .filter((e) => new Date(e.eventDate).getTime() >= now)
+            .slice(0, 3);
+          setEvents(upcoming);
+        }
+      })
+      .catch(() => {
+        /* silently ignore -- the homepage should never break because
+           the events feed is unavailable */
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!loaded || events.length === 0) {
+    return null;
+  }
+
+  return (
+    <section style={sectionStyle}>
+      <div style={headingContainer}>
+        <span style={goldLabel}>UPCOMING EVENTS</span>
+        <h2 style={sectionTitle}>Join Us</h2>
+      </div>
+
+      <div style={miniCardGrid}>
+        {events.map((event) => (
+          <div key={event.id} style={miniCard}>
+            <div style={miniCardEyebrow}>
+              {new Date(event.eventDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              {event.eventTime ? ` · ${event.eventTime}` : ''}
+            </div>
+            <div style={miniCardTitle}>{event.titleEn}</div>
+            <p style={miniCardDesc}>{event.descriptionEn}</p>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ textAlign: 'center', marginTop: 28 }}>
+        <Link href="/events" style={goldButton} className="uai-gold-btn">
+          View All Events
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function LatestNewsSection() {
+  const [articles, setArticles] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/news')
+      .then((res) => res.json())
+      .then((result) => {
+        if (cancelled) return;
+        if (result && result.success && Array.isArray(result.data)) {
+          setArticles(result.data.slice(0, 3));
+        }
+      })
+      .catch(() => {
+        /* silently ignore -- same convention as UpcomingEventsSection */
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!loaded || articles.length === 0) {
+    return null;
+  }
+
+  return (
+    <section style={{ ...sectionStyle, borderTop: '1px solid var(--border)' }}>
+      <div style={headingContainer}>
+        <span style={goldLabel}>LATEST NEWS</span>
+        <h2 style={sectionTitle}>From the Institute</h2>
+      </div>
+
+      <div style={miniCardGrid}>
+        {articles.map((article) => (
+          <Link key={article.id} href={`/news/${article.id}`} style={{ ...miniCard, textDecoration: 'none', color: 'inherit' }}>
+            {article.featuredImageUrl && (
+              <div style={{ ...miniCardImage, backgroundImage: `url(${article.featuredImageUrl})` }} />
+            )}
+            <div style={miniCardEyebrow}>
+              {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : ''}
+            </div>
+            <div style={miniCardTitle}>{article.titleEn}</div>
+          </Link>
+        ))}
+      </div>
+
+      <div style={{ textAlign: 'center', marginTop: 28 }}>
+        <Link href="/news" style={goldButton} className="uai-gold-btn">
+          View All News
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function AnnouncementsStrip() {
+  const { t, dir } = useLanguage();
+  const [announcements, setAnnouncements] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/announcements')
+      .then((res) => res.json())
+      .then((result) => {
+        if (cancelled) return;
+        if (result && result.success && Array.isArray(result.data)) {
+          setAnnouncements(result.data);
+        }
+      })
+      .catch(() => {
+        /* silently ignore — the homepage should never break because
+           the announcements feed is unavailable */
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Auto-advance the slider -- only when there's more than one notice,
+  // and never for anyone whose system asks for reduced motion.
+  useEffect(() => {
+    if (announcements.length < 2) return undefined;
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return undefined;
+    }
+
+    const timer = setInterval(() => {
+      setActiveIndex((index) => (index + 1) % announcements.length);
+    }, 6000);
+
+    return () => clearInterval(timer);
+  }, [announcements.length]);
+
+  if (!loaded || announcements.length === 0) {
+    return null;
+  }
+
+  return (
+    <section style={utilityStripSectionStyle} dir={dir}>
+      <div style={utilityStripHeading}>
+        <span style={utilityStripLabel}>{t('NOTICES & ANNOUNCEMENTS')}</span>
+
+        <h2 style={utilityStripTitle}>
+          {t("What's happening at Ulul Azm")}
+        </h2>
+      </div>
+
+      <div style={announcementsSliderViewport}>
+        <div
+          style={{
+            ...announcementsSliderTrack,
+            transform: `translateX(-${activeIndex * 100}%)`,
+          }}
+        >
+          {announcements.map((item) => (
+            <div key={item.id} style={announcementsSlide}>
+              <div style={announcementCard}>
+                <div style={announcementDate}>
+                  {new Date(item.publishedAt).toLocaleDateString([], {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </div>
+
+                <h3 style={announcementTitle}>{item.titleEn}</h3>
+
+                <p style={announcementBody}>{item.bodyEn}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {announcements.length > 1 && (
+        <div style={announcementsDots} role="tablist" aria-label="Announcements">
+          {announcements.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              onClick={() => setActiveIndex(index)}
+              aria-label={`Show notice ${index + 1} of ${announcements.length}`}
+              aria-selected={index === activeIndex}
+              style={index === activeIndex ? announcementsDotActive : announcementsDot}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// Real, currently-active sponsors/partners (Sponsor.status === ACTIVE,
+// isPublic === true, and within startDate/endDate when set -- the exact
+// same filtering /api/sponsors already applies for the standalone
+// /sponsored page, reused here rather than duplicated). Renders nothing
+// when there are none yet, same convention as AnnouncementsStrip above,
+// so the homepage never shows an empty "Our Sponsors" section.
+function SponsorsStrip() {
+  const { t, dir } = useLanguage();
+  const [sponsors, setSponsors] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/sponsors')
+      .then((res) => res.json())
+      .then((result) => {
+        if (cancelled) return;
+        if (result && result.success && Array.isArray(result.sponsors)) {
+          setSponsors(result.sponsors);
+        }
+      })
+      .catch(() => {
+        /* silently ignore -- the homepage should never break because
+           the sponsors feed is unavailable */
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!loaded || sponsors.length === 0) {
+    return null;
+  }
+
+  return (
+    <section style={utilityStripSectionStyleWithRule} dir={dir}>
+      <div style={utilityStripHeading}>
+        <span style={utilityStripLabel}>{t('SPONSORS & PARTNERS')}</span>
+
+        <h2 style={utilityStripTitle}>
+          {t('Supported By')}
+        </h2>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '18px',
+          maxWidth: '1000px',
+          margin: '0 auto',
+        }}
+      >
+        {sponsors.map((sponsor) => (
+          <div
+            key={sponsor.id}
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              textAlign: 'center',
+            }}
+          >
+            {sponsor.logoUrl ? (
+              <img
+                src={sponsor.logoUrl}
+                alt={sponsor.name}
+                style={{ width: 64, height: 64, objectFit: 'contain' }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  background: 'var(--brand-tint)',
+                  color: 'var(--brand)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                  fontSize: '20px',
+                }}
+              >
+                {sponsor.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+
+            <div style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--ink)' }}>
+              {sponsor.name}
+            </div>
+
+            {sponsor.websiteUrl && (
+              <a
+                href={sponsor.websiteUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{ fontSize: '12px', color: 'var(--brand)', fontWeight: 600, textDecoration: 'none' }}
+              >
+                {t('Visit website')} →
+              </a>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ textAlign: 'center', marginTop: '22px' }}>
+        <a href="/sponsored" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--brand)', textDecoration: 'none' }}>
+          {t('See all sponsors & partners')} →
+        </a>
+      </div>
+    </section>
+  );
+}
+
+// Model 12 -- the Academy's five real pathway tiers (Academic Pathways
+// & Qualification Framework, already approved). Content below is
+// transcribed from that document's section 2 (and section 1 for the
+// Specialized Certificate tier), not invented here. Foundation,
+// Intermediate, Advanced and Diploma are real Program records
+// (resolved to their live id via the same public programmes endpoint
+// /programs uses); Specialized Certificate Programs is a real,
+// approved *framework* but has no defined certificate yet -- so its
+// card says so plainly and carries no "Apply" action, rather than
+// linking to an application for something that does not exist.
+const PATHWAY_TIERS = [
+  {
+    level: 'FOUNDATION',
+    badge: 'Tier 1',
+    name: 'Foundation Learner Programme',
+    purpose:
+      "Establishes the basic Islamic knowledge, Qur'an reading ability, and study habits every later pathway assumes.",
+    who: 'Learners with little or no prior structured Islamic education, at any age from young learner to adult.',
+    studyAreas: [
+      'Aqeedah & Fiqh essentials',
+      "Qur'an reading & Tajweed foundations",
+      'Arabic foundations',
+      'Islamic character & adab',
+      'Basic study skills',
+    ],
+    duration: "The Academy's shortest pathway -- a small number of academic terms.",
+    delivery: "Online, through instructor-led live classes and the Academy's own course portal.",
+    progression: 'The normal route into Intermediate Islamic Studies.',
+    admission: 'No prior study required -- placement by a short readiness assessment.',
+    hasProgram: true,
+    canApply: true,
+    note: null,
+  },
+  {
+    level: 'INTERMEDIATE',
+    badge: 'Tier 2',
+    name: 'Intermediate Learner Programme',
+    purpose:
+      'Moves a learner from basic knowledge to systematic, connected understanding across the core disciplines.',
+    who: 'Learners who have completed Foundation Studies, or who test in with equivalent prior learning.',
+    studyAreas: [
+      'Systematic Aqeedah & Fiqh',
+      'Seerah',
+      "Applied Tajweed & Qur'an comprehension",
+      'Arabic grammar',
+      'Islamic history & civilization',
+      'Communication & leadership',
+    ],
+    duration: 'Longer than Foundation, shorter than Advanced -- a multi-term sequence.',
+    delivery: "Online, through instructor-led live classes and the Academy's own course portal.",
+    progression: 'The normal route into Advanced Islamic Studies.',
+    admission: 'Completed Foundation Studies, or a placement assessment demonstrating equivalent competence.',
+    hasProgram: true,
+    canApply: true,
+    note: null,
+  },
+  {
+    level: 'ADVANCED',
+    badge: 'Tier 3',
+    name: 'Advanced Islamic Studies',
+    purpose:
+      'Independent engagement with primary texts and a first taste of specialization, preparing a learner for the Diploma.',
+    who: 'Learners who have completed Intermediate Islamic Studies and are ready to work with less guidance.',
+    studyAreas: [
+      'Independent Aqeedah reasoning',
+      'Usul al-Fiqh & Hadith Sciences',
+      'Tajweed mastery & introductory Tafsir',
+      'Source-level Arabic',
+      'Islamic thought & research preparation',
+      'One specialization elective',
+    ],
+    duration: 'Comparable to or slightly longer than Intermediate.',
+    delivery: "Online, through instructor-led live classes and the Academy's own course portal.",
+    progression: 'The normal route into the Diploma -- or directly into a Specialized Certificate.',
+    admission: 'Completed Intermediate Islamic Studies, or a placement assessment demonstrating equivalent competence.',
+    hasProgram: true,
+    canApply: true,
+    note: null,
+  },
+  {
+    level: 'DIPLOMA',
+    badge: 'Tier 4',
+    name: 'Diploma in Islamic Studies',  // homepage card label; see note above re: formal Program name
+    purpose:
+      "The Academy's flagship structured qualification, integrating all six departments into one assessed credential.",
+    who: 'Learners who have completed Advanced Islamic Studies and are pursuing the Academy\'s most complete credential.',
+    studyAreas: [
+      'Islamic Studies',
+      "Qur'anic Studies",
+      'Arabic Language',
+      'Islamic Education & Tarbiyah',
+      'Islamic Civilization & Society',
+      'Research & Learning Skills',
+    ],
+    duration: "The Academy's longest structured pathway.",
+    delivery: "Online, through instructor-led live classes and the Academy's own course portal.",
+    progression: 'The normal route into a Specialized Certificate for a teaching or research track.',
+    admission: 'Completed Advanced Islamic Studies, or a comprehensive placement assessment.',
+    hasProgram: true,
+    canApply: true,
+    note: 'An Academy-issued credential -- not an externally accredited one.',
+  },
+  {
+    // 2026-09: real Program now exists (level CERTIFICATE) -- this
+    // card's own local `level` key is set to match it exactly, since
+    // AcademicProgramsSection below maps the API's real Program.level
+    // to a card via this field (programIds[tier.level]).
+    level: 'CERTIFICATE',
+    badge: 'Tier 5',
+    name: 'Specialized Certificate Programs',
+    purpose:
+      'Focused, single-area competence beyond the general pathway, for a learner who wants depth in one discipline.',
+    who: 'Learners who have completed Advanced Islamic Studies or the Diploma and want to go deep in one area.',
+    studyAreas: [
+      'Tajweed', "Qur'an Recitation", 'Hifz', 'Tafsir', 'Hadith', 'Fiqh',
+      'Arabic', "Qur'anic Arabic", 'Islamic Education', "Da'wah", 'Islamic History & Civilization',
+    ],
+    duration: 'Shorter and more focused than the Diploma -- varies by certificate area.',
+    delivery: "Online, through instructor-led live classes and the Academy's own course portal.",
+    progression: 'A terminal award within its area -- a learner may hold more than one certificate over time.',
+    admission: 'Completed Advanced Islamic Studies or the Diploma, or a placement assessment demonstrating equivalent competence in the chosen area.',
+    hasProgram: true,
+    canApply: true,
+    note: "Draws its initial course list from across the Academy's departments; the Department may add further certificate courses over time.",
+  },
+];
+
+function AcademicProgramsSection() {
+  const { t, dir } = useLanguage();
+  const [programIds, setProgramIds] = useState({});
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/academic/programs?type=programs')
+      .then((res) => res.json())
+      .then((result) => {
+        if (cancelled) return;
+        if (result && result.success && Array.isArray(result.data)) {
+          const map = {};
+          for (const p of result.data) {
+            if (p.level) map[p.level] = p.id;
+          }
+          setProgramIds(map);
+        }
+      })
+      .catch(() => {
+        /* silently ignore -- cards fall back to the programmes list link */
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <section style={sectionStyle} dir={dir}>
+      <div style={headingContainer}>
+        <span style={goldLabel}>{t('ACADEMIC PROGRAMS')}</span>
+
+        <h2 style={{ ...sectionTitle, whiteSpace: 'normal' }}>
+          {t('Five Pathways, One Progression')}
+        </h2>
+
+        <p style={sectionDescription}>
+          {t("Every learner enters at the pathway that matches their starting point and progresses in sequence -- from Foundation Studies through to the Diploma in Islamic Studies, with a Specialized Certificate reachable after Advanced or the Diploma. This is an overview of each tier; the full framework and course-by-course detail live on their own pages.")}
+        </p>
+      </div>
+
+      <div style={pathwayGrid}>
+        {PATHWAY_TIERS.map((tier) => (
+          <PathwayCard key={tier.level} tier={tier} programId={programIds[tier.level]} loaded={loaded} />
+        ))}
+      </div>
+
+      <div style={{ textAlign: 'center', marginTop: '34px' }}>
+        <Link href="/academy-pathways" style={outlineButton}>
+          {t('Read the Full Academic Pathways Framework →')}
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function PathwayCard({ tier, programId, loaded }) {
+  const { t } = useLanguage();
+  const detailsHref = tier.hasProgram
+    ? loaded && programId
+      ? `/programs/${programId}`
+      : '/programs'
+    : '/academy-pathways';
+
+  return (
+    <div style={pathwayCard}>
+      <div style={pathwayCardHeader}>
+        <span style={pathwayTierBadge}>{t(tier.badge)}</span>
+        <h3 style={pathwayCardTitle}>{t(tier.name)}</h3>
+      </div>
+
+      <p style={pathwayPurpose}>{t(tier.purpose)}</p>
+
+      <div style={pathwayCardFooter}>
+        <Link href={detailsHref} style={pathwayLinkPrimary}>
+          {t(tier.hasProgram ? 'Programme Details' : 'Learn About This Pathway')} →
+        </Link>
+
+        {tier.canApply && (
+          <Link href="/admission" style={pathwayLinkSecondary}>
+            {t('Apply')}
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function FeatureCard({ icon, title, text }) {
   return (
-    <div style={featureCard}>
+    <div style={featureCard} className="uai-lift-card">
 
       <div style={featureIcon}>
         {icon}
@@ -1384,13 +1704,13 @@ function FeatureCard({ icon, title, text }) {
 
 function MiniFeature({ icon, text }) {
   return (
-    <div style={miniFeature}>
+    <div style={miniFeature} className="uai-lift-card-dark">
 
-      <span style={{ fontSize: '25px' }}>
+      <span style={miniFeatureIconWrap}>
         {icon}
       </span>
 
-      <strong>
+      <strong style={{ fontSize: '14px', lineHeight: 1.4 }}>
         {text}
       </strong>
 
@@ -1398,9 +1718,37 @@ function MiniFeature({ icon, text }) {
   );
 }
 
+// Real Department entities on the homepage's Academy section --
+// links straight to /departments/[id], the same destination the
+// standalone /departments directory page already uses. Kept visually
+// consistent with miniFeature (same dark-green-section card style)
+// rather than introducing a new card treatment.
+function DepartmentMiniCard({ department }) {
+  return (
+    <Link
+      href={`/departments/${department.id}`}
+      style={{ ...miniFeature, textDecoration: 'none', color: 'inherit' }}
+      className="uai-lift-card-dark"
+    >
+      <span style={miniFeatureIconWrap}>🏛</span>
+
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+        <strong style={{ fontSize: '14px', lineHeight: 1.4 }}>
+          {department.name}
+        </strong>
+        {department.programCount > 0 && (
+          <span style={{ fontSize: '12px', opacity: 0.75 }}>
+            {department.programCount} programme{department.programCount === 1 ? '' : 's'}
+          </span>
+        )}
+      </span>
+    </Link>
+  );
+}
+
 function InfoBox({ number, title, text }) {
   return (
-    <div style={infoBox}>
+    <div style={infoBox} className="uai-lift-card">
 
       <div style={infoNumber}>
         {number}
@@ -1413,6 +1761,27 @@ function InfoBox({ number, title, text }) {
       <p style={infoText}>
         {text}
       </p>
+
+    </div>
+  );
+}
+
+// Used only by the OUR APPROACH section -- a sequence step, not a
+// generic card: a large numeral over a short connecting line into the
+// next step (hidden on the last one and stacked to a single column on
+// narrow screens via the .uai-approach-step CSS below).
+function ApproachStep({ number, title, text, isLast }) {
+  return (
+    <div style={approachStep} className="uai-approach-step">
+
+      <div style={approachStepNumberRow}>
+        <span style={approachStepNumber}>{number}</span>
+        {!isLast && <span style={approachStepConnector} className="uai-approach-connector" aria-hidden="true" />}
+      </div>
+
+      <h3 style={approachStepTitle}>{title}</h3>
+
+      <p style={approachStepText}>{text}</p>
 
     </div>
   );
@@ -1434,7 +1803,7 @@ function ResourceCard({
 
       <h4
         style={{
-          color: '#14532d',
+          color: 'var(--brand)',
           marginBottom: '8px',
         }}
       >
@@ -1443,7 +1812,7 @@ function ResourceCard({
 
       <p
         style={{
-          color: '#64748b',
+          color: 'var(--ink-soft)',
           lineHeight: 1.6,
         }}
       >
@@ -1483,7 +1852,7 @@ function ContactItem({ icon, title, text }) {
 
         <strong
           style={{
-            color: '#14532d',
+            color: 'var(--brand)',
           }}
         >
           {title}
@@ -1491,7 +1860,7 @@ function ContactItem({ icon, title, text }) {
 
         <div
           style={{
-            color: '#64748b',
+            color: 'var(--ink-soft)',
             fontSize: '13px',
             marginTop: '4px',
           }}
@@ -1526,19 +1895,18 @@ function Faq({ question, answer }) {
 ============================================================ */
 
 const pageStyle = {
-  fontFamily:
-    'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  background: '#f8fafc',
-  color: '#1e293b',
+  fontFamily: 'var(--font-body)',
+  background: 'var(--paper)',
+  color: 'var(--ink)',
   minHeight: '100vh',
 };
 
 const topBar = {
   background:
-    'linear-gradient(90deg,#052e16,#14532d,#052e16)',
-  color: '#e2e8f0',
-  padding: '9px 20px',
-  fontSize: '12px',
+    'linear-gradient(90deg,var(--brand-deepest),var(--brand),var(--brand-deepest))',
+  color: 'var(--on-accent)',
+  padding: '11px 20px',
+  fontSize: '13.5px',
 };
 
 const topBarInner = {
@@ -1556,13 +1924,52 @@ const topBarDivider = {
   opacity: 0.5,
 };
 
+const langToggleRow = {
+  display: 'flex',
+  gap: 6,
+};
+
+const langToggleBtn = {
+  background: 'transparent',
+  border: '1px solid rgba(255,255,255,.4)',
+  color: 'var(--on-accent)',
+  borderRadius: 999,
+  padding: '4px 13px',
+  fontSize: '12.5px',
+  fontWeight: 700,
+  cursor: 'pointer',
+  opacity: 0.75,
+};
+
+const langToggleBtnActive = {
+  ...langToggleBtn,
+  background: 'rgba(255,255,255,.2)',
+  opacity: 1,
+};
+
+// The Arabic toggle label is always Arabic script regardless of the
+// current language, and it's a plain <button>, not an h1/h2/h3, so
+// it never picks up the [dir=rtl] heading rule -- it needs its own
+// explicit Amiri font, same as the CTA banner's arabic div did.
+const langToggleBtnAr = {
+  ...langToggleBtn,
+  fontFamily: 'var(--font-arabic-display)',
+  fontSize: '14px',
+};
+
+const langToggleBtnActiveAr = {
+  ...langToggleBtnAr,
+  background: 'rgba(255,255,255,.2)',
+  opacity: 1,
+};
+
 const headerStyle = {
   position: 'sticky',
   top: 0,
   zIndex: 100,
   background: 'rgba(255,255,255,.97)',
   backdropFilter: 'blur(12px)',
-  borderBottom: '1px solid #e2e8f0',
+  borderBottom: '1px solid var(--border)',
   boxShadow: '0 4px 20px rgba(15,23,42,.05)',
 };
 
@@ -1584,63 +1991,41 @@ const brandStyle = {
   textDecoration: 'none',
 };
 
-const logoStyle = {
-  width: '44px',
-  height: '44px',
-  borderRadius: '12px',
-  background: 'linear-gradient(135deg,#14532d,#166534)',
-  color: '#c59d5f',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '24px',
-  fontWeight: '900',
-  border: '1px solid rgba(197,157,95,.5)',
+// (logoStyle/brandName/brandSubtitle/ACADEMY_DROPDOWN_ITEMS/nav*
+// consts and the NavLink/NavDropdown components that used them were
+// removed here (2026-09) -- dead leftovers from before the header
+// moved to the shared <SiteHeader /> component above. They also
+// pointed at the 10 Academy governance-document routes retired in
+// this same pass.)
+
+const mobileAccordionPanel = {
+  background: 'var(--brand-tint)',
+  borderBottom: '1px solid var(--border)',
 };
 
-const brandName = {
-  fontSize: '21px',
-  fontWeight: '900',
-  color: '#14532d',
-};
-
-const brandSubtitle = {
-  fontSize: '10px',
-  color: '#a16207',
-  fontWeight: '800',
-  letterSpacing: '1.2px',
-  textTransform: 'uppercase',
-};
-
-const navStyle = {
-  display: 'flex',
-  gap: '5px',
-  flexWrap: 'wrap',
-  justifyContent: 'center',
-};
-
-const navLink = {
-  color: '#334155',
+const mobileAccordionLink = {
+  display: 'block',
+  color: 'var(--ink-soft)',
   textDecoration: 'none',
-  fontSize: '14px',
-  fontWeight: '800',
-  padding: '10px 12px',
-  borderRadius: '7px',
+  padding: '11px 15px 11px 30px',
+  borderTop: '1px solid var(--border-soft)',
+  fontSize: '13px',
+  fontWeight: '700',
 };
 
 const mobileNavLink = {
   display: 'block',
-  color: '#334155',
+  color: 'var(--ink-soft)',
   textDecoration: 'none',
   padding: '12px 15px',
-  borderBottom: '1px solid #e2e8f0',
+  borderBottom: '1px solid var(--border)',
   fontWeight: '700',
 };
 
 const mobileMenuButton = {
-  border: '1px solid #dbe4e8',
-  background: '#f8fafc',
-  color: '#14532d',
+  border: '1px solid var(--border)',
+  background: 'var(--paper)',
+  color: 'var(--brand)',
   width: '42px',
   height: '42px',
   borderRadius: '9px',
@@ -1650,8 +2035,8 @@ const mobileMenuButton = {
 };
 
 const mobileMenuContainer = {
-  borderTop: '1px solid #e2e8f0',
-  background: '#fff',
+  borderTop: '1px solid var(--border)',
+  background: 'var(--surface)',
   padding: '5px 0',
 };
 
@@ -1665,9 +2050,9 @@ const loginButton = {
   padding: '10px 17px',
   borderRadius: '8px',
   textDecoration: 'none',
-  color: '#14532d',
+  color: 'var(--brand)',
   fontWeight: '800',
-  border: '1px solid #14532d',
+  border: '1px solid var(--brand)',
   fontSize: '14px',
 };
 
@@ -1675,8 +2060,8 @@ const heroStyle = {
   position: 'relative',
   overflow: 'hidden',
   background:
-    'radial-gradient(circle at 80% 20%,rgba(197,157,95,.22),transparent 28%),linear-gradient(135deg,#052e16,#14532d 55%,#166534)',
-  color: '#fff',
+    'radial-gradient(circle at 80% 20%,rgba(197,157,95,.22),transparent 28%),linear-gradient(135deg,var(--brand-deepest),var(--brand) 55%,var(--brand-light))',
+  color: 'var(--on-accent)',
 };
 
 const heroOverlay = {
@@ -1694,6 +2079,63 @@ const heroInner = {
   textAlign: 'center',
 };
 
+// Hero banner slider (Model 25) -- stacked absolutely-positioned
+// layers crossfade via opacity, so the slider needs no width/height
+// math of its own and inherits the section's existing responsive
+// height from heroInner's own padding.
+const heroSliderLayer = {
+  position: 'absolute',
+  inset: 0,
+};
+
+const heroSlide = {
+  position: 'absolute',
+  inset: 0,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  transition: 'opacity 1.1s ease-in-out',
+};
+
+const heroArrow = {
+  position: 'absolute',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  width: '42px',
+  height: '42px',
+  borderRadius: '50%',
+  border: '1px solid rgba(255,255,255,.35)',
+  background: 'rgba(8,32,24,.45)',
+  color: '#fff',
+  fontSize: '22px',
+  lineHeight: '1',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  zIndex: 3,
+};
+
+const heroDots = {
+  position: 'absolute',
+  bottom: '20px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  display: 'flex',
+  gap: '9px',
+  zIndex: 3,
+};
+
+const heroDot = {
+  width: '10px',
+  height: '10px',
+  borderRadius: '50%',
+  border: '1px solid rgba(255,255,255,.6)',
+  background: '#fff',
+  padding: 0,
+  cursor: 'pointer',
+  transition: 'opacity .3s ease, transform .3s ease',
+};
+
 const heroBadge = {
   display: 'inline-block',
   padding: '9px 16px',
@@ -1701,14 +2143,13 @@ const heroBadge = {
   border: '1px solid rgba(197,157,95,.45)',
   color: '#f4d58d',
   background: 'rgba(197,157,95,.08)',
-  fontSize: '13px',
+  fontSize: '14.5px',
   fontWeight: '900',
   letterSpacing: '1.4px',
   marginBottom: '22px',
 };
 
 const heroTitle = {
-  fontFamily: 'Georgia,serif',
   fontSize: 'clamp(29px,4.2vw,50px)',
   lineHeight: 1.05,
   maxWidth: '1100px',
@@ -1740,8 +2181,8 @@ const heroPrimaryButton = {
   padding: '13px 24px',
   borderRadius: '8px',
   textDecoration: 'none',
-  background: '#c59d5f',
-  color: '#052e16',
+  background: 'var(--gold)',
+  color: 'var(--brand-deepest)',
   fontWeight: '900',
   fontSize: '14px',
 };
@@ -1752,7 +2193,7 @@ const heroSecondaryButton = {
   borderRadius: '8px',
   textDecoration: 'none',
   background: 'rgba(255,255,255,.06)',
-  color: '#fff',
+  color: 'var(--on-accent)',
   border: '1px solid rgba(255,255,255,.6)',
   fontWeight: '800',
   fontSize: '14px',
@@ -1776,6 +2217,27 @@ const sectionStyle = {
   padding: '80px 24px',
 };
 
+// Welcome gets a very soft radial tint behind its content instead of
+// a flat white block -- subtle enough not to fight the feature cards,
+// but enough that the section reads as designed rather than a bare
+// content dump between the hero and the green Academics band.
+const welcomeSection = {
+  ...sectionStyle,
+  background:
+    'radial-gradient(ellipse 80% 60% at 50% 0%, var(--brand-tint) 0%, transparent 70%)',
+};
+
+// Bookstore sits between the green Academics band and the light
+// Media/Library band -- a thin gold hairline top and a faint paper
+// tint give it its own identity instead of reading as a continuation
+// of whichever section happens to be above it.
+const bookstoreSection = {
+  ...sectionStyle,
+  borderTop: '1px solid var(--border)',
+  background:
+    'linear-gradient(180deg, var(--gold-tint) 0%, transparent 220px)',
+};
+
 const sectionInner = {
   maxWidth: '1100px',
   margin: '0 auto',
@@ -1785,111 +2247,413 @@ const sectionInner = {
 
 const headingContainer = {
   textAlign: 'center',
+  maxWidth: '720px',
+  margin: '0 auto 50px',
+};
+
+/* Same as headingContainer but wide enough that the "Our Approach"
+   heading (a single deliberate phrase: "More than a website — a
+   learning environment") never gets split across two lines by
+   sectionTitle's textWrap:balance -- the description below still
+   wraps normally at 720px via sectionDescription's own maxWidth. */
+const headingContainerWide = {
+  ...headingContainer,
+  maxWidth: '920px',
+};
+
+/* Welcome section's own heading container -- wide enough that its
+   longer subtitle ("Ulul Azm Institute brings together structured
+   academic learning...") wraps to two lines instead of three, while
+   the title above it ("A place to seek knowledge with sincerity")
+   is additionally kept to one line by the .uai-welcome-title class
+   (see the <style jsx> block) rather than by width alone. */
+const headingContainerWelcome = {
+  ...headingContainer,
   maxWidth: '1000px',
-  margin: '0 auto 45px',
+};
+
+const welcomeEyebrow = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '8px',
+  color: 'var(--gold-dark)',
+  fontWeight: '900',
+  fontSize: '14.5px',
+  letterSpacing: '1.5px',
 };
 
 const sectionTitle = {
-  fontFamily: 'Georgia,serif',
-  color: '#14532d',
-  fontSize: 'clamp(28px,4vw,40px)',
-  margin: '10px 0 14px',
-  whiteSpace: 'nowrap',
+  color: 'var(--brand)',
+  fontFamily: 'var(--font-display)',
+  fontSize: 'clamp(28px,4vw,42px)',
+  lineHeight: 1.15,
+  letterSpacing: '-0.01em',
+  margin: '12px 0 16px',
+  textWrap: 'balance',
 };
 
 const sectionTitleWhite = {
   ...sectionTitle,
-  color: '#fff',
+  color: 'var(--on-accent)',
 };
 
 const sectionDescription = {
-  color: '#64748b',
+  color: 'var(--ink-soft)',
   lineHeight: 1.8,
+  fontSize: '15.5px',
   maxWidth: '720px',
   margin: '0 auto',
+};
+
+/* Welcome section's longer subtitle needs a wider track than the
+   720px default to land on two lines instead of three -- see
+   headingContainerWelcome just above for the matching container. */
+const sectionDescriptionWelcome = {
+  ...sectionDescription,
+  maxWidth: '820px',
 };
 
 const whiteDescription = {
   color: '#dbeafe',
   lineHeight: 1.8,
+  fontSize: '15.5px',
   maxWidth: '720px',
   margin: '0 auto 30px',
 };
 
-const goldLabel = {
-  color: '#a16207',
-  fontWeight: '900',
+// Shared card grid for the homepage's Events/News sections -- same
+// visual language (radius/border/shadow) as the public /events and
+// /news list pages' own cards, just compact enough for a 3-up preview
+// row on the homepage.
+const miniCardGrid = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+  gap: 20,
+  maxWidth: '1000px',
+  margin: '0 auto',
+};
+
+const miniCard = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: 12,
+  padding: 20,
+  boxShadow: '0 1px 3px rgba(0,0,0,.06)',
+};
+
+const miniCardImage = {
+  height: 120,
+  borderRadius: 8,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  marginBottom: 4,
+};
+
+const miniCardEyebrow = {
+  fontSize: '11px',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.4px',
+  color: 'var(--gold-dark)',
+};
+
+const miniCardTitle = {
+  fontFamily: 'var(--font-display)',
+  fontSize: '16.5px',
+  fontWeight: 600,
+  color: 'var(--ink)',
+  lineHeight: 1.35,
+};
+
+const miniCardDesc = {
   fontSize: '13px',
+  lineHeight: 1.55,
+  color: 'var(--ink-soft)',
+  margin: 0,
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
+};
+
+const goldLabel = {
+  color: 'var(--gold-dark)',
+  fontWeight: '900',
+  fontSize: '14.5px',
   letterSpacing: '1.5px',
+};
+
+const announcementsSectionStyle = {
+  maxWidth: '1100px',
+  margin: '0 auto',
+  padding: '56px 24px 0',
+};
+
+// Compact "utility strip" treatment for Notices/Announcements and
+// Sponsors/Partners now that they sit just above the footer -- much
+// less vertical padding than a primary content section (sectionStyle's
+// 80px), a smaller heading, and no forced nowrap, so together the two
+// strips read as a slim reference band rather than occupying a full
+// screen's worth of the page the way they did stacked right under the
+// hero.
+const utilityStripWrap = {
+  background: 'var(--surface-subtle, #f8fafc)',
+  borderTop: '1px solid var(--border)',
+};
+
+const utilityStripSectionStyle = {
+  maxWidth: '1100px',
+  margin: '0 auto',
+  padding: '40px 24px',
+};
+
+// Same as utilityStripSectionStyle, plus a top rule -- used only by
+// SponsorsStrip so a divider appears between the two utility strips
+// exclusively when Announcements has also actually rendered something
+// above it (never a stray line when Sponsors is the only one showing).
+const utilityStripSectionStyleWithRule = {
+  ...utilityStripSectionStyle,
+  borderTop: '1px solid var(--border)',
+};
+
+const utilityStripHeading = {
+  textAlign: 'center',
+  maxWidth: '1000px',
+  margin: '0 auto 22px',
+};
+
+const utilityStripLabel = {
+  color: 'var(--gold-dark)',
+  fontWeight: '800',
+  fontSize: '12.5px',
+  letterSpacing: '1.3px',
+};
+
+const utilityStripTitle = {
+  color: 'var(--brand)',
+  fontSize: 'clamp(20px,2.6vw,26px)',
+  margin: '8px 0 0',
+};
+
+
+const announcementsGrid = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))',
+  gap: '18px',
+  marginTop: '10px',
+};
+
+const announcementsSliderViewport = {
+  overflow: 'hidden',
+  marginTop: '10px',
+};
+
+const announcementsSliderTrack = {
+  display: 'flex',
+  transition: 'transform 0.6s ease',
+};
+
+const announcementsSlide = {
+  flex: '0 0 100%',
+  minWidth: '100%',
+  boxSizing: 'border-box',
+  padding: '2px',
+};
+
+const announcementsDots = {
+  display: 'flex',
+  justifyContent: 'center',
+  gap: '8px',
+  marginTop: '18px',
+};
+
+const announcementsDot = {
+  width: '8px',
+  height: '8px',
+  borderRadius: '50%',
+  border: 'none',
+  background: 'var(--border)',
+  cursor: 'pointer',
+  padding: 0,
+  transition: 'width 0.2s ease, border-radius 0.2s ease, background 0.2s ease',
+};
+
+const announcementsDotActive = {
+  ...announcementsDot,
+  width: '22px',
+  borderRadius: '5px',
+  background: 'var(--gold)',
+};
+
+const announcementCard = {
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: '14px',
+  padding: '22px',
+  borderTop: '3px solid var(--gold)',
+};
+
+const announcementDate = {
+  color: 'var(--gold-dark)',
+  fontWeight: '800',
+  fontSize: '11.5px',
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  marginBottom: '10px',
+};
+
+const announcementTitle = {
+  color: 'var(--brand)',
+  fontSize: '18px',
+  margin: '0 0 8px',
+};
+
+const announcementBody = {
+  color: 'var(--ink-soft)',
+  lineHeight: 1.7,
+  fontSize: '14.5px',
+  margin: 0,
 };
 
 const cardGrid = {
   display: 'grid',
   gridTemplateColumns:
-    'repeat(auto-fit,minmax(230px,1fr))',
-  gap: '18px',
+    'repeat(auto-fit,minmax(240px,1fr))',
+  gap: '20px',
 };
 
 const featureCard = {
-  background: '#fff',
-  border: '1px solid #e2e8f0',
-  borderRadius: '15px',
-  padding: '27px',
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: '16px',
+  padding: '28px 26px',
   boxShadow: '0 10px 30px rgba(15,23,42,.05)',
+  transition: 'transform .22s ease, box-shadow .22s ease, border-color .22s ease',
 };
 
 const featureIcon = {
-  fontSize: '30px',
-  marginBottom: '12px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '52px',
+  height: '52px',
+  borderRadius: '14px',
+  background: 'var(--gold-tint, rgba(197,157,95,.14))',
+  fontSize: '25px',
+  marginBottom: '16px',
 };
 
 const featureTitle = {
-  color: '#14532d',
+  color: 'var(--brand)',
   margin: '0 0 8px',
-  fontSize: '17px',
+  fontSize: '17.5px',
+  fontWeight: '800',
 };
 
 const featureText = {
   margin: 0,
-  color: '#64748b',
-  lineHeight: 1.65,
-  fontSize: '13px',
+  color: 'var(--ink-soft)',
+  lineHeight: 1.7,
+  fontSize: '13.5px',
 };
 
 const greenSection = {
   background:
-    'linear-gradient(135deg,#052e16,#14532d,#166534)',
-  color: '#fff',
+    'linear-gradient(135deg,var(--brand-deepest),var(--brand),var(--brand-light))',
+  color: 'var(--on-accent)',
+  position: 'relative',
+  overflow: 'hidden',
+};
+
+// Purely decorative gold glow sitting behind the content, aria-hidden
+// -- gives the flat brand gradient some depth without a texture image.
+const academyGlow = {
+  position: 'absolute',
+  inset: 0,
+  background:
+    'radial-gradient(ellipse 60% 50% at 85% 0%, rgba(197,157,95,.18) 0%, transparent 60%)',
+  pointerEvents: 'none',
+};
+
+// Same footprint as sectionInner, but Academy gets its own constant
+// so its padding/heading-width can be tuned independently of the
+// MEDIA & LIBRARY section that still uses the shared one.
+const academySectionInner = {
+  maxWidth: '1100px',
+  margin: '0 auto',
+  padding: '84px 24px',
+  textAlign: 'center',
+  position: 'relative',
+  zIndex: 1,
+};
+
+const academyEyebrow = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '8px',
+  color: 'var(--gold-light, var(--gold))',
+  fontWeight: '900',
+  fontSize: '14.5px',
+  letterSpacing: '1.8px',
+};
+
+const academyEyebrowDot = {
+  width: '7px',
+  height: '7px',
+  borderRadius: '50%',
+  background: 'var(--gold)',
+  boxShadow: '0 0 0 4px rgba(197,157,95,.28)',
+  flexShrink: 0,
 };
 
 const miniFeatureGrid = {
   display: 'grid',
   gridTemplateColumns:
     'repeat(auto-fit,minmax(190px,1fr))',
-  gap: '12px',
-  margin: '30px auto',
-  maxWidth: '850px',
+  gap: '14px',
+  margin: '34px auto',
+  maxWidth: '880px',
 };
 
 const miniFeature = {
-  padding: '17px',
-  borderRadius: '12px',
-  background: 'rgba(255,255,255,.07)',
-  border: '1px solid rgba(255,255,255,.12)',
+  padding: '19px 18px',
+  borderRadius: '14px',
+  background: 'rgba(255,255,255,.08)',
+  border: '1px solid rgba(255,255,255,.14)',
   display: 'flex',
   alignItems: 'center',
-  gap: '10px',
+  gap: '12px',
   textAlign: 'left',
+  transition: 'transform .22s ease, background .22s ease, border-color .22s ease',
+};
+
+const miniFeatureIconWrap = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '40px',
+  height: '40px',
+  borderRadius: '11px',
+  background: 'rgba(255,255,255,.12)',
+  fontSize: '20px',
+  flexShrink: 0,
 };
 
 const goldButton = {
-  display: 'inline-block',
-  padding: '13px 23px',
-  borderRadius: '8px',
-  background: '#c59d5f',
-  color: '#052e16',
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '14px 26px',
+  borderRadius: '9px',
+  background: 'var(--gold)',
+  color: 'var(--brand-deepest)',
   textDecoration: 'none',
   fontWeight: '900',
+  fontSize: '14.5px',
+  boxShadow: '0 12px 28px rgba(0,0,0,.18)',
+  transition: 'transform .2s ease, box-shadow .2s ease, filter .2s ease',
 };
 
 const splitGrid = {
@@ -1915,51 +2679,342 @@ const buttonRowCenter = {
 };
 
 const mainButton = {
-  display: 'inline-block',
-  padding: '12px 22px',
-  background: '#14532d',
-  color: '#fff',
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '13px 24px',
+  background: 'var(--brand)',
+  color: 'var(--on-accent)',
   textDecoration: 'none',
-  borderRadius: '8px',
+  borderRadius: '9px',
   fontWeight: '800',
+  fontSize: '14.5px',
+  boxShadow: '0 10px 24px rgba(20,83,45,.18)',
+  transition: 'transform .2s ease, box-shadow .2s ease, filter .2s ease',
 };
 
 const outlineButton = {
-  display: 'inline-block',
-  padding: '12px 22px',
-  background: '#fff',
-  color: '#14532d',
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '13px 24px',
+  background: 'var(--surface)',
+  color: 'var(--brand)',
   textDecoration: 'none',
-  border: '1px solid #14532d',
-  borderRadius: '8px',
+  border: '1px solid var(--border)',
+  borderRadius: '9px',
   fontWeight: '800',
+  fontSize: '14.5px',
+  transition: 'transform .2s ease, box-shadow .2s ease, border-color .2s ease',
+};
+const pathwayGrid = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))',
+  gap: '20px',
+  marginTop: '10px',
+};
+
+// Glossy/classical rather than a flat rectangle: a soft top-to-
+// bottom gradient instead of a flat fill, a gold-tinted hairline
+// border instead of the plain neutral one, and a two-layer shadow
+// (a soft drop shadow plus an inset top highlight) for the glossy
+// part.
+const pathwayCard = {
+  display: 'flex',
+  flexDirection: 'column',
+  background: 'linear-gradient(180deg, var(--surface) 0%, var(--surface-2, #f7f3ea) 100%)',
+  border: '1px solid var(--gold-soft, rgba(191,161,74,.28))',
+  borderRadius: '15px',
+  padding: '26px',
+  boxShadow: '0 14px 34px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.55)',
+  textAlign: 'left',
+};
+
+const pathwayCardHeader = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px',
+  marginBottom: '10px',
+};
+
+// whiteSpace:nowrap + flexShrink:0 so the badge text ('Tier 3', etc)
+// can never wrap onto two lines when the flex header gets squeezed
+// by a longer adjacent title -- paired with pathwayCardTitle's own
+// minWidth:0 below, which is the flexbox half of this fix (without
+// it, an h3 with no minWidth refuses to shrink and it's a sibling
+// that gets squeezed instead). Gradient + inset highlight for the
+// same glossy, not-flat look as the card.
+const pathwayTierBadge = {
+  display: 'inline-block',
+  whiteSpace: 'nowrap',
+  flexShrink: 0,
+  padding: '5px 12px',
+  borderRadius: '999px',
+  background: 'linear-gradient(135deg, var(--gold-light, #f3dfa0) 0%, var(--gold) 55%, var(--gold-dark) 100%)',
+  border: '1px solid rgba(255,255,255,.5)',
+  boxShadow: '0 1px 3px rgba(15,23,42,.18), inset 0 1px 0 rgba(255,255,255,.6)',
+  color: 'var(--brand-deepest)',
+  fontWeight: '900',
+  fontSize: '11px',
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+};
+
+const pathwayCardTitle = {
+  color: 'var(--brand)',
+  fontSize: '18px',
+  margin: 0,
+  minWidth: 0,
+};
+
+const pathwayPurpose = {
+  color: 'var(--ink-soft)',
+  lineHeight: 1.6,
+  fontSize: '13.5px',
+  margin: '0 0 16px',
+};
+
+const pathwayMetaList = {
+  margin: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '10px',
+};
+
+const pathwayMetaRow = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '2px',
+};
+
+const pathwayMetaLabel = {
+  margin: 0,
+  color: 'var(--gold-dark)',
+  fontWeight: '800',
+  fontSize: '10.5px',
+  letterSpacing: '0.07em',
+  textTransform: 'uppercase',
+};
+
+const pathwayMetaValue = {
+  margin: 0,
+  color: 'var(--ink)',
+  fontSize: '13px',
+  lineHeight: 1.55,
+};
+
+const pathwayNote = {
+  margin: '14px 0 0',
+  padding: '10px 12px',
+  borderRadius: '8px',
+  background: 'var(--surface-2, rgba(15,23,42,.04))',
+  color: 'var(--ink-soft)',
+  fontSize: '12px',
+  lineHeight: 1.5,
+};
+
+const pathwayCardFooter = {
+  display: 'flex',
+  gap: '10px',
+  flexWrap: 'wrap',
+  marginTop: '18px',
+  paddingTop: '16px',
+  borderTop: '1px solid var(--border)',
+};
+
+const pathwayLinkPrimary = {
+  color: 'var(--brand)',
+  textDecoration: 'none',
+  fontWeight: '800',
+  fontSize: '13.5px',
+};
+
+const pathwayLinkSecondary = {
+  display: 'inline-block',
+  padding: '6px 14px',
+  borderRadius: '7px',
+  background: 'var(--brand)',
+  color: 'var(--on-accent)',
+  textDecoration: 'none',
+  fontWeight: '800',
+  fontSize: '13px',
+};
+
+// Refined copy column for the Bookstore split layout -- a touch more
+// vertical rhythm than the bare splitGrid child used to have, plus an
+// eyebrow with a small gold dot marker instead of a bare label.
+const bookstoreCopyCol = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+};
+
+const bookstoreEyebrow = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '8px',
+  color: 'var(--gold-dark)',
+  fontWeight: '900',
+  fontSize: '13px',
+  letterSpacing: '1.8px',
+};
+
+const bookstoreEyebrowDot = {
+  width: '7px',
+  height: '7px',
+  borderRadius: '50%',
+  background: 'var(--gold)',
+  boxShadow: '0 0 0 4px rgba(197,157,95,.18)',
+  flexShrink: 0,
+};
+
+const bookstoreHeading = {
+  color: 'var(--brand)',
+  fontFamily: 'var(--font-display)',
+  fontSize: 'clamp(28px,4vw,40px)',
+  margin: '12px 0 14px',
+  lineHeight: 1.15,
+  letterSpacing: '-0.01em',
+};
+
+const bookstoreLede = {
+  color: 'var(--ink-soft)',
+  lineHeight: 1.8,
+  fontSize: '15.5px',
+  maxWidth: '480px',
+  margin: 0,
 };
 
 const bookstoreFeature = {
   background:
-    'linear-gradient(135deg,#052e16,#14532d)',
+    'linear-gradient(135deg,var(--brand-deepest),var(--brand))',
   borderRadius: '22px',
-  padding: '40px',
-  color: '#fff',
+  padding: '42px 40px',
+  color: 'var(--on-accent)',
   boxShadow:
     '0 20px 50px rgba(20,83,45,.16)',
+  position: 'relative',
+  overflow: 'hidden',
+};
+
+const bookstoreFeatureIconWrap = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '58px',
+  height: '58px',
+  borderRadius: '16px',
+  background: 'rgba(255,255,255,.14)',
+  border: '1px solid rgba(255,255,255,.22)',
+  marginBottom: '18px',
+};
+
+const bookstoreFeatureFootnote = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  marginTop: '22px',
+  paddingTop: '18px',
+  borderTop: '1px solid rgba(255,255,255,.18)',
+  color: 'rgba(219,234,254,.85)',
+  fontSize: '12.5px',
+  fontWeight: '700',
+  letterSpacing: '0.03em',
 };
 
 const featureDarkTitle = {
-  fontFamily: 'Georgia,serif',
-  fontSize: '27px',
-  margin: '12px 0',
+  fontSize: '25px',
+  margin: '0 0 12px',
+  lineHeight: 1.25,
 };
 
 const featureDarkText = {
   color: '#dbeafe',
-  lineHeight: 1.7,
+  lineHeight: 1.75,
+  fontSize: '14.5px',
 };
 
 const lightSection = {
   background: '#f0fdf4',
   borderTop: '1px solid #dcfce7',
-  borderBottom: '1px solid #e2e8f0',
+  borderBottom: '1px solid var(--border)',
+};
+
+// Two-card layout for the MEDIA & LIBRARY section -- one dedicated
+// card per section instead of a single block with two inline buttons,
+// so the layout itself shows what the copy already says ("two
+// separate, dedicated sections").
+const mediaLibraryGrid = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))',
+  gap: '24px',
+  maxWidth: '800px',
+  margin: '38px auto 0',
+  textAlign: 'left',
+};
+
+// A card is either "icon mode" (default emoji, padded body only) or
+// "picture mode" (an admin-uploaded image as a banner across the top,
+// body padded underneath) -- overflow:hidden clips the banner's image
+// to the card's own rounded corners in picture mode, and does nothing
+// in icon mode.
+const mediaLibraryCard = {
+  display: 'flex',
+  flexDirection: 'column',
+  borderRadius: '18px',
+  border: '1px solid var(--border)',
+  background: 'var(--surface)',
+  textDecoration: 'none',
+  overflow: 'hidden',
+  boxShadow: '0 8px 24px rgba(15,23,42,.04)',
+  transition: 'transform .22s ease, box-shadow .22s ease, border-color .22s ease',
+};
+
+const mediaLibraryCardBanner = {
+  width: '100%',
+  height: '150px',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  borderBottom: '1px solid var(--border)',
+};
+
+const mediaLibraryIcon = {
+  fontSize: '28px',
+  width: '54px',
+  height: '54px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '14px',
+  background: 'var(--gold-tint, rgba(197,157,95,.14))',
+  margin: '28px 28px 0',
+};
+
+const mediaLibraryCardBody = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  padding: '18px 28px 28px',
+  flex: 1,
+};
+
+const mediaLibraryCardTitle = {
+  color: 'var(--brand)',
+  fontSize: '20px',
+  fontWeight: '800',
+  margin: '0 0 8px',
+};
+
+const mediaLibraryCardText = {
+  color: 'var(--ink-soft)',
+  lineHeight: 1.7,
+  margin: '0 0 18px',
+  fontSize: '14.5px',
+};
+
+const mediaLibraryCardLink = {
+  color: 'var(--gold-dark)',
+  fontWeight: '800',
+  fontSize: '14px',
+  marginTop: 'auto',
 };
 
 const infoGrid = {
@@ -1972,59 +3027,91 @@ const infoGrid = {
 const infoBox = {
   padding: '30px',
   borderRadius: '15px',
-  border: '1px solid #e2e8f0',
-  background: '#fff',
+  border: '1px solid var(--border)',
+  background: 'var(--surface)',
+  transition: 'transform .22s ease, box-shadow .22s ease, border-color .22s ease',
 };
 
 const infoNumber = {
-  color: '#c59d5f',
+  color: 'var(--gold)',
   fontWeight: '900',
   fontSize: '12px',
   letterSpacing: '1px',
 };
 
 const infoTitle = {
-  color: '#14532d',
+  color: 'var(--brand)',
   margin: '10px 0',
+  fontSize: '19px',
+  fontWeight: '800',
 };
 
 const infoText = {
-  color: '#64748b',
+  color: 'var(--ink-soft)',
   lineHeight: 1.7,
   margin: 0,
 };
 
-const ctaSection = {
-  background:
-    'linear-gradient(135deg,#14532d,#052e16)',
-  color: '#fff',
-};
-
-const ctaInner = {
-  maxWidth: '900px',
+// OUR APPROACH -- connected step sequence styling. Falls back to a
+// stacked single column with no connector on narrow screens; see the
+// .uai-approach-step / .uai-approach-connector responsive rules in
+// this page's own <style jsx> block.
+const approachStepRow = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3,1fr)',
+  gap: '8px',
+  maxWidth: '980px',
   margin: '0 auto',
-  padding: '85px 24px',
-  textAlign: 'center',
 };
 
-const arabic = {
-  fontFamily: 'Georgia, "Times New Roman", serif',
-  color: '#f4d58d',
-  fontSize: '25px',
-  fontWeight: '500',
-  letterSpacing: '0.8px',
+const approachStep = {
+  padding: '0 18px',
 };
 
-const ctaTitle = {
-  fontFamily: 'Georgia,serif',
-  fontSize: '38px',
-  margin: '15px 0',
+const approachStepNumberRow = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px',
+  marginBottom: '18px',
+};
+
+const approachStepNumber = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+  width: '48px',
+  height: '48px',
+  borderRadius: '50%',
+  border: '2px solid var(--gold)',
+  color: 'var(--brand)',
+  fontWeight: '900',
+  fontSize: '16px',
+};
+
+const approachStepConnector = {
+  flex: 1,
+  height: '2px',
+  background: 'linear-gradient(90deg, var(--gold), transparent)',
+};
+
+const approachStepTitle = {
+  color: 'var(--brand)',
+  fontSize: '19px',
+  fontWeight: '800',
+  margin: '0 0 10px',
+};
+
+const approachStepText = {
+  color: 'var(--ink-soft)',
+  lineHeight: 1.7,
+  margin: 0,
 };
 
 const footerStyle = {
   background: '#020617',
   color: '#cbd5e1',
-  borderTop: '4px solid #c59d5f',
+  borderTop: '4px solid var(--gold)',
 };
 
 const footerInner = {
@@ -2050,25 +3137,25 @@ const footerLogo = {
   width: '42px',
   height: '42px',
   borderRadius: '10px',
-  background: '#14532d',
-  border: '1px solid #c59d5f',
+  background: 'var(--brand)',
+  border: '1px solid var(--gold)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: '#c59d5f',
+  color: 'var(--gold)',
   fontWeight: '900',
   fontSize: '22px',
 };
 
 const footerBrandName = {
-  color: '#fff',
+  color: 'var(--on-accent)',
   fontSize: '19px',
   fontWeight: '900',
 };
 
 const footerBrandTagline = {
   fontSize: '9px',
-  color: '#c59d5f',
+  color: 'var(--gold)',
   letterSpacing: '1px',
 };
 
@@ -2076,24 +3163,24 @@ const footerText = {
   lineHeight: 1.8,
   fontSize: '14px',
   maxWidth: '390px',
-  color: '#94a3b8',
+  color: 'var(--on-dark-soft)',
 };
 
 const footerTextSmall = {
   fontSize: '13px',
   lineHeight: 1.6,
-  color: '#64748b',
+  color: 'var(--on-dark-soft)',
 };
 
 const footerArabic = {
-  fontFamily: 'Georgia,serif',
-  color: '#c59d5f',
-  fontSize: '18px',
+  fontFamily: 'var(--font-arabic-display)',
+  color: 'var(--gold)',
+  fontSize: '19px',
   marginBottom: '0',
 };
 
 const footerQuote = {
-  color: '#94a3b8',
+  color: 'var(--on-dark-soft)',
   fontSize: '13px',
   lineHeight: 1.7,
   margin: '8px 0 0',
@@ -2103,25 +3190,25 @@ const footerQuote = {
 const footerPrinciple = {
   marginTop: '16px',
   paddingTop: '16px',
-  borderTop: '1px solid #1e293b',
+  borderTop: '1px solid var(--on-dark-border)',
   maxWidth: '390px',
 };
 
 const footerPrincipleTitle = {
-  color: '#f8fafc',
+  color: 'var(--paper)',
   fontSize: '13px',
 };
 
 const footerPrincipleText = {
   margin: '7px 0 0',
-  color: '#94a3b8',
+  color: 'var(--on-dark-soft)',
   fontSize: '12px',
   lineHeight: 1.7,
 };
 
 const footerHeading = {
   margin: '0 0 17px',
-  color: '#f8fafc',
+  color: 'var(--paper)',
   fontSize: '14px',
   fontWeight: '900',
 };
@@ -2133,7 +3220,7 @@ const footerColumnLinks = {
 };
 
 const footerLink = {
-  color: '#94a3b8',
+  color: 'var(--on-dark-soft)',
   textDecoration: 'none',
   fontSize: '13px',
 };
@@ -2142,7 +3229,7 @@ const footerButton = {
   border: 'none',
   background: 'none',
   padding: 0,
-  color: '#94a3b8',
+  color: 'var(--on-dark-soft)',
   fontSize: '13px',
   cursor: 'pointer',
   fontFamily: 'inherit',
@@ -2164,9 +3251,9 @@ const socialButton = {
   alignItems: 'center',
   justifyContent: 'center',
   textDecoration: 'none',
-  background: '#0f172a',
-  border: '1px solid #334155',
-  color: '#f8fafc',
+  background: 'rgba(248,247,242,0.06)',
+  border: '1px solid var(--on-dark-border)',
+  color: 'var(--paper)',
   fontWeight: '900',
 };
 
@@ -2174,26 +3261,26 @@ const footerContactStrip = {
   marginTop: '45px',
   padding: '20px',
   borderRadius: '12px',
-  background: '#0f172a',
-  border: '1px solid #1e293b',
+  background: 'rgba(248,247,242,0.05)',
+  border: '1px solid var(--on-dark-border)',
   display: 'flex',
   gap: '25px',
   flexWrap: 'wrap',
   justifyContent: 'space-around',
   fontSize: '12px',
-  color: '#94a3b8',
+  color: 'var(--on-dark-soft)',
 };
 
 const footerBottom = {
   marginTop: '30px',
   paddingTop: '22px',
-  borderTop: '1px solid #1e293b',
+  borderTop: '1px solid var(--on-dark-border)',
   display: 'flex',
   justifyContent: 'space-between',
   gap: '15px',
   flexWrap: 'wrap',
   fontSize: '12px',
-  color: '#64748b',
+  color: 'var(--on-dark-soft)',
 };
 
 const modalOverlay = {
@@ -2213,7 +3300,7 @@ const modalBox = {
   maxWidth: '760px',
   maxHeight: '88vh',
   overflowY: 'auto',
-  background: '#fff',
+  background: 'var(--surface)',
   borderRadius: '18px',
   boxShadow: '0 30px 80px rgba(0,0,0,.35)',
 };
@@ -2221,8 +3308,8 @@ const modalBox = {
 const modalHeader = {
   padding: '22px 25px',
   background:
-    'linear-gradient(135deg,#052e16,#14532d)',
-  color: '#fff',
+    'linear-gradient(135deg,var(--brand-deepest),var(--brand))',
+  color: 'var(--on-accent)',
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -2232,7 +3319,7 @@ const modalHeader = {
 
 const modalTitle = {
   margin: 0,
-  fontFamily: 'Georgia,serif',
+  fontFamily: 'var(--font-display)',
   fontSize: '24px',
 };
 
@@ -2242,14 +3329,14 @@ const closeButton = {
   borderRadius: '50%',
   border: '1px solid rgba(255,255,255,.35)',
   background: 'rgba(255,255,255,.08)',
-  color: '#fff',
+  color: 'var(--on-accent)',
   fontSize: '22px',
   cursor: 'pointer',
 };
 
 const modalContent = {
   padding: '30px',
-  color: '#475569',
+  color: 'var(--ink-soft)',
   lineHeight: 1.8,
   fontSize: '14px',
 };
@@ -2258,9 +3345,9 @@ const quoteBox = {
   marginTop: '20px',
   padding: '20px',
   background: '#f0fdf4',
-  borderLeft: '4px solid #c59d5f',
+  borderLeft: '4px solid var(--gold)',
   borderRadius: '8px',
-  color: '#14532d',
+  color: 'var(--brand)',
   lineHeight: 1.8,
 };
 
@@ -2272,14 +3359,14 @@ const resourceGridStyle = {
 };
 
 const resourceCard = {
-  background: '#f8fafc',
-  border: '1px solid #e2e8f0',
+  background: 'var(--paper)',
+  border: '1px solid var(--border)',
   borderRadius: '12px',
   padding: '20px',
 };
 
 const resourceLink = {
-  color: '#14532d',
+  color: 'var(--brand)',
   fontWeight: '800',
   textDecoration: 'none',
 };
@@ -2287,7 +3374,7 @@ const resourceLink = {
 const resourceAction = {
   border: 'none',
   background: 'none',
-  color: '#14532d',
+  color: 'var(--brand)',
   fontWeight: '800',
   padding: 0,
   cursor: 'pointer',
@@ -2304,8 +3391,8 @@ const contactItem = {
   display: 'flex',
   gap: '12px',
   padding: '17px',
-  background: '#f8fafc',
-  border: '1px solid #e2e8f0',
+  background: 'var(--paper)',
+  border: '1px solid var(--border)',
   borderRadius: '11px',
 };
 
@@ -2314,21 +3401,21 @@ const contactIcon = {
 };
 
 const faqBox = {
-  border: '1px solid #e2e8f0',
+  border: '1px solid var(--border)',
   borderRadius: '10px',
   marginBottom: '10px',
   padding: '15px 17px',
-  background: '#f8fafc',
+  background: 'var(--paper)',
 };
 
 const faqQuestion = {
   cursor: 'pointer',
-  color: '#14532d',
+  color: 'var(--brand)',
   fontWeight: '800',
 };
 
 const faqAnswer = {
-  color: '#64748b',
+  color: 'var(--ink-soft)',
   lineHeight: 1.7,
 };
 

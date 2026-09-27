@@ -41,8 +41,10 @@ export default function SubmissionsPage() {
         <BackToAdmin />
       </div>
       <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-        <h1>Book Submissions</h1>
-        <p style={{ color: '#6b7280' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, margin: '0 0 6px', color: 'var(--ink)' }}>
+          Book Submissions
+        </h1>
+        <p style={{ color: 'var(--ink-soft)' }}>
           Review and manage submitted books through the publishing workflow.
         </p>
 
@@ -51,8 +53,8 @@ export default function SubmissionsPage() {
         {error && (
           <div
             style={{
-              background: '#fee2e2',
-              color: '#991b1b',
+              background: 'var(--danger-tint)',
+              color: 'var(--danger)',
               padding: 14,
               borderRadius: 8,
             }}
@@ -65,10 +67,11 @@ export default function SubmissionsPage() {
           <div
             style={{
               marginTop: 24,
-              background: '#fff',
-              borderRadius: 14,
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 16,
               padding: 24,
-              boxShadow: '0 2px 10px rgba(0,0,0,.05)',
+              boxShadow: '0 4px 18px rgba(27,36,31,.08)',
             }}
           >
             {submissions.length === 0 ? (
@@ -78,8 +81,11 @@ export default function SubmissionsPage() {
                 <div
                   key={item.id}
                   style={{
-                    padding: '16px 0',
-                    borderBottom: '1px solid #e5e7eb',
+                    padding: '16px 4px',
+                    borderBottom: '1px solid var(--border-soft)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2,
                   }}
                 >
                   <strong>
@@ -89,13 +95,20 @@ export default function SubmissionsPage() {
                       'Untitled submission'}
                   </strong>
 
-                  <div
-                    style={{
-                      color: '#6b7280',
-                      marginTop: 5,
-                    }}
-                  >
-                    {item.status || '—'}
+                  <div style={{ marginTop: 7 }}>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        padding: '3px 10px',
+                        borderRadius: 999,
+                        background: 'var(--brand-tint)',
+                        color: 'var(--brand-dark)',
+                      }}
+                    >
+                      {item.status || 'UNKNOWN'}
+                    </span>
                   </div>
                 </div>
               ))

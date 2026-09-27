@@ -5,18 +5,20 @@ import { usePathname } from 'next/navigation';
 
 const sections = [
   { href: '/admin/bookstore', label: 'Overview', icon: '▦' },
+  { href: '/admin/bookstore/page-content', label: 'Page Content', icon: '📝' },
   { href: '/admin/bookstore/books', label: 'Books', icon: '📚' },
   { href: '/admin/bookstore/submissions', label: 'Submissions', icon: '📝' },
   { href: '/admin/bookstore/orders', label: 'Orders', icon: '🛒' },
   { href: '/admin/bookstore/assets', label: 'Digital Assets', icon: '📁' },
   { href: '/admin/bookstore/categories', label: 'Categories', icon: '🏷' },
+  { href: '/admin/bookstore/banner', label: 'Banner', icon: '🖼' },
 ];
 
 export default function BookstoreLayout({ children }) {
   const pathname = usePathname();
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f7fb' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--paper)' }}>
       <div
         style={{
           display: 'flex',
@@ -26,8 +28,8 @@ export default function BookstoreLayout({ children }) {
         <aside
           style={{
             width: 250,
-            background: '#111827',
-            color: '#fff',
+            background: 'var(--brand-dark)',
+            color: 'var(--on-accent)',
             padding: '24px 16px',
             flexShrink: 0,
           }}
@@ -35,14 +37,14 @@ export default function BookstoreLayout({ children }) {
           <div
             style={{
               padding: '8px 12px 24px',
-              borderBottom: '1px solid #374151',
+              borderBottom: '1px solid var(--brand-deepest)',
               marginBottom: 18,
             }}
           >
             <div
               style={{
                 fontSize: 12,
-                color: '#9ca3af',
+                color: 'var(--on-accent)',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
               }}
@@ -72,8 +74,8 @@ export default function BookstoreLayout({ children }) {
                     gap: 11,
                     padding: '11px 13px',
                     borderRadius: 9,
-                    color: active ? '#fff' : '#cbd5e1',
-                    background: active ? '#2563eb' : 'transparent',
+                    color: 'var(--on-accent)',
+                    background: active ? 'color-mix(in srgb, currentColor 14%, transparent)' : 'transparent',
                     textDecoration: 'none',
                     fontWeight: active ? 700 : 500,
                   }}
@@ -90,8 +92,8 @@ export default function BookstoreLayout({ children }) {
               marginTop: 28,
               padding: '14px 13px',
               borderRadius: 9,
-              background: '#1f2937',
-              color: '#9ca3af',
+              background: 'color-mix(in srgb, currentColor 10%, transparent)',
+              color: 'var(--on-accent)',
               fontSize: 12,
               lineHeight: 1.5,
             }}

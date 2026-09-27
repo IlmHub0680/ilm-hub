@@ -196,7 +196,7 @@ export default function NewBookPage() {
     <main
       style={{
         minHeight: '100vh',
-        background: '#f4f7fb',
+        background: 'var(--paper)',
         padding: '32px',
         fontFamily:
           'Inter, Arial, sans-serif',
@@ -214,7 +214,7 @@ export default function NewBookPage() {
         <Link
           href="/admin/bookstore/books"
           style={{
-            color: '#475569',
+            color: 'var(--ink-soft)',
             textDecoration: 'none',
             fontWeight: 600,
           }}
@@ -226,8 +226,8 @@ export default function NewBookPage() {
           style={{
             marginTop: 20,
             background:
-              'linear-gradient(135deg,#0f172a,#1e3a5f)',
-            color: '#fff',
+              'linear-gradient(135deg,var(--ink),var(--brand-dark))',
+            color: 'var(--on-accent)',
             borderRadius: 18,
             padding: 28,
             boxShadow:
@@ -237,7 +237,7 @@ export default function NewBookPage() {
           <div
             style={{
               fontSize: 13,
-              color: '#93c5fd',
+              color: 'var(--info)',
               fontWeight: 700,
               letterSpacing: '.08em',
               textTransform: 'uppercase',
@@ -258,11 +258,11 @@ export default function NewBookPage() {
           <p
             style={{
               margin: '8px 0 0',
-              color: '#cbd5e1',
+              color: 'var(--border)',
             }}
           >
             Create and prepare a book for the
-            Ilm-Hub bookstore.
+            Ulul Azm bookstore.
           </p>
         </div>
 
@@ -272,10 +272,10 @@ export default function NewBookPage() {
               marginTop: 20,
               padding: 15,
               borderRadius: 10,
-              background: '#fee2e2',
-              color: '#991b1b',
+              background: 'var(--danger-tint)',
+              color: 'var(--danger)',
               border:
-                '1px solid #fecaca',
+                '1px solid var(--danger-tint)',
             }}
           >
             {error}
@@ -285,7 +285,7 @@ export default function NewBookPage() {
         <div
           style={{
             marginTop: 22,
-            background: '#fff',
+            background: 'var(--surface)',
             borderRadius: 16,
             padding: 28,
             boxShadow:
@@ -295,7 +295,7 @@ export default function NewBookPage() {
           <h2
             style={{
               marginTop: 0,
-              color: '#0f172a',
+              color: 'var(--ink)',
             }}
           >
             Book Information
@@ -454,7 +454,7 @@ export default function NewBookPage() {
               marginTop: 25,
               paddingTop: 22,
               borderTop:
-                '1px solid #e5e7eb',
+                '1px solid var(--border)',
               display: 'flex',
               flexWrap: 'wrap',
               gap: 22,
@@ -466,7 +466,7 @@ export default function NewBookPage() {
                 gap: 9,
                 alignItems: 'center',
                 fontWeight: 600,
-                color: '#334155',
+                color: 'var(--ink-soft)',
               }}
             >
               <input
@@ -488,7 +488,7 @@ export default function NewBookPage() {
                 gap: 9,
                 alignItems: 'center',
                 fontWeight: 600,
-                color: '#334155',
+                color: 'var(--ink-soft)',
               }}
             >
               <input
@@ -509,15 +509,15 @@ export default function NewBookPage() {
             style={{
               marginTop: 30,
               padding: 18,
-              background: '#f8fafc',
+              background: 'var(--paper)',
               borderRadius: 12,
               border:
-                '1px solid #e2e8f0',
+                '1px solid var(--border)',
             }}
           >
             <strong
               style={{
-                color: '#0f172a',
+                color: 'var(--ink)',
               }}
             >
               Publishing workflow
@@ -527,7 +527,7 @@ export default function NewBookPage() {
               style={{
                 margin:
                   '7px 0 0',
-                color: '#64748b',
+                color: 'var(--ink-soft)',
                 lineHeight: 1.6,
               }}
             >
@@ -557,8 +557,8 @@ export default function NewBookPage() {
                   '12px 20px',
                 borderRadius: 9,
                 border:
-                  '1px solid #cbd5e1',
-                color: '#334155',
+                  '1px solid var(--border)',
+                color: 'var(--ink-soft)',
                 textDecoration:
                   'none',
                 fontWeight: 700,
@@ -579,8 +579,8 @@ export default function NewBookPage() {
                 borderRadius: 9,
                 border: 'none',
                 background:
-                  '#e2e8f0',
-                color: '#334155',
+                  'var(--border)',
+                color: 'var(--ink-soft)',
                 fontWeight: 700,
                 cursor: saving
                   ? 'not-allowed'
@@ -604,8 +604,8 @@ export default function NewBookPage() {
                 borderRadius: 9,
                 border: 'none',
                 background:
-                  '#166534',
-                color: '#fff',
+                  'var(--brand-light)',
+                color: 'var(--on-accent)',
                 fontWeight: 700,
                 cursor: saving
                   ? 'not-allowed'
@@ -658,7 +658,7 @@ function Field({
           style={{
             marginTop: 5,
             fontSize: 12,
-            color: '#64748b',
+            color: 'var(--ink-soft)',
           }}
         >
           {hint}
@@ -702,7 +702,7 @@ function TextArea({
 const labelStyle = {
   display: 'block',
   marginBottom: 8,
-  color: '#334155',
+  color: 'var(--ink-soft)',
   fontSize: 14,
   fontWeight: 700,
 };
@@ -711,10 +711,10 @@ const inputStyle = {
   width: '100%',
   boxSizing: 'border-box',
   padding: '12px 13px',
-  border: '1px solid #cbd5e1',
+  border: '1px solid var(--border)',
   borderRadius: 9,
-  background: '#fff',
-  color: '#0f172a',
+  background: 'var(--surface)',
+  color: 'var(--ink)',
   fontSize: 15,
   outline: 'none',
 };

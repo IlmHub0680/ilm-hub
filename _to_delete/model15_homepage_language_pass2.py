@@ -1,0 +1,185 @@
+# -*- coding: utf-8 -*-
+import io
+
+def load(path):
+    with io.open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+def save(path, content):
+    with io.open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+def r1(content, old, new, label):
+    c = content.count(old)
+    assert c == 1, "%s: expected 1 match, found %d (context: %r)" % (label, c, old[:120])
+    return content.replace(old, new)
+
+path = "app/page.jsx"
+c = load(path)
+
+# 1. Top bar -- translate Hijri labels, add the EN/AR toggle.
+c = r1(
+    c,
+    "          <div>\n"
+    "            <span style={{ color: '#e7d48b' }}>\n"
+    "              <strong>Hijri:</strong>\n"
+    "            </span>{' '}\n"
+    "\n"
+    "            <strong>{islamicDate}</strong>\n"
+    "\n"
+    "            <span\n"
+    "              style={{\n"
+    "                marginLeft: '6px',\n"
+    "                opacity: 0.65,\n"
+    "                fontSize: '10px',\n"
+    "              }}\n"
+    "            >\n"
+    "              (Umm al-Qura)\n"
+    "            </span>\n"
+    "          </div>\n"
+    "\n"
+    "        </div>\n"
+    "      </div>",
+    "          <div>\n"
+    "            <span style={{ color: '#e7d48b' }}>\n"
+    "              <strong>{t('Hijri:')}</strong>\n"
+    "            </span>{' '}\n"
+    "\n"
+    "            <strong>{islamicDate}</strong>\n"
+    "\n"
+    "            <span\n"
+    "              style={{\n"
+    "                marginLeft: '6px',\n"
+    "                opacity: 0.65,\n"
+    "                fontSize: '10px',\n"
+    "              }}\n"
+    "            >\n"
+    "              {t('(Umm al-Qura)')}\n"
+    "            </span>\n"
+    "          </div>\n"
+    "\n"
+    "          <div style={langToggleRow}>\n"
+    "            <button\n"
+    "              type=\"button\"\n"
+    "              onClick={() => setLang('en')}\n"
+    "              style={lang === 'en' ? langToggleBtnActive : langToggleBtn}\n"
+    "            >\n"
+    "              EN\n"
+    "            </button>\n"
+    "            <button\n"
+    "              type=\"button\"\n"
+    "              onClick={() => setLang('ar')}\n"
+    "              style={lang === 'ar' ? langToggleBtnActive : langToggleBtn}\n"
+    "            >\n"
+    "              العربية\n"
+    "            </button>\n"
+    "          </div>\n"
+    "\n"
+    "        </div>\n"
+    "      </div>",
+    "page: top bar -- translate Hijri labels + add EN/AR toggle",
+)
+
+# 2. Welcome section.
+c = r1(
+    c,
+    "      <section style={sectionStyle}>\n"
+    "\n"
+    "        <div style={headingContainer}>\n"
+    "\n"
+    "          <span style={goldLabel}>\n"
+    "            WELCOME TO ULUL AZM\n"
+    "          </span>\n"
+    "\n"
+    "          <h2 style={sectionTitle}>\n"
+    "            A place to seek knowledge with sincerity\n"
+    "          </h2>\n"
+    "\n"
+    "          <p style={sectionDescription}>\n"
+    "            Ulul Azm Institute brings together structured academic learning,\n"
+    "            classical Islamic scholarship, digital resources, and a community\n"
+    "            committed to beneficial knowledge, upright character, and lifelong\n"
+    "            learning.\n"
+    "          </p>\n"
+    "\n"
+    "        </div>\n"
+    "\n"
+    "        <div style={cardGrid}>\n"
+    "\n"
+    "          <FeatureCard\n"
+    "            icon=\"📚\"\n"
+    "            title=\"Structured Learning\"\n"
+    "            text=\"Progress through carefully organized academic programmes and courses designed to build knowledge systematically.\"\n"
+    "          />\n"
+    "\n"
+    "          <FeatureCard\n"
+    "            icon=\"🕌\"\n"
+    "            title=\"Islamic Scholarship\"\n"
+    "            text=\"Engage with the Qur'an, Sunnah, classical texts, and established Islamic disciplines through sound scholarly tradition.\"\n"
+    "          />\n"
+    "\n"
+    "          <FeatureCard\n"
+    "            icon=\"🎓\"\n"
+    "            title=\"Student Development\"\n"
+    "            text=\"Develop sound knowledge, disciplined study habits, research ability, humility, and beneficial character.\"\n"
+    "          />\n"
+    "\n"
+    "          <FeatureCard\n"
+    "            icon=\"🌐\"\n"
+    "            title=\"Learning Without Borders\"\n"
+    "            text=\"Access educational opportunities and digital resources designed to support students wherever they are.\"\n"
+    "          />\n"
+    "\n"
+    "        </div>\n"
+    "      </section>",
+    "      <section style={sectionStyle} dir={dir}>\n"
+    "\n"
+    "        <div style={headingContainer}>\n"
+    "\n"
+    "          <span style={goldLabel}>\n"
+    "            {t('WELCOME TO ULUL AZM')}\n"
+    "          </span>\n"
+    "\n"
+    "          <h2 style={sectionTitle}>\n"
+    "            {t('A place to seek knowledge with sincerity')}\n"
+    "          </h2>\n"
+    "\n"
+    "          <p style={sectionDescription}>\n"
+    "            {t(\"Ulul Azm Institute brings together structured academic learning, classical Islamic scholarship, digital resources, and a community committed to beneficial knowledge, upright character, and lifelong learning.\")}\n"
+    "          </p>\n"
+    "\n"
+    "        </div>\n"
+    "\n"
+    "        <div style={cardGrid}>\n"
+    "\n"
+    "          <FeatureCard\n"
+    "            icon=\"📚\"\n"
+    "            title={t('Structured Learning')}\n"
+    "            text={t('Progress through carefully organized academic programmes and courses designed to build knowledge systematically.')}\n"
+    "          />\n"
+    "\n"
+    "          <FeatureCard\n"
+    "            icon=\"🕌\"\n"
+    "            title={t('Islamic Scholarship')}\n"
+    "            text={t(\"Engage with the Qur'an, Sunnah, classical texts, and established Islamic disciplines through sound scholarly tradition.\")}\n"
+    "          />\n"
+    "\n"
+    "          <FeatureCard\n"
+    "            icon=\"🎓\"\n"
+    "            title={t('Student Development')}\n"
+    "            text={t('Develop sound knowledge, disciplined study habits, research ability, humility, and beneficial character.')}\n"
+    "          />\n"
+    "\n"
+    "          <FeatureCard\n"
+    "            icon=\"🌐\"\n"
+    "            title={t('Learning Without Borders')}\n"
+    "            text={t('Access educational opportunities and digital resources designed to support students wherever they are.')}\n"
+    "          />\n"
+    "\n"
+    "        </div>\n"
+    "      </section>",
+    "page: Welcome section translation",
+)
+
+save(path, c)
+print("app/page.jsx: pass 2a (top bar + Welcome section) done.")

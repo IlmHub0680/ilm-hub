@@ -44,8 +44,16 @@ export async function POST(request) {
       formData.get('applicationId') || ''
     ).trim();
 
+    const applicationNumber = String(
+      formData.get('applicationNumber') || ''
+    ).trim();
+
     if (!applicationId) {
       return errorResponse('Application ID is required.');
+    }
+
+    if (!applicationNumber) {
+      return errorResponse('Application number is required.');
     }
 
     const application =
@@ -57,6 +65,21 @@ export async function POST(request) {
       return errorResponse(
         'Admission application not found.',
         404
+      );
+    }
+
+    // Security (IDOR fix): applicationId is a database primary key, not
+    // a secret -- it is returned to every caller who submits an
+    // application, so anyone who saw or guessed one could otherwise
+    // upload documents onto a stranger's application. applicationNumber
+    // is the cryptographically random 9-digit value only the real
+    // applicant is ever shown (see lib/applicationNumber.js), so
+    // requiring it here proves the caller actually owns this
+    // application before any file is accepted.
+    if (application.applicationNumber !== applicationNumber) {
+      return errorResponse(
+        'Application ID and application number do not match.',
+        403
       );
     }
 

@@ -51,6 +51,14 @@ export async function GET() {
             createdAt: 'desc',
           },
         },
+        bookAccess: {
+          select: {
+            id: true,
+            bookId: true,
+            approvedAt: true,
+            revokedAt: true,
+          },
+        },
       },
     });
 
@@ -86,13 +94,27 @@ export async function GET() {
         createdAt: order.createdAt,
         updatedAt: order.updatedAt,
 
-        items: order.items.map((item) => ({
-          id: item.id,
-          bookId: item.bookId,
-          priceUSD: Number(item.priceUSD),
-          quantity: item.quantity,
-          book: item.book,
-        })),
+        items: order.items.map((item) => {
+          const access = order.bookAccess.find(
+            (a) => a.bookId === item.bookId
+          ) || null;
+
+          return {
+            id: item.id,
+            bookId: item.bookId,
+            priceUSD: Number(item.priceUSD),
+            quantity: item.quantity,
+            book: item.book,
+            access: access
+              ? {
+                  id: access.id,
+                  active: !access.revokedAt,
+                  approvedAt: access.approvedAt,
+                  revokedAt: access.revokedAt,
+                }
+              : null,
+          };
+        }),
 
         payments: order.payments.map((payment) => ({
           id: payment.id,

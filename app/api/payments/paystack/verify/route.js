@@ -124,7 +124,7 @@ export async function POST(req) {
       },
       data: {
         paymentStatus: "PAID",
-        status: "PAYMENT_SUBMITTED",
+        status: "PENDING_ADMIN_APPROVAL",
         paidAmount: amountPaid,
         paymentGateway: "PAYSTACK",
         paymentRef: reference,
@@ -132,41 +132,67 @@ export async function POST(req) {
       },
     });
 
-    await prisma.payment.upsert({
+    /*
+     * Find the real Payment row created at checkout time (it already
+     * carries this same Paystack reference from initialization) rather
+     * than guessing/synthesizing an id — that previously caused a
+     * duplicate Payment row to be created here instead of updating the
+     * original one.
+     */
+    let payment = await prisma.payment.findFirst({
       where: {
-        id:
-          body.paymentId ||
-          `paystack-${reference}`,
-      },
-      update: {
-        status: "PAID",
-        gatewayReference: reference,
-        transactionId: String(
-          transaction.id || reference
-        ),
-        paidAt: new Date(),
-      },
-      create: {
-        id:
-          body.paymentId ||
-          `paystack-${reference}`,
         orderId: order.id,
-        gateway: "PAYSTACK",
-        method: order.paymentMethod,
-        status: "PAID",
-        amount: amountPaid,
-        currencyCode:
-          transaction.currency ||
-          order.currencyCode ||
-          "GHS",
-        exchangeRate: order.exchangeRate,
         gatewayReference: reference,
-        transactionId: String(
-          transaction.id || reference
-        ),
-        paidAt: new Date(),
       },
     });
+
+    if (!payment) {
+      payment = await prisma.payment.findFirst({
+        where: {
+          orderId: order.id,
+          gateway: "PAYSTACK",
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+    }
+
+    if (payment) {
+      await prisma.payment.update({
+        where: {
+          id: payment.id,
+        },
+        data: {
+          status: "PAID",
+          gatewayReference: reference,
+          transactionId: String(
+            transaction.id || reference
+          ),
+          paidAt: new Date(),
+        },
+      });
+    } else {
+      await prisma.payment.create({
+        data: {
+          orderId: order.id,
+          gateway: "PAYSTACK",
+          method: order.paymentMethod,
+          status: "PAID",
+          amount: amountPaid,
+          currencyCode:
+            transaction.currency ||
+            order.currencyCode ||
+            "GHS",
+          exchangeRate: order.exchangeRate,
+          gatewayReference: reference,
+          transactionId: String(
+            transaction.id || reference
+          ),
+          paidAt: new Date(),
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,

@@ -29,22 +29,22 @@ export default function DonationsPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '40px 20px', fontFamily: 'sans-serif' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--paper)', padding: '40px 20px', fontFamily: 'sans-serif' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <Link href="/" style={{ color: '#059669', fontWeight: '600', textDecoration: 'none', display: 'inline-block', marginBottom: '20px' }}>
+        <Link href="/" style={{ color: 'var(--brand)', fontWeight: '600', textDecoration: 'none', display: 'inline-block', marginBottom: '20px' }}>
           ← Back to Home
         </Link>
         
-        <div style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb' }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#111827', marginBottom: '10px' }}>Support Ilm Hub Institute</h1>
-          <p style={{ color: '#4b5563', marginBottom: '30px' }}>
+        <div style={{ backgroundColor: 'var(--surface)', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid var(--border)' }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--ink)', marginBottom: '10px' }}>Support Ulul Azm</h1>
+          <p style={{ color: 'var(--ink-soft)', marginBottom: '30px' }}>
             Your contributions directly fund authentic Islamic education, student support, and community outreach.
           </p>
 
           {!receiptGenerated ? (
             <form onSubmit={handleDonate} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>Donation Type</label>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: 'var(--ink-soft)' }}>Donation Type</label>
                 <div style={{ display: 'flex', gap: '15px' }}>
                   {['One-Time', 'Recurring'].map((type) => (
                     <button
@@ -55,9 +55,9 @@ export default function DonationsPage() {
                         flex: 1,
                         padding: '10px',
                         borderRadius: '8px',
-                        border: donationType === type ? '2px solid #059669' : '1px solid #d1d5db',
-                        backgroundColor: donationType === type ? '#ecfdf5' : '#ffffff',
-                        color: donationType === type ? '#047857' : '#374151',
+                        border: donationType === type ? '2px solid var(--brand)' : '1px solid var(--border)',
+                        backgroundColor: donationType === type ? 'var(--brand-tint)' : 'var(--surface)',
+                        color: donationType === type ? 'var(--brand-dark)' : 'var(--ink-soft)',
                         fontWeight: '600',
                         cursor: 'pointer'
                       }}
@@ -70,21 +70,21 @@ export default function DonationsPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 <div>
-                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>Amount</label>
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: 'var(--ink-soft)' }}>Amount</label>
                   <input
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)' }}
                     required
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>Currency</label>
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: 'var(--ink-soft)' }}>Currency</label>
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)' }}
                   >
                     <option value="USD">USD ($)</option>
                     <option value="EUR">EUR (€)</option>
@@ -95,11 +95,11 @@ export default function DonationsPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>Purpose / Fund</label>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: 'var(--ink-soft)' }}>Purpose / Fund</label>
                 <select
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)' }}
                 >
                   <option value="General Institute Support">General Institute Support</option>
                   <option value="Student Scholarship Fund">Student Scholarship Fund</option>
@@ -109,21 +109,21 @@ export default function DonationsPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>Donor Name (Optional)</label>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: 'var(--ink-soft)' }}>Donor Name (Optional)</label>
                 <input
                   type="text"
                   placeholder="Leave blank for Anonymous"
                   value={donorName}
                   onChange={(e) => setDonorName(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)' }}
                 />
               </div>
 
               <button
                 type="submit"
                 style={{
-                  backgroundColor: '#059669',
-                  color: '#ffffff',
+                  backgroundColor: 'var(--brand)',
+                  color: 'var(--on-accent)',
                   padding: '14px',
                   borderRadius: '8px',
                   fontWeight: 'bold',
@@ -137,20 +137,20 @@ export default function DonationsPage() {
               </button>
             </form>
           ) : (
-            <div style={{ backgroundColor: '#f3f4f6', padding: '24px', borderRadius: '8px', border: '1px solid #d1d5db' }}>
-              <h2 style={{ color: '#059669', marginBottom: '15px' }}>✓ Donation Successful & Receipt Generated</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: '#374151', marginBottom: '20px' }}>
+            <div style={{ backgroundColor: 'var(--border-soft)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <h2 style={{ color: 'var(--brand)', marginBottom: '15px' }}>✓ Donation Successful & Receipt Generated</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--ink-soft)', marginBottom: '20px' }}>
                 <p><strong>Receipt ID:</strong> {receiptData.id}</p>
                 <p><strong>Donor Name:</strong> {receiptData.donorName}</p>
                 <p><strong>Amount:</strong> {receiptData.amount} {receiptData.currency}</p>
                 <p><strong>Purpose:</strong> {receiptData.purpose}</p>
                 <p><strong>Type:</strong> {receiptData.type}</p>
                 <p><strong>Date:</strong> {receiptData.date}</p>
-                <p><strong>Status:</strong> <span style={{ color: '#059669', fontWeight: '600' }}>{receiptData.status}</span></p>
+                <p><strong>Status:</strong> <span style={{ color: 'var(--brand)', fontWeight: '600' }}>{receiptData.status}</span></p>
               </div>
               <button
                 onClick={() => setReceiptGenerated(false)}
-                style={{ backgroundColor: '#374151', color: '#ffffff', padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600' }}
+                style={{ backgroundColor: 'var(--ink-soft)', color: 'var(--on-accent)', padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600' }}
               >
                 Make Another Donation
               </button>

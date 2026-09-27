@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { generateOrderNumber } from "@/lib/orderNumber";
 
 export async function GET() {
   try {
@@ -121,11 +122,7 @@ export async function POST(req) {
       };
     });
 
-    const orderNumber =
-      `ILM-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 7)
-        .toUpperCase()}`;
+    const orderNumber = await generateOrderNumber();
 
     const order = await prisma.order.create({
       data: {

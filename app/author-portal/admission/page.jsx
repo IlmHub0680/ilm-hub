@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 /**
- * ILM-HUB AUTHOR PORTAL
+ * ULUL AZM AUTHOR PORTAL
  *
  * This is a polished frontend version of the Author Portal.
  *
@@ -18,173 +18,156 @@ import Link from "next/link";
 const ROYALTY_RATE = 0.7;
 const PLATFORM_RATE = 0.3;
 
+const SUBMISSION_STATUS_LABELS = {
+  SUBMITTED: "Submitted",
+  UNDER_REVIEW: "Under Review",
+  QUOTE_GENERATED: "Quote Ready",
+  QUOTE_ACCEPTED: "Quote Accepted",
+  IN_PRODUCTION: "In Production",
+  PUBLISHED: "Published",
+  REJECTED: "Rejected",
+};
+
+function formatSubmissionStatus(status) {
+  return SUBMISSION_STATUS_LABELS[status] || status;
+}
+
 const COLORS = {
-  primary: "#14532d",
-  primaryHover: "#166534",
-  primarySoft: "#f0fdf4",
-  primaryBorder: "#bbf7d0",
+  primary: "var(--brand)",
+  primaryHover: "var(--brand-light)",
+  primarySoft: "var(--brand-tint)",
+  primaryBorder: "var(--success-tint)",
 
-  navy: "#0f172a",
-  text: "#334155",
-  muted: "#64748b",
-  lightMuted: "#94a3b8",
+  navy: "var(--ink)",
+  text: "var(--ink-soft)",
+  muted: "var(--ink-soft)",
+  lightMuted: "var(--ink-soft)",
 
-  background: "#f8fafc",
-  white: "#ffffff",
-  border: "#e2e8f0",
+  background: "var(--paper)",
+  white: 'var(--surface)',
+  border: "var(--border)",
 
-  blue: "#0369a1",
-  blueSoft: "#f0f9ff",
+  blue: "var(--info)",
+  blueSoft: "var(--info-tint)",
 
-  amber: "#b45309",
-  amberSoft: "#fffbeb",
+  amber: "var(--warning)",
+  amberSoft: "var(--warning-tint)",
 
-  red: "#b91c1c",
-  redSoft: "#fef2f2",
+  red: "var(--danger)",
+  redSoft: "var(--danger-tint)",
 
   purple: "#6d28d9",
   purpleSoft: "#f5f3ff",
 };
 
-const INITIAL_BOOKS = [
-  {
-    id: 1,
-    title: "Foundations of Islamic Jurisprudence",
-    publishDate: "2026-05-12",
-    status: "Published",
-    price: 18.5,
-    category: "Fiqh",
-    sales: 142,
-    coverUrl:
-      "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80",
-  },
-  {
-    id: 2,
-    title: "Advanced Arabic Morphology & Syntax",
-    publishDate: "2026-06-20",
-    status: "Under Review",
-    price: 22,
-    category: "Arabic Language",
-    sales: 0,
-    coverUrl:
-      "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=300&q=80",
-  },
-];
-
-const INITIAL_COUPONS = [
-  {
-    id: 1,
-    code: "RAMADAN20",
-    discount: 20,
-    bookTitle: "Foundations of Islamic Jurisprudence",
-    status: "Active",
-    uses: 14,
-  },
-  {
-    id: 2,
-    code: "SCHOLAR50",
-    discount: 50,
-    bookTitle: "All Books",
-    status: "Active",
-    uses: 3,
-  },
-];
-
-const INITIAL_PAYOUTS = [
-  {
-    id: "PO-1082",
-    date: "2026-07-01",
-    gross: 1240,
-    author: 868,
-    platform: 372,
-    status: "Completed",
-    method: "Mobile Money",
-  },
-  {
-    id: "PO-1051",
-    date: "2026-06-01",
-    gross: 980.5,
-    author: 686.35,
-    platform: 294.15,
-    status: "Completed",
-    method: "Bank Transfer",
-  },
-  {
-    id: "PO-1019",
-    date: "2026-05-01",
-    gross: 408,
-    author: 285.6,
-    platform: 122.4,
-    status: "Completed",
-    method: "Mobile Money",
-  },
-];
+// Real data for books, submissions, coupons and payouts is loaded from the
+// server (see the useEffect below and handleAddBookSubmit) rather than
+// seeded here. Coupons have no backing database model yet, so that view
+// shows an honest empty state until that feature is scoped and built.
+// Royalty rate + payout history are real (lib/royalty.js,
+// /api/author/royalty, /api/author/payouts) — ACTIVE_ROYALTY_RATE starts
+// at the same 70% this page always showed, then updates in place the
+// moment the author's real current rate loads, so every existing
+// royalty()/platformFee() call site below stays correct without needing
+// to be touched individually.
+let ACTIVE_ROYALTY_RATE = ROYALTY_RATE;
 
 function money(value) {
   return `$${Number(value || 0).toFixed(2)}`;
 }
 
 function royalty(value) {
-  return Number(value || 0) * ROYALTY_RATE;
+  return Number(value || 0) * ACTIVE_ROYALTY_RATE;
 }
 
 function platformFee(value) {
-  return Number(value || 0) * PLATFORM_RATE;
+  return Number(value || 0) * (1 - ACTIVE_ROYALTY_RATE);
 }
+
+// Maps the real PayoutStatus enum (PENDING/APPROVED/PAID/REJECTED) onto
+// the Title Case labels StatusBadge already has color treatments for,
+// so a real payout renders with the same semantic color as everything
+// else on this page instead of falling through to the neutral default.
+const PAYOUT_STATUS_LABELS = {
+  PENDING: "Pending Review",
+  APPROVED: "Approved",
+  PAID: "Completed",
+  REJECTED: "Rejected",
+};
 
 function StatusBadge({ status }) {
   const styles = {
     Published: {
-      background: "#f0fdf4",
-      color: "#166534",
-      border: "#bbf7d0",
+      background: "var(--brand-tint)",
+      color: "var(--brand-light)",
+      border: "var(--success-tint)",
     },
     Approved: {
-      background: "#f0fdf4",
-      color: "#166534",
-      border: "#bbf7d0",
+      background: "var(--brand-tint)",
+      color: "var(--brand-light)",
+      border: "var(--success-tint)",
     },
     "Under Review": {
-      background: "#fffbeb",
-      color: "#a16207",
-      border: "#fde68a",
+      background: "var(--warning-tint)",
+      color: "var(--gold-dark)",
+      border: "var(--warning-tint)",
     },
     "Pending Review": {
-      background: "#fffbeb",
-      color: "#a16207",
-      border: "#fde68a",
+      background: "var(--warning-tint)",
+      color: "var(--gold-dark)",
+      border: "var(--warning-tint)",
     },
     Draft: {
-      background: "#f8fafc",
-      color: "#475569",
-      border: "#cbd5e1",
+      background: "var(--paper)",
+      color: "var(--ink-soft)",
+      border: "var(--border)",
     },
     "Changes Requested": {
-      background: "#fff7ed",
-      color: "#c2410c",
-      border: "#fed7aa",
+      background: "var(--warning-tint)",
+      color: "var(--warning)",
+      border: "var(--warning-tint)",
     },
     Rejected: {
-      background: "#fef2f2",
-      color: "#b91c1c",
-      border: "#fecaca",
+      background: "var(--danger-tint)",
+      color: "var(--danger)",
+      border: "var(--danger-tint)",
     },
     Active: {
-      background: "#f0fdf4",
-      color: "#166534",
-      border: "#bbf7d0",
+      background: "var(--brand-tint)",
+      color: "var(--brand-light)",
+      border: "var(--success-tint)",
     },
     Completed: {
-      background: "#f0fdf4",
-      color: "#166534",
-      border: "#bbf7d0",
+      background: "var(--brand-tint)",
+      color: "var(--brand-light)",
+      border: "var(--success-tint)",
+    },
+    Submitted: {
+      background: "var(--info-tint)",
+      color: "var(--info)",
+      border: "var(--info-tint)",
+    },
+    "Quote Ready": {
+      background: "var(--warning-tint)",
+      color: "var(--gold-dark)",
+      border: "var(--warning-tint)",
+    },
+    "Quote Accepted": {
+      background: "var(--brand-tint)",
+      color: "var(--brand-light)",
+      border: "var(--success-tint)",
+    },
+    "In Production": {
+      background: "var(--info-tint)",
+      color: "var(--info)",
+      border: "var(--info-tint)",
     },
   };
 
   const style = styles[status] || {
-    background: "#f8fafc",
-    color: "#475569",
-    border: "#cbd5e1",
+    background: "var(--paper)",
+    color: "var(--ink-soft)",
+    border: "var(--border)",
   };
 
   return (
@@ -242,6 +225,13 @@ function Icon({ name, size = 18 }) {
       <svg {...common}>
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+      </svg>
+    ),
+    submissions: (
+      <svg {...common}>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+        <path d="M14 2v6h6" />
+        <path d="M9 13h6M9 17h6" />
       </svg>
     ),
     plus: (
@@ -344,13 +334,13 @@ function Button({
   const variants = {
     primary: {
       background: COLORS.primary,
-      color: "#fff",
+      color: 'var(--on-accent)',
       border: `1px solid ${COLORS.primary}`,
     },
     secondary: {
-      background: "#fff",
+      background: 'var(--surface)',
       color: COLORS.text,
-      border: `1px solid #cbd5e1`,
+      border: `1px solid var(--border)`,
     },
     soft: {
       background: COLORS.primarySoft,
@@ -360,7 +350,7 @@ function Button({
     danger: {
       background: COLORS.redSoft,
       color: COLORS.red,
-      border: "1px solid #fecaca",
+      border: "1px solid var(--danger-tint)",
     },
   };
 
@@ -412,13 +402,13 @@ function Input({ label, ...props }) {
         style={{
           width: "100%",
           boxSizing: "border-box",
-          border: "1px solid #cbd5e1",
+          border: "1px solid var(--border)",
           borderRadius: 9,
           padding: "11px 13px",
           fontSize: 14,
           color: COLORS.navy,
           outline: "none",
-          background: "#fff",
+          background: 'var(--surface)',
           ...props.style,
         }}
       />
@@ -448,13 +438,13 @@ function Textarea({ label, ...props }) {
         style={{
           width: "100%",
           boxSizing: "border-box",
-          border: "1px solid #cbd5e1",
+          border: "1px solid var(--border)",
           borderRadius: 9,
           padding: "11px 13px",
           fontSize: 14,
           color: COLORS.navy,
           outline: "none",
-          background: "#fff",
+          background: 'var(--surface)',
           resize: "vertical",
           ...props.style,
         }}
@@ -542,25 +532,74 @@ function StatCard({ label, value, description, icon, color }) {
 export default function AuthorPortal() {
  const [viewMode, setViewMode] = useState("login");
 const [currentUser, setCurrentUser] = useState(null);
+const [loginBackgroundUrl, setLoginBackgroundUrl] = useState("");
+
+// Admin-managed institute banner behind the login/register/reset auth
+// views (Homepage Hero's brand assets -- see
+// app/admin/homepage/hero/page.jsx). Public, unauthenticated content
+// the same way the public homepage reads it; a failure here just
+// leaves the page on its existing plain gradient background.
+useEffect(() => {
+  let active = true;
+  fetch("/api/homepage-content", { cache: "no-store" })
+    .then((res) => (res.ok ? res.json() : null))
+    .then((result) => {
+      if (active && result?.success && result.data?.hero?.loginBackgroundUrl) {
+        setLoginBackgroundUrl(result.data.hero.loginBackgroundUrl);
+      }
+    })
+    .catch(() => {});
+  return () => {
+    active = false;
+  };
+}, []);
 
   const [mobileMenu, setMobileMenu] = useState(false);
 
+  // Shared by the login form's email/password AND the register form's
+  // name/specialty/bio/countryOfResidence/password fields (both are
+  // pre-auth forms about "who is applying / signing in"). Real empty
+  // defaults only — no visitor, signed in or not, should ever see a
+  // fabricated identity pre-filled here. The dashboard's own profile
+  // and payout-preference data lives in the separate authorProfile
+  // state below, never in this object, so a login-form value and a
+  // profile-settings value can no longer collide in the same state.
   const [formData, setFormData] = useState({
-    name: "Dr. Ahmad Al-Mansoor",
-    email: "ahmad.mansoor@ilmhub.edu",
-    bio: "Specialist in Islamic Jurisprudence and Arabic Morphology with over 15 years of academic teaching experience.",
-    specialty: "Fiqh & Arabic Language",
+    name: "",
+    email: "",
+    bio: "",
+    specialty: "",
+    countryOfResidence: "",
     password: "",
-    payoutMethod: "Mobile Money",
-    bankAccount: "•••• •••• •••• 4892",
-    bankName: "Global Islamic Bank",
-    momoNumber: "+233 24 555 0192",
-    momoNetwork: "MTN Mobile Money",
   });
 
-  const [books, setBooks] = useState(INITIAL_BOOKS);
-  const [coupons, setCoupons] = useState(INITIAL_COUPONS);
-  const [payoutHistory] = useState(INITIAL_PAYOUTS);
+  // The authenticated dashboard's own author profile + standing
+  // payout preference — loaded from GET /api/author/profile once the
+  // session is confirmed (see the session-restore useEffect below),
+  // and saved back with PATCH /api/author/profile. Empty defaults
+  // only; placeholders in the inputs invite real input instead of
+  // showing fabricated-looking example values as the field value.
+  const [authorProfile, setAuthorProfile] = useState({
+    bio: "",
+    specialty: "",
+    payoutMethodPreference: "",
+    bankName: "",
+    bankAccountNumber: "",
+    momoProvider: "",
+    momoNumber: "",
+  });
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const [books, setBooks] = useState([]);
+  const [booksLoading, setBooksLoading] = useState(false);
+  const [coupons, setCoupons] = useState([]);
+  const [payoutHistory, setPayoutHistory] = useState([]);
+  const [royaltyInfo, setRoyaltyInfo] = useState(null);
+  const [royaltyLoading, setRoyaltyLoading] = useState(false);
+  const [submissions, setSubmissions] = useState([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [acceptingQuoteId, setAcceptingQuoteId] = useState(null);
 
   const [search, setSearch] = useState("");
   const [bookFilter, setBookFilter] = useState("All");
@@ -573,12 +612,6 @@ const [currentUser, setCurrentUser] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   const [successMsg, setSuccessMsg] = useState("");
-
-  const [newCoupon, setNewCoupon] = useState({
-    code: "",
-    discount: "10",
-    bookTitle: "All Books",
-  });
 
   const [newBook, setNewBook] = useState({
     title: "",
@@ -648,6 +681,155 @@ const [currentUser, setCurrentUser] = useState(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const loadBooks = async () => {
+    setBooksLoading(true);
+    try {
+      const res = await fetch("/api/author/books", {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data?.success) {
+        setBooks(data.books);
+      }
+    } catch (err) {
+      console.error("Failed to load author books:", err);
+    } finally {
+      setBooksLoading(false);
+    }
+  };
+
+  const loadSubmissions = async () => {
+    setSubmissionsLoading(true);
+    try {
+      const res = await fetch("/api/publishing/my-submissions", {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data?.success) {
+        setSubmissions(data.submissions);
+      }
+    } catch (err) {
+      console.error("Failed to load manuscript submissions:", err);
+    } finally {
+      setSubmissionsLoading(false);
+    }
+  };
+
+  // Real royalty position + payout history — replaces the fixed 70%
+  // split and the permanently-empty payout list this page started with.
+  const loadRoyalty = async () => {
+    setRoyaltyLoading(true);
+    try {
+      const [royaltyRes, payoutsRes] = await Promise.all([
+        fetch("/api/author/royalty", { credentials: "include" }),
+        fetch("/api/author/payouts", { credentials: "include" }),
+      ]);
+      const royaltyData = await royaltyRes.json();
+      const payoutsData = await payoutsRes.json();
+
+      if (royaltyData?.success) {
+        ACTIVE_ROYALTY_RATE = Number(royaltyData.data.currentRatePct || 70) / 100;
+        setRoyaltyInfo(royaltyData.data);
+      }
+
+      if (payoutsData?.success) {
+        setPayoutHistory(payoutsData.data);
+      }
+    } catch (err) {
+      console.error("Failed to load royalty information:", err);
+    } finally {
+      setRoyaltyLoading(false);
+    }
+  };
+
+  const handleAcceptQuote = async (submissionId) => {
+    setAcceptingQuoteId(submissionId);
+    try {
+      const res = await fetch(
+        `/api/publishing/quote/${submissionId}/accept`,
+        { method: "POST", credentials: "include" }
+      );
+      const data = await res.json();
+      if (!data.success) {
+        setErrorMsg(data.error || "Unable to accept quote.");
+        return;
+      }
+      showSuccess("Quote accepted. Your manuscript is moving into production.");
+      loadSubmissions();
+    } catch (err) {
+      console.error("Accept quote error:", err);
+      setErrorMsg("Unable to accept quote. Please try again.");
+    } finally {
+      setAcceptingQuoteId(null);
+    }
+  };
+
+  // Restore an existing session on page load/reload (the demo scaffold this
+  // page started from never checked for one, so a refresh always bounced an
+  // already-logged-in author back to the login screen).
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        const data = await res.json();
+
+        if (cancelled || !data?.success || !data.user) return;
+
+        if (data.user.role !== "AUTHOR" || data.user.authorStatus !== "APPROVED") {
+          return;
+        }
+
+        setCurrentUser(data.user);
+        setFormData((current) => ({
+          ...current,
+          name: data.user.name || current.name,
+          email: data.user.email || current.email,
+        }));
+        setViewMode((current) => (current === "login" ? "dashboard" : current));
+
+        // Load the real author profile / payout preference right after
+        // the session is confirmed, in this same effect rather than a
+        // separate one, so it can't race the session-restore check.
+        setProfileLoading(true);
+        try {
+          const profileRes = await fetch("/api/author/profile", {
+            credentials: "include",
+          });
+          const profileData = await profileRes.json();
+
+          if (!cancelled && profileData?.success && profileData.data) {
+            setAuthorProfile((current) => ({
+              ...current,
+              ...profileData.data,
+            }));
+          }
+        } catch (profileErr) {
+          console.error("Failed to load author profile:", profileErr);
+        } finally {
+          if (!cancelled) setProfileLoading(false);
+        }
+      } catch (err) {
+        // No active session — stay on the login screen.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load real books/submissions/royalty once the author dashboard is showing.
+  useEffect(() => {
+    if (viewMode === "login" || viewMode === "register") return;
+    loadBooks();
+    loadSubmissions();
+    loadRoyalty();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode === "login" || viewMode === "register"]);
+
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -665,6 +847,17 @@ const [currentUser, setCurrentUser] = useState(null);
       const data = await res.json();
 
       if (res.ok) {
+        // The application now requires the fee to be paid before it
+        // reaches the administration review queue — send the
+        // applicant straight to the tracking page, which shows the
+        // fee owed and a "Pay Now" button for their new application.
+        const admissionId = data?.data?.admissionId;
+
+        if (admissionId) {
+          window.location.href = `/author-portal/admission/track?admissionId=${admissionId}`;
+          return;
+        }
+
         setSubmitted(true);
       } else {
         setErrorMsg(
@@ -734,7 +927,7 @@ const [currentUser, setCurrentUser] = useState(null);
       if (loggedInUser.authorStatus !== "APPROVED") {
         if (loggedInUser.authorStatus === "PENDING") {
           setErrorMsg(
-            "Your author application is still under review."
+            "Your author application is still under review, or the application fee has not been paid yet. Use \"Track Your Application\" below to check its status."
           );
         } else if (loggedInUser.authorStatus === "REJECTED") {
           setErrorMsg(
@@ -794,7 +987,6 @@ const [currentUser, setCurrentUser] = useState(null);
       !newBook.category ||
       !newBook.price ||
       !newBook.description ||
-      !newBook.coverImage ||
       !newBook.bookFile
     ) {
       setErrorMsg("Please complete all required book fields.");
@@ -809,88 +1001,138 @@ const [currentUser, setCurrentUser] = useState(null);
     setUploadingBook(true);
     setErrorMsg("");
 
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    try {
+      // 1. Upload the manuscript file to storage.
+      const uploadForm = new FormData();
+      uploadForm.append("file", newBook.bookFile);
 
-    const createdBook = {
-      id: Date.now(),
-      title: newBook.title,
-      publishDate: newBook.publishDate,
-      status: "Under Review",
-      price: Number(newBook.price),
-      category: newBook.category,
-      sales: 0,
-      coverUrl: newBook.coverImage
-        ? URL.createObjectURL(newBook.coverImage)
-        : "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=300&q=80",
-    };
+      const uploadRes = await fetch("/api/author/manuscripts/upload", {
+        method: "POST",
+        credentials: "include",
+        body: uploadForm,
+      });
+      const uploadData = await uploadRes.json();
 
-    setBooks((current) => [createdBook, ...current]);
+      if (!uploadData.success) {
+        setErrorMsg(uploadData.error || "Unable to upload manuscript file.");
+        return;
+      }
 
-    setNewBook({
-      title: "",
-      category: "",
-      price: "",
-      publishDate: new Date().toISOString().split("T")[0],
-      description: "",
-      coverImage: null,
-      bookFile: null,
-    });
+      // 2. Create the manuscript submission. The submission model has no
+      // dedicated price/publish-date fields, so the author's proposed
+      // price and target date are recorded in the description for the
+      // reviewing admin to see alongside the manuscript.
+      const proposedDetails =
+        `${newBook.description}
 
-    setUploadingBook(false);
-    showSuccess(
-      "Book submitted successfully. It has been sent to the administration review queue."
-    );
+---
+Proposed price: ${money(
+          newBook.price
+        )}
+Proposed publish date: ${newBook.publishDate}`;
 
-    navigate("dashboard");
+      const submitRes = await fetch("/api/publishing/submit", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newBook.title,
+          genre: newBook.category,
+          description: proposedDetails,
+          manuscriptUrl: uploadData.manuscriptUrl,
+          services: [],
+        }),
+      });
+      const submitData = await submitRes.json();
+
+      if (!submitData.success) {
+        if (submitData.code === "AUTHOR_NOT_APPROVED") {
+          setErrorMsg(
+            "Your author application has not been approved yet, so new submissions can't be sent for review."
+          );
+        } else {
+          setErrorMsg(submitData.error || "Unable to submit manuscript.");
+        }
+        return;
+      }
+
+      setNewBook({
+        title: "",
+        category: "",
+        price: "",
+        publishDate: new Date().toISOString().split("T")[0],
+        description: "",
+        coverImage: null,
+        bookFile: null,
+      });
+
+      showSuccess(
+        "Manuscript submitted successfully. It has been sent to the administration review queue."
+      );
+
+      loadSubmissions();
+      navigate("submissions");
+    } catch (err) {
+      console.error("Book submission error:", err);
+      setErrorMsg("Unable to submit manuscript. Please try again.");
+    } finally {
+      setUploadingBook(false);
+    }
   };
 
-  const handleCouponSubmit = (e) => {
+  const handleProfileSave = async (e) => {
     e.preventDefault();
-
-    if (!newCoupon.code.trim()) {
-      setErrorMsg("Please enter a coupon code.");
-      return;
-    }
-
-    const normalizedCode = newCoupon.code.trim().toUpperCase();
-
-    if (coupons.some((coupon) => coupon.code === normalizedCode)) {
-      setErrorMsg("That coupon code already exists.");
-      return;
-    }
-
-    const discount = Number(newCoupon.discount);
-
-    if (discount < 1 || discount > 100) {
-      setErrorMsg("Discount must be between 1% and 100%.");
-      return;
-    }
-
-    const createdCoupon = {
-      id: Date.now(),
-      code: normalizedCode,
-      discount,
-      bookTitle: newCoupon.bookTitle,
-      status: "Active",
-      uses: 0,
-    };
-
-    setCoupons((current) => [createdCoupon, ...current]);
-
-    setNewCoupon({
-      code: "",
-      discount: "10",
-      bookTitle: "All Books",
-    });
-
-    showSuccess(`Coupon ${normalizedCode} created successfully.`);
+    setSavingProfile(true);
     setErrorMsg("");
-  };
 
-  const handleProfileSave = (e) => {
-    e.preventDefault();
+    try {
+      const payload = {
+        bio: authorProfile.bio,
+        specialty: authorProfile.specialty,
+      };
 
-    showSuccess("Your author profile and payout settings have been updated.");
+      if (authorProfile.payoutMethodPreference) {
+        payload.payoutMethodPreference = authorProfile.payoutMethodPreference;
+
+        if (authorProfile.payoutMethodPreference === "BANK_TRANSFER") {
+          payload.bankName = authorProfile.bankName;
+          payload.bankAccountNumber = authorProfile.bankAccountNumber;
+        } else if (authorProfile.payoutMethodPreference === "MOBILE_MONEY") {
+          payload.momoProvider = authorProfile.momoProvider;
+          payload.momoNumber = authorProfile.momoNumber;
+        }
+      }
+
+      const res = await fetch("/api/author/profile", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.success) {
+        setErrorMsg(
+          data?.error || "Unable to update your author profile."
+        );
+        return;
+      }
+
+      setAuthorProfile((current) => ({
+        ...current,
+        ...data.data,
+      }));
+
+      showSuccess("Your author profile and payout settings have been updated.");
+    } catch (err) {
+      console.error("Author profile save error:", err);
+      setErrorMsg(
+        "Unable to update your author profile. Please check your network connection."
+      );
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
 const signOut = async () => {
@@ -968,7 +1210,7 @@ const signOut = async () => {
           <h1 style={styles.successTitle}>Author Application Submitted</h1>
 
           <p style={styles.successText}>
-            Thank you for applying to publish your books on Ilm-Hub. Your
+            Thank you for applying to publish your books on Ulul Azm. Your
             application has been sent to the administration team for review.
           </p>
 
@@ -997,25 +1239,46 @@ const signOut = async () => {
 
   if (["login", "register", "reset"].includes(viewMode)) {
     return (
-      <div style={styles.authPage}>
+      <div
+        style={{
+          ...styles.authPage,
+          ...(loginBackgroundUrl ? { backgroundImage: `url(${loginBackgroundUrl})` } : {}),
+        }}
+        className={loginBackgroundUrl ? "ih-login-page-bg" : ""}
+      >
         <div style={{ width: "100%", maxWidth: 480 }}>
           <div style={{ marginBottom: 22 }}>
             <Link
               href="/"
+              className={`ih-login-backlink${loginBackgroundUrl ? " on-image" : ""}`}
               style={{
                 color: COLORS.primary,
                 textDecoration: "none",
                 fontWeight: 700,
                 fontSize: 13,
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "8px 14px",
+                borderRadius: 999,
+                transition: "background .15s ease",
+                ...(loginBackgroundUrl
+                  ? {
+                      color: "#fff",
+                      background: "rgba(5, 46, 22, 0.55)",
+                      textShadow: "0 1px 3px rgba(0,0,0,.45)",
+                      backdropFilter: "blur(3px)",
+                      WebkitBackdropFilter: "blur(3px)",
+                    }
+                  : {}),
               }}
             >
-              ← Back to Ilm-Hub
+              ← Back to Ulul Azm
             </Link>
           </div>
 
           <Card style={{ padding: 34 }}>
             <div style={{ textAlign: "center", marginBottom: 28 }}>
-              <div style={styles.logo}>ILM</div>
+              <div style={styles.logo}>UA</div>
 
               <h1
                 style={{
@@ -1104,6 +1367,7 @@ const signOut = async () => {
                       email: e.target.value,
                     })
                   }
+                  className="ih-login-input"
                 />
 
                 <div>
@@ -1135,16 +1399,20 @@ const signOut = async () => {
                       })
                     }
                     style={styles.input}
+                    className="ih-login-input"
                   />
                 </div>
 
                 <Button
                   type="submit"
                   disabled={loading}
+                  className="ih-login-submit"
                   style={{
                     width: "100%",
-                    padding: "12px 16px",
-                    fontSize: 14,
+                    padding: "13px 16px",
+                    fontSize: 14.5,
+                    borderRadius: 10,
+                    boxShadow: "0 8px 20px rgba(20,83,45,.16)",
                   }}
                 >
                   {loading ? "Signing in..." : "Sign In to Author Portal"}
@@ -1155,6 +1423,19 @@ const signOut = async () => {
                   <Icon name="lock" size={14} />
                   Your author account is protected by secure authentication.
                 </div>
+
+                <Link
+                  href="/author-portal/admission/track"
+                  style={{
+                    textAlign: "center",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: COLORS.primary,
+                    textDecoration: "none",
+                  }}
+                >
+                  Track Your Application →
+                </Link>
               </form>
             )}
 
@@ -1225,6 +1506,19 @@ const signOut = async () => {
                 />
 
                 <Input
+                  label="Country of residence"
+                  required
+                  placeholder="e.g. Ghana"
+                  value={formData.countryOfResidence}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      countryOfResidence: e.target.value,
+                    })
+                  }
+                />
+
+                <Input
                   label="Create password"
                   type="password"
                   required
@@ -1242,8 +1536,11 @@ const signOut = async () => {
                 <div style={styles.infoBox}>
                   <strong>Author review process</strong>
                   <p style={{ margin: "5px 0 0", lineHeight: 1.5 }}>
-                    Applications are reviewed by Ilm-Hub administration before
-                    publishing privileges are activated.
+                    An application fee applies, based on your country of
+                    residence. You will be asked to pay it immediately after
+                    submitting this form, and your application is sent to
+                    Ulul Azm administration for review once payment is
+                    confirmed.
                   </p>
                 </div>
 
@@ -1255,7 +1552,7 @@ const signOut = async () => {
                     padding: "12px",
                   }}
                 >
-                  {loading ? "Submitting application..." : "Submit Author Application"}
+                  {loading ? "Submitting application..." : "Continue to Application Fee"}
                 </Button>
               </form>
             )}
@@ -1325,7 +1622,7 @@ const signOut = async () => {
               marginTop: 20,
             }}
           >
-            © {new Date().getFullYear()} Ilm-Hub · Author Publishing Portal
+            © {new Date().getFullYear()} Ulul Azm · Author Publishing Portal
           </p>
         </div>
       </div>
@@ -1343,6 +1640,7 @@ const signOut = async () => {
         { id: "dashboard", label: "Dashboard", icon: "dashboard" },
         { id: "books", label: "My Books", icon: "book" },
         { id: "add-book", label: "Add New Book", icon: "plus" },
+        { id: "submissions", label: "My Submissions", icon: "submissions" },
         { id: "analytics", label: "Sales & Analytics", icon: "chart" },
       ],
     },
@@ -1383,6 +1681,11 @@ const signOut = async () => {
       description:
         "Submit your publication details and digital assets for review.",
     },
+    submissions: {
+      title: "My Submissions",
+      description:
+        "Track manuscript submissions, quotes and production status.",
+    },
     analytics: {
       title: "Sales & Analytics",
       description:
@@ -1421,7 +1724,7 @@ const signOut = async () => {
 
         body {
           margin: 0;
-          background: #f8fafc;
+          background: var(--paper);
         }
 
         button, input, textarea, select {
@@ -1429,7 +1732,7 @@ const signOut = async () => {
         }
 
         input:focus, textarea:focus, select:focus {
-          border-color: #14532d !important;
+          border-color: var(--brand) !important;
           box-shadow: 0 0 0 3px rgba(20,83,45,.08);
         }
 
@@ -1516,23 +1819,23 @@ const signOut = async () => {
         style={styles.sidebar}
       >
         <div style={styles.sidebarLogo}>
-          <div style={styles.sidebarLogoMark}>ILM</div>
+          <div style={styles.sidebarLogoMark}>UA</div>
 
           <div>
             <div
               style={{
-                color: "#fff",
+                color: 'var(--on-accent)',
                 fontSize: 16,
                 fontWeight: 800,
                 letterSpacing: "-.3px",
               }}
             >
-              Ilm-Hub
+              Ulul Azm
             </div>
 
             <div
               style={{
-                color: "#94a3b8",
+                color: "var(--ink-soft)",
                 fontSize: 10,
                 marginTop: 2,
               }}
@@ -1542,7 +1845,14 @@ const signOut = async () => {
           </div>
         </div>
 
-        <div style={{ padding: "20px 12px" }}>
+        <div
+          style={{
+            padding: "20px 12px",
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+          }}
+        >
           {navigation.map((group) => (
             <div key={group.section} style={{ marginBottom: 24 }}>
               <div style={styles.sidebarSection}>{group.section}</div>
@@ -1591,7 +1901,7 @@ const signOut = async () => {
             <div style={{ minWidth: 0 }}>
               <div
                 style={{
-                  color: "#fff",
+                  color: 'var(--on-accent)',
                   fontSize: 12,
                   fontWeight: 700,
                   overflow: "hidden",
@@ -1604,7 +1914,7 @@ const signOut = async () => {
 
               <div
                 style={{
-                  color: "#94a3b8",
+                  color: "var(--ink-soft)",
                   fontSize: 11,
                   marginTop: 3,
                 }}
@@ -1644,7 +1954,7 @@ const signOut = async () => {
 
           <div style={styles.breadcrumb}>
             <span>Author Portal</span>
-            <span style={{ color: "#cbd5e1" }}>/</span>
+            <span style={{ color: "var(--border)" }}>/</span>
             <strong>{currentPage.title}</strong>
           </div>
 
@@ -1733,9 +2043,14 @@ const signOut = async () => {
                 </Button>
               )}
 
-              {["add-book", "payouts", "coupons", "profile", "settings"].includes(
-                viewMode
-              ) && (
+              {[
+                "add-book",
+                "submissions",
+                "payouts",
+                "coupons",
+                "profile",
+                "settings",
+              ].includes(viewMode) && (
                 <Button
                   variant="secondary"
                   onClick={() => navigate("dashboard")}
@@ -1862,7 +2177,7 @@ const signOut = async () => {
                             background:
                               index === 6
                                 ? COLORS.primary
-                                : "linear-gradient(180deg,#86efac,#bbf7d0)",
+                                : "linear-gradient(180deg,var(--success-tint),var(--success-tint))",
                             borderRadius: "7px 7px 3px 3px",
                           }}
                         />
@@ -2141,7 +2456,13 @@ const signOut = async () => {
                 </div>
               </div>
 
-              {filteredBooks.length === 0 ? (
+              {booksLoading ? (
+                <div style={{ padding: 28 }}>
+                  <p style={{ color: COLORS.muted, fontSize: 14, margin: 0 }}>
+                    Loading your books...
+                  </p>
+                </div>
+              ) : filteredBooks.length === 0 ? (
                 <EmptyState
                   title="No books found"
                   description="Try changing your search or filter."
@@ -2291,45 +2612,24 @@ const signOut = async () => {
                   <div style={styles.formSectionNumber}>02</div>
 
                   <div>
-                    <h2 style={styles.cardTitle}>Publication assets</h2>
+                    <h2 style={styles.cardTitle}>Manuscript file</h2>
                     <p style={styles.cardDescription}>
-                      Upload the cover and digital book file.
+                      Upload the digital manuscript for editorial review.
                     </p>
                   </div>
                 </div>
 
-                <div
-                  className="author-form-grid"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 18,
-                  }}
-                >
-                  <FileUpload
-                    title="Book cover"
-                    description="PNG, JPG or WEBP"
-                    accept="image/*"
-                    onChange={(file) =>
-                      setNewBook({
-                        ...newBook,
-                        coverImage: file,
-                      })
-                    }
-                  />
-
-                  <FileUpload
-                    title="Digital book file"
-                    description="PDF or EPUB"
-                    accept=".pdf,.epub"
-                    onChange={(file) =>
-                      setNewBook({
-                        ...newBook,
-                        bookFile: file,
-                      })
-                    }
-                  />
-                </div>
+                <FileUpload
+                  title="Digital book file"
+                  description="PDF or EPUB"
+                  accept=".pdf,.epub"
+                  onChange={(file) =>
+                    setNewBook({
+                      ...newBook,
+                      bookFile: file,
+                    })
+                  }
+                />
 
                 <div style={styles.reviewNotice}>
                   <div style={styles.reviewNoticeIcon}>!</div>
@@ -2347,11 +2647,13 @@ const signOut = async () => {
                       }}
                     >
                       <li>
-                        Your publication will enter the administration review
-                        queue.
+                        Your manuscript will enter the administration review
+                        queue, and you&apos;ll receive a quote once it&apos;s
+                        reviewed.
                       </li>
                       <li>
-                        It will not appear publicly until approved.
+                        Cover art and final pricing are finalized with the
+                        editorial team during production.
                       </li>
                       <li>
                         You may be asked to make changes before publication.
@@ -2382,6 +2684,141 @@ const signOut = async () => {
                   </Button>
                 </div>
               </form>
+            </Card>
+          )}
+
+          {/* MY SUBMISSIONS */}
+
+          {viewMode === "submissions" && (
+            <Card style={{ padding: 28 }}>
+              {submissionsLoading ? (
+                <p style={{ color: COLORS.muted, fontSize: 14 }}>
+                  Loading your submissions...
+                </p>
+              ) : submissions.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                  <p style={{ color: COLORS.muted, fontSize: 14, margin: 0 }}>
+                    You haven&apos;t submitted any manuscripts yet.
+                  </p>
+                  <div style={{ marginTop: 16 }}>
+                    <Button onClick={() => navigate("add-book")}>
+                      Submit Your First Manuscript
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 16 }}
+                >
+                  {submissions.map((submission) => (
+                    <div
+                      key={submission.id}
+                      style={{
+                        border: `1px solid ${COLORS.border}`,
+                        borderRadius: 12,
+                        padding: 20,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          gap: 12,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div>
+                          <strong style={{ fontSize: 15.5, color: COLORS.navy }}>
+                            {submission.title}
+                          </strong>
+                          <div
+                            style={{
+                              fontSize: 12.5,
+                              color: COLORS.muted,
+                              marginTop: 2,
+                            }}
+                          >
+                            {submission.genre} · Submitted{" "}
+                            {submission.createdAt
+                              ? new Date(
+                                  submission.createdAt
+                                ).toLocaleDateString()
+                              : "-"}
+                          </div>
+                        </div>
+
+                        <StatusBadge
+                          status={formatSubmissionStatus(submission.status)}
+                        />
+                      </div>
+
+                      {submission.status === "QUOTE_GENERATED" && (
+                        <div
+                          style={{
+                            background: COLORS.amberSoft,
+                            border: `1px solid ${COLORS.border}`,
+                            borderRadius: 9,
+                            padding: 14,
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: 12,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div>
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: COLORS.muted,
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              Quote from the editorial team
+                            </div>
+                            <strong style={{ fontSize: 17 }}>
+                              {submission.quoteAmount
+                                ? money(submission.quoteAmount)
+                                : "Pending"}
+                            </strong>
+                            {submission.quoteDetails && (
+                              <div
+                                style={{
+                                  fontSize: 12.5,
+                                  color: COLORS.muted,
+                                  marginTop: 4,
+                                }}
+                              >
+                                {submission.quoteDetails}
+                              </div>
+                            )}
+                          </div>
+
+                          <Button
+                            onClick={() => handleAcceptQuote(submission.id)}
+                            disabled={acceptingQuoteId === submission.id}
+                          >
+                            {acceptingQuoteId === submission.id
+                              ? "Accepting..."
+                              : "Accept Quote"}
+                          </Button>
+                        </div>
+                      )}
+
+                      {submission.assignedEditor && (
+                        <div style={{ fontSize: 12.5, color: COLORS.muted }}>
+                          Assigned editor: {submission.assignedEditor}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
           )}
 
@@ -2472,7 +2909,7 @@ const signOut = async () => {
                             background:
                               index === 11
                                 ? COLORS.primary
-                                : "linear-gradient(180deg,#4ade80,#bbf7d0)",
+                                : "linear-gradient(180deg,var(--success),var(--success-tint))",
                             borderRadius: "7px 7px 2px 2px",
                           }}
                         />
@@ -2595,20 +3032,23 @@ const signOut = async () => {
               >
                 <StatCard
                   label="Available balance"
-                  value="$412.50"
-                  description="Scheduled for next payout"
+                  value={
+                    royaltyLoading && !royaltyInfo
+                      ? "…"
+                      : money(royaltyInfo?.availableBalanceUSD)
+                  }
+                  description="Ready to be queued into a payout"
                   icon="money"
                   color={COLORS.primary}
                 />
 
                 <StatCard
                   label="Total paid"
-                  value={money(
-                    payoutHistory.reduce(
-                      (sum, payout) => sum + payout.author,
-                      0
-                    )
-                  )}
+                  value={
+                    royaltyLoading && !royaltyInfo
+                      ? "…"
+                      : money(royaltyInfo?.totalPaidOutUSD)
+                  }
                   description="Completed author payouts"
                   icon="chart"
                   color={COLORS.blue}
@@ -2616,16 +3056,20 @@ const signOut = async () => {
 
                 <StatCard
                   label="Royalty rate"
-                  value="70%"
+                  value={`${Math.round((royaltyInfo?.currentRatePct ?? 70) * 100) / 100}%`}
                   description="Current author agreement"
                   icon="money"
                   color={COLORS.purple}
                 />
 
                 <StatCard
-                  label="Next payout"
-                  value="Sep 01"
-                  description="Estimated scheduled date"
+                  label="Queued for payout"
+                  value={
+                    royaltyLoading && !royaltyInfo
+                      ? "…"
+                      : money(royaltyInfo?.queuedInPayoutUSD)
+                  }
+                  description="Awaiting admin review"
                   icon="chart"
                   color={COLORS.amber}
                 />
@@ -2644,29 +3088,22 @@ const signOut = async () => {
                     </p>
                   </div>
 
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      alert(
-                        "In production, this button should download a real CSV statement."
-                      )
-                    }
-                  >
+                  <Button variant="secondary" disabled>
                     <Icon name="download" size={15} />
-                    Export statement
+                    Export statement (coming soon)
                   </Button>
                 </div>
 
                 <div style={styles.splitBox}>
-                  <div style={{ flex: 7 }}>
+                  <div style={{ flex: Math.max(royaltyInfo?.currentRatePct ?? 70, 1) }}>
                     <div style={styles.splitBarAuthor}>
-                      70% Author
+                      {Math.round((royaltyInfo?.currentRatePct ?? 70) * 100) / 100}% Author
                     </div>
                   </div>
 
-                  <div style={{ flex: 3 }}>
+                  <div style={{ flex: Math.max(100 - (royaltyInfo?.currentRatePct ?? 70), 1) }}>
                     <div style={styles.splitBarPlatform}>
-                      30% Platform
+                      {Math.round((100 - (royaltyInfo?.currentRatePct ?? 70)) * 100) / 100}% Platform
                     </div>
                   </div>
                 </div>
@@ -2675,15 +3112,16 @@ const signOut = async () => {
                   <div>
                     <strong>Author earnings</strong>
                     <p>
-                      70% of eligible book-sale revenue is allocated to the
-                      author.
+                      {Math.round((royaltyInfo?.currentRatePct ?? 70) * 100) / 100}% of eligible
+                      book-sale revenue is allocated to the author.
                     </p>
                   </div>
 
                   <div>
                     <strong>Platform allocation</strong>
                     <p>
-                      30% is allocated according to your platform agreement.
+                      {Math.round((100 - (royaltyInfo?.currentRatePct ?? 70)) * 100) / 100}% is
+                      allocated according to your platform agreement.
                     </p>
                   </div>
                 </div>
@@ -2709,32 +3147,44 @@ const signOut = async () => {
                     <thead>
                       <tr>
                         <th style={styles.th}>Reference</th>
-                        <th style={styles.th}>Date</th>
+                        <th style={styles.th}>Requested</th>
                         <th style={styles.th}>Method</th>
-                        <th style={styles.th}>Gross</th>
-                        <th style={styles.th}>Author 70%</th>
-                        <th style={styles.th}>Platform 30%</th>
+                        <th style={styles.th}>Amount</th>
                         <th style={styles.th}>Status</th>
                       </tr>
                     </thead>
 
                     <tbody>
+                      {payoutHistory.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={5}
+                            style={{
+                              ...styles.td,
+                              textAlign: "center",
+                              color: COLORS.muted,
+                              padding: "24px 12px",
+                            }}
+                          >
+                            No payouts have been recorded yet.
+                          </td>
+                        </tr>
+                      )}
+
                       {payoutHistory.map((payout) => (
                         <tr key={payout.id}>
                           <td style={{ ...styles.td, fontWeight: 800 }}>
-                            {payout.id}
+                            {payout.reference || payout.id.slice(0, 10)}
                           </td>
 
                           <td style={styles.td}>
-                            {payout.date}
+                            {payout.requestedAt
+                              ? new Date(payout.requestedAt).toLocaleDateString()
+                              : "—"}
                           </td>
 
                           <td style={styles.td}>
-                            {payout.method}
-                          </td>
-
-                          <td style={styles.td}>
-                            {money(payout.gross)}
+                            {payout.method || "—"}
                           </td>
 
                           <td
@@ -2744,15 +3194,11 @@ const signOut = async () => {
                               fontWeight: 800,
                             }}
                           >
-                            {money(payout.author)}
+                            {money(payout.amountUSD)}
                           </td>
 
                           <td style={styles.td}>
-                            {money(payout.platform)}
-                          </td>
-
-                          <td style={styles.td}>
-                            <StatusBadge status={payout.status} />
+                            <StatusBadge status={PAYOUT_STATUS_LABELS[payout.status] || payout.status} />
                           </td>
                         </tr>
                       ))}
@@ -2766,169 +3212,12 @@ const signOut = async () => {
           {/* COUPONS */}
 
           {viewMode === "coupons" && (
-            <>
-              <Card style={{ padding: 24 }}>
-                <div style={styles.cardHeader}>
-                  <div>
-                    <h2 style={styles.cardTitle}>
-                      Create promotional coupon
-                    </h2>
-
-                    <p style={styles.cardDescription}>
-                      Give your students and readers a special discount.
-                    </p>
-                  </div>
-                </div>
-
-                <form
-                  onSubmit={handleCouponSubmit}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1.3fr .8fr 1.8fr auto",
-                    gap: 12,
-                    alignItems: "end",
-                    marginTop: 20,
-                  }}
-                  className="author-form-grid"
-                >
-                  <Input
-                    label="Coupon code"
-                    required
-                    placeholder="SCHOLAR25"
-                    value={newCoupon.code}
-                    onChange={(e) =>
-                      setNewCoupon({
-                        ...newCoupon,
-                        code: e.target.value.toUpperCase(),
-                      })
-                    }
-                  />
-
-                  <div>
-                    <label style={styles.label}>Discount</label>
-
-                    <select
-                      value={newCoupon.discount}
-                      onChange={(e) =>
-                        setNewCoupon({
-                          ...newCoupon,
-                          discount: e.target.value,
-                        })
-                      }
-                      style={styles.selectFull}
-                    >
-                      <option value="10">10% off</option>
-                      <option value="15">15% off</option>
-                      <option value="20">20% off</option>
-                      <option value="25">25% off</option>
-                      <option value="50">50% off</option>
-                      <option value="100">100% free</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={styles.label}>Applicable publication</label>
-
-                    <select
-                      value={newCoupon.bookTitle}
-                      onChange={(e) =>
-                        setNewCoupon({
-                          ...newCoupon,
-                          bookTitle: e.target.value,
-                        })
-                      }
-                      style={styles.selectFull}
-                    >
-                      <option value="All Books">All Books</option>
-
-                      {books.map((book) => (
-                        <option key={book.id} value={book.title}>
-                          {book.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <Button type="submit">
-                    Generate
-                  </Button>
-                </form>
-              </Card>
-
-              <Card
-                style={{
-                  marginTop: 20,
-                  overflow: "hidden",
-                }}
-              >
-                <div style={styles.sectionHeader}>
-                  <div>
-                    <h2 style={styles.cardTitle}>
-                      Your promotional codes
-                    </h2>
-
-                    <p style={styles.cardDescription}>
-                      Manage and monitor your active offers.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="author-responsive-table">
-                  <table
-                    className="author-table"
-                    style={styles.table}
-                  >
-                    <thead>
-                      <tr>
-                        <th style={styles.th}>Code</th>
-                        <th style={styles.th}>Discount</th>
-                        <th style={styles.th}>Applicable book</th>
-                        <th style={styles.th}>Redemptions</th>
-                        <th style={styles.th}>Status</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {coupons.map((coupon) => (
-                        <tr key={coupon.id}>
-                          <td
-                            style={{
-                              ...styles.td,
-                              color: COLORS.primary,
-                              fontWeight: 800,
-                              letterSpacing: ".5px",
-                            }}
-                          >
-                            {coupon.code}
-                          </td>
-
-                          <td
-                            style={{
-                              ...styles.td,
-                              fontWeight: 800,
-                            }}
-                          >
-                            {coupon.discount}%
-                          </td>
-
-                          <td style={styles.td}>
-                            {coupon.bookTitle}
-                          </td>
-
-                          <td style={styles.td}>
-                            {coupon.uses}
-                          </td>
-
-                          <td style={styles.td}>
-                            <StatusBadge status={coupon.status} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            </>
+            <Card style={{ padding: 0, overflow: "hidden" }}>
+              <EmptyState
+                title="Coupons aren't available yet"
+                description="Promotional codes require a discount/redemption system that hasn't been built yet, so this feature isn't wired up. Check back once it's live — no coupon you create here would actually apply at checkout."
+              />
+            </Card>
           )}
 
           {/* PROFILE */}
@@ -2973,7 +3262,7 @@ const signOut = async () => {
                         marginTop: 4,
                       }}
                     >
-                      {formData.specialty}
+                      {authorProfile.specialty}
                     </div>
 
                     <div
@@ -2983,7 +3272,7 @@ const signOut = async () => {
                         marginTop: 4,
                       }}
                     >
-                      Verified Ilm-Hub Author
+                      Verified Ulul Azm Author
                     </div>
                   </div>
                 </div>
@@ -3023,10 +3312,11 @@ const signOut = async () => {
 
                   <Input
                     label="Academic specialization"
-                    value={formData.specialty}
+                    placeholder="e.g. Fiqh & Arabic Language"
+                    value={authorProfile.specialty}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
+                      setAuthorProfile({
+                        ...authorProfile,
                         specialty: e.target.value,
                       })
                     }
@@ -3036,10 +3326,11 @@ const signOut = async () => {
                 <Textarea
                   label="Professional biography"
                   rows={6}
-                  value={formData.bio}
+                  placeholder="Tell readers about your background and expertise"
+                  value={authorProfile.bio}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
+                    setAuthorProfile({
+                      ...authorProfile,
                       bio: e.target.value,
                     })
                   }
@@ -3077,8 +3368,8 @@ const signOut = async () => {
                     justifyContent: "flex-end",
                   }}
                 >
-                  <Button type="submit">
-                    Save profile changes
+                  <Button type="submit" disabled={savingProfile}>
+                    {savingProfile ? "Saving..." : "Save profile changes"}
                   </Button>
                 </div>
               </form>
@@ -3117,26 +3408,30 @@ const signOut = async () => {
                   </label>
 
                   <select
-                    value={formData.payoutMethod}
+                    value={authorProfile.payoutMethodPreference || ""}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        payoutMethod: e.target.value,
+                      setAuthorProfile({
+                        ...authorProfile,
+                        payoutMethodPreference: e.target.value,
                       })
                     }
                     style={styles.selectFull}
                   >
-                    <option value="Mobile Money">
+                    <option value="">
+                      Select a payout method
+                    </option>
+
+                    <option value="MOBILE_MONEY">
                       Mobile Money
                     </option>
 
-                    <option value="Bank Transfer">
+                    <option value="BANK_TRANSFER">
                       Bank Transfer
                     </option>
                   </select>
                 </div>
 
-                {formData.payoutMethod === "Mobile Money" ? (
+                {authorProfile.payoutMethodPreference === "MOBILE_MONEY" ? (
                   <div
                     className="author-form-grid"
                     style={{
@@ -3149,39 +3444,31 @@ const signOut = async () => {
                       padding: 18,
                     }}
                   >
-                    <div>
-                      <label style={styles.label}>
-                        Mobile Money provider
-                      </label>
-
-                      <select
-                        value={formData.momoNetwork}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            momoNetwork: e.target.value,
-                          })
-                        }
-                        style={styles.selectFull}
-                      >
-                        <option>MTN Mobile Money</option>
-                        <option>Telecel Cash</option>
-                        <option>AirtelTigo Money</option>
-                      </select>
-                    </div>
+                    <Input
+                      label="Mobile Money provider"
+                      placeholder="e.g. MTN Mobile Money"
+                      value={authorProfile.momoProvider}
+                      onChange={(e) =>
+                        setAuthorProfile({
+                          ...authorProfile,
+                          momoProvider: e.target.value,
+                        })
+                      }
+                    />
 
                     <Input
                       label="Mobile Money number"
-                      value={formData.momoNumber}
+                      placeholder="e.g. +233 24 000 0000"
+                      value={authorProfile.momoNumber}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
+                        setAuthorProfile({
+                          ...authorProfile,
                           momoNumber: e.target.value,
                         })
                       }
                     />
                   </div>
-                ) : (
+                ) : authorProfile.payoutMethodPreference === "BANK_TRANSFER" ? (
                   <div
                     className="author-form-grid"
                     style={{
@@ -3196,10 +3483,11 @@ const signOut = async () => {
                   >
                     <Input
                       label="Bank name"
-                      value={formData.bankName}
+                      placeholder="e.g. Ghana Commercial Bank"
+                      value={authorProfile.bankName}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
+                        setAuthorProfile({
+                          ...authorProfile,
                           bankName: e.target.value,
                         })
                       }
@@ -3207,16 +3495,17 @@ const signOut = async () => {
 
                     <Input
                       label="Account number / IBAN"
-                      value={formData.bankAccount}
+                      placeholder="Your bank account number or IBAN"
+                      value={authorProfile.bankAccountNumber}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          bankAccount: e.target.value,
+                        setAuthorProfile({
+                          ...authorProfile,
+                          bankAccountNumber: e.target.value,
                         })
                       }
                     />
                   </div>
-                )}
+                ) : null}
 
                 <div style={styles.securityBox}>
                   <div style={styles.securityIcon}>
@@ -3240,8 +3529,8 @@ const signOut = async () => {
                     justifyContent: "flex-end",
                   }}
                 >
-                  <Button type="submit">
-                    Save payment settings
+                  <Button type="submit" disabled={savingProfile}>
+                    {savingProfile ? "Saving..." : "Save payment settings"}
                   </Button>
                 </div>
               </form>
@@ -3279,18 +3568,36 @@ function BookRow({ book, last }) {
           alignItems: "center",
         }}
       >
-        <img
-          src={book.coverUrl}
-          alt={book.title}
-          style={{
-            width: 58,
-            height: 76,
-            borderRadius: 8,
-            objectFit: "cover",
-            background: "#e2e8f0",
-            flexShrink: 0,
-          }}
-        />
+        {book.coverUrl ? (
+          <img
+            src={book.coverUrl}
+            alt={book.title}
+            style={{
+              width: 58,
+              height: 76,
+              borderRadius: 8,
+              objectFit: "cover",
+              background: "var(--border)",
+              flexShrink: 0,
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 58,
+              height: 76,
+              borderRadius: 8,
+              background: "var(--border)",
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--ink-soft)",
+            }}
+          >
+            <Icon name="book" size={20} />
+          </div>
+        )}
 
         <div style={{ minWidth: 0 }}>
           <div
@@ -3330,7 +3637,10 @@ function BookRow({ book, last }) {
             }}
           >
             <span>
-              Published: {book.publishDate}
+              Published:{" "}
+              {book.publishDate
+                ? new Date(book.publishDate).toLocaleDateString()
+                : "-"}
             </span>
 
             <span>
@@ -3408,7 +3718,7 @@ function FileUpload({
     <label
       style={{
         display: "block",
-        border: "1.5px dashed #cbd5e1",
+        border: "1.5px dashed var(--border)",
         borderRadius: 12,
         padding: 22,
         background: COLORS.background,
@@ -3436,7 +3746,7 @@ function FileUpload({
           width: 42,
           height: 42,
           borderRadius: 10,
-          background: "#fff",
+          background: 'var(--surface)',
           border: `1px solid ${COLORS.border}`,
           display: "flex",
           alignItems: "center",
@@ -3561,7 +3871,7 @@ const styles = {
     top: 0,
     bottom: 0,
     width: 250,
-    background: "#0b1f16",
+    background: "var(--brand-deepest)",
     borderRight: "1px solid rgba(255,255,255,.06)",
     transition: "transform .25s ease",
     display: "flex",
@@ -3570,6 +3880,7 @@ const styles = {
 
   sidebarLogo: {
     height: 76,
+    flexShrink: 0,
     padding: "0 20px",
     display: "flex",
     alignItems: "center",
@@ -3582,7 +3893,7 @@ const styles = {
     height: 38,
     borderRadius: 10,
     background: COLORS.primary,
-    color: "#fff",
+    color: 'var(--on-accent)',
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -3592,7 +3903,7 @@ const styles = {
   },
 
   sidebarSection: {
-    color: "#64748b",
+    color: "var(--ink-soft)",
     fontSize: 10,
     fontWeight: 800,
     textTransform: "uppercase",
@@ -3604,7 +3915,7 @@ const styles = {
     width: "100%",
     border: "none",
     background: "transparent",
-    color: "#94a3b8",
+    color: "var(--ink-soft)",
     padding: "10px 12px",
     borderRadius: 8,
     marginBottom: 3,
@@ -3619,7 +3930,7 @@ const styles = {
 
   sidebarItemActive: {
     background: "rgba(74,222,128,.1)",
-    color: "#86efac",
+    color: "var(--success-tint)",
   },
 
   sidebarCount: {
@@ -3627,8 +3938,8 @@ const styles = {
     minWidth: 20,
     height: 20,
     borderRadius: 10,
-    background: "#92400e",
-    color: "#fff",
+    background: "var(--warning)",
+    color: 'var(--on-accent)',
     fontSize: 10,
     display: "flex",
     alignItems: "center",
@@ -3637,7 +3948,7 @@ const styles = {
   },
 
   sidebarBottom: {
-    marginTop: "auto",
+    flexShrink: 0,
     padding: 14,
     borderTop: "1px solid rgba(255,255,255,.07)",
   },
@@ -3656,8 +3967,8 @@ const styles = {
     width: 34,
     height: 34,
     borderRadius: "50%",
-    background: "#166534",
-    color: "#fff",
+    background: "var(--brand-light)",
+    color: 'var(--on-accent)',
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -3670,7 +3981,7 @@ const styles = {
     width: "100%",
     border: "none",
     background: "transparent",
-    color: "#94a3b8",
+    color: "var(--ink-soft)",
     display: "flex",
     alignItems: "center",
     gap: 9,
@@ -3688,7 +3999,7 @@ const styles = {
 
   topbar: {
     height: 76,
-    background: "#fff",
+    background: 'var(--surface)',
     borderBottom: `1px solid ${COLORS.border}`,
     padding: "0 30px",
     display: "flex",
@@ -3743,7 +4054,7 @@ const styles = {
     width: 6,
     height: 6,
     borderRadius: "50%",
-    background: "#dc2626",
+    background: "var(--danger)",
     top: 6,
     right: 6,
   },
@@ -3885,7 +4196,7 @@ const styles = {
 
   quickAction: {
     border: `1px solid ${COLORS.border}`,
-    background: "#fff",
+    background: 'var(--surface)',
     borderRadius: 10,
     padding: 14,
     display: "flex",
@@ -3924,7 +4235,7 @@ const styles = {
   searchBox: {
     height: 38,
     width: 210,
-    border: `1px solid #cbd5e1`,
+    border: `1px solid var(--border)`,
     borderRadius: 8,
     display: "flex",
     alignItems: "center",
@@ -3943,9 +4254,9 @@ const styles = {
 
   select: {
     height: 38,
-    border: `1px solid #cbd5e1`,
+    border: `1px solid var(--border)`,
     borderRadius: 8,
-    background: "#fff",
+    background: 'var(--surface)',
     padding: "0 10px",
     color: COLORS.text,
     fontSize: 12,
@@ -3956,9 +4267,9 @@ const styles = {
     width: "100%",
     boxSizing: "border-box",
     height: 43,
-    border: `1px solid #cbd5e1`,
+    border: `1px solid var(--border)`,
     borderRadius: 9,
-    background: "#fff",
+    background: 'var(--surface)',
     padding: "0 12px",
     color: COLORS.text,
     fontSize: 13,
@@ -3976,13 +4287,14 @@ const styles = {
   input: {
     width: "100%",
     boxSizing: "border-box",
-    border: "1px solid #cbd5e1",
+    border: "1px solid var(--border)",
     borderRadius: 9,
     padding: "11px 13px",
     fontSize: 14,
     color: COLORS.navy,
     outline: "none",
-    background: "#fff",
+    background: 'var(--surface)',
+    transition: "border-color .18s ease, box-shadow .18s ease",
   },
 
   labelRow: {
@@ -4061,7 +4373,7 @@ const styles = {
   royaltyRate: {
     marginLeft: "auto",
     background: COLORS.primary,
-    color: "#fff",
+    color: 'var(--on-accent)',
     padding: "7px 10px",
     borderRadius: 7,
     fontSize: 11,
@@ -4073,7 +4385,7 @@ const styles = {
     gap: 12,
     padding: 15,
     background: COLORS.amberSoft,
-    border: "1px solid #fde68a",
+    border: "1px solid var(--warning-tint)",
     borderRadius: 10,
     color: COLORS.text,
     fontSize: 12,
@@ -4084,7 +4396,7 @@ const styles = {
     width: 23,
     height: 23,
     borderRadius: "50%",
-    background: "#fef3c7",
+    background: "var(--warning-tint)",
     color: COLORS.amber,
     display: "flex",
     alignItems: "center",
@@ -4103,7 +4415,7 @@ const styles = {
   splitBarAuthor: {
     height: "100%",
     background: COLORS.primary,
-    color: "#fff",
+    color: 'var(--on-accent)',
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -4114,7 +4426,7 @@ const styles = {
 
   splitBarPlatform: {
     height: "100%",
-    background: "#cbd5e1",
+    background: "var(--border)",
     color: COLORS.text,
     display: "flex",
     alignItems: "center",
@@ -4172,7 +4484,7 @@ const styles = {
 
   td: {
     padding: "15px 18px",
-    borderBottom: `1px solid #f1f5f9`,
+    borderBottom: `1px solid var(--border-soft)`,
     color: COLORS.text,
     whiteSpace: "nowrap",
   },
@@ -4192,7 +4504,7 @@ const styles = {
     height: 58,
     borderRadius: "50%",
     background: COLORS.primary,
-    color: "#fff",
+    color: 'var(--on-accent)',
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -4216,7 +4528,7 @@ const styles = {
     width: 30,
     height: 30,
     borderRadius: 8,
-    background: "#fff",
+    background: 'var(--surface)',
     color: COLORS.primary,
     border: `1px solid ${COLORS.border}`,
     display: "flex",
@@ -4228,7 +4540,7 @@ const styles = {
   authPage: {
     minHeight: "100vh",
     background:
-      "radial-gradient(circle at top right, rgba(34,197,94,.08), transparent 35%), #f8fafc",
+      "radial-gradient(circle at top right, rgba(34,197,94,.08), transparent 35%), var(--paper)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
@@ -4242,7 +4554,7 @@ const styles = {
     height: 48,
     borderRadius: 13,
     background: COLORS.primary,
-    color: "#fff",
+    color: 'var(--on-accent)',
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -4292,7 +4604,7 @@ const styles = {
 
   errorBox: {
     background: COLORS.redSoft,
-    border: "1px solid #fecaca",
+    border: "1px solid var(--danger-tint)",
     color: COLORS.red,
     padding: 12,
     borderRadius: 9,
@@ -4303,7 +4615,7 @@ const styles = {
 
   infoBox: {
     background: COLORS.blueSoft,
-    border: "1px solid #bae6fd",
+    border: "1px solid var(--info-tint)",
     color: COLORS.blue,
     padding: 13,
     borderRadius: 9,
@@ -4399,7 +4711,7 @@ const styles = {
     height: 23,
     borderRadius: "50%",
     background: COLORS.primary,
-    color: "#fff",
+    color: 'var(--on-accent)',
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -4414,7 +4726,7 @@ const styles = {
     padding: 13,
     marginBottom: 18,
     background: COLORS.redSoft,
-    border: "1px solid #fecaca",
+    border: "1px solid var(--danger-tint)",
     borderRadius: 10,
     color: COLORS.red,
     fontSize: 12,

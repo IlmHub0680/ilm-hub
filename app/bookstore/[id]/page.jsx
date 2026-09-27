@@ -49,7 +49,7 @@ function formatBook(book) {
       : 'Physical',
     author:
       book.author?.name ||
-      'Ilm-Hub Academic Collection',
+      'Ulul Azm Academic Collection',
     badge: book.isNewRelease
       ? 'NEW'
       : book.isFeatured
@@ -65,12 +65,12 @@ export async function generateMetadata({ params }) {
 
   if (!book) {
     return {
-      title: 'Book Not Found | Ilm-Hub',
+      title: 'Book Not Found | Ulul Azm',
     };
   }
 
   return {
-    title: `${book.titleEn} | Ilm-Hub Bookstore`,
+    title: `${book.titleEn} | Ulul Azm Bookstore`,
     description:
       book.descriptionEn ||
       `Read more about ${book.titleEn}.`,
@@ -174,14 +174,14 @@ export default async function BookPage({
 
             <p className="description">
               {book.description ||
-                'This book is part of the Ilm-Hub academic bookstore collection.'}
+                'This book is part of the Ulul Azm academic bookstore collection.'}
             </p>
 
             <div className="purchase-box">
 
               <p>
                 This book is available through
-                the Ilm-Hub bookstore.
+                the Ulul Azm bookstore.
               </p>
 
               <Link

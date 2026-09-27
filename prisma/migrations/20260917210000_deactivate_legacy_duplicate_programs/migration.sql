@@ -1,0 +1,33 @@
+-- Deactivates five legacy Program rows that duplicate the real Academy
+-- Pathways programmes (Foundation Studies, Intermediate Islamic
+-- Studies, Advanced Islamic Studies, Diploma in Islamic Studies --
+-- prisma/seed.js's academyPrograms, the single source of truth as of
+-- Model 15/16).
+--
+-- These five rows (ids 'prog-01'..'prog-05') were inserted by an
+-- earlier migration (20260904170000_restore_academic_program_structure)
+-- under CERTIFICATE/older DIPLOMA framing -- "Junior Learners
+-- Programme", "Foundation Programme", "Intermediate Programme",
+-- "Certificate Programme (Specialised Studies)", "Diploma in Islamic
+-- Sciences". They are the same fake "prog-01".."prog-06" ids that
+-- lib/academic-programmes.js (removed earlier this session) hardcoded
+-- as a second, independent copy of the truth -- so they were already
+-- known to be disconnected from the real admission/payment flow, but
+-- were never deactivated at the database level, so they kept showing
+-- up as real, selectable, "currently open for admission" programmes
+-- in the Apply Now wizard alongside the real four -- two Foundations,
+-- two Intermediates, two Diplomas.
+--
+-- isActive = false is deliberately used instead of DELETE: both
+-- GET /api/academic/programs and lib/academicProgram.js's
+-- getAdmissibleProgram() already gate on isActive AND
+-- approvalStatus = 'APPROVED', so this alone removes them from every
+-- public listing and from admission/payment eligibility. The rows are
+-- kept (not deleted) purely for referential-integrity safety, in case
+-- any historical Course/StudentProfile/AdmissionApplication row still
+-- references one of these five ids -- deleting could fail on a
+-- foreign-key constraint or silently orphan historical records;
+-- deactivating never can.
+UPDATE "Program"
+SET "isActive" = false, "updatedAt" = CURRENT_TIMESTAMP
+WHERE "id" IN ('prog-01', 'prog-02', 'prog-03', 'prog-04', 'prog-05');

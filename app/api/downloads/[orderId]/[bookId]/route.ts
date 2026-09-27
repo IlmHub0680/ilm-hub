@@ -101,6 +101,34 @@ export async function GET(
     }
 
     /*
+     * Real, server-side entitlement check. Order status alone is not
+     * enough — an Admin can deactivate a specific book's access without
+     * changing the order itself, and that must be enforced here, not just
+     * hidden in the UI. A missing BookAccess row is treated the same as a
+     * revoked one: access was never (or is no longer) granted.
+     */
+    const access = await prisma.bookAccess.findUnique({
+      where: {
+        userId_bookId_orderId: {
+          userId: user.id,
+          bookId,
+          orderId: order.id,
+        },
+      },
+    });
+
+    if (!access || access.revokedAt) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Download access for this book is not currently active. Please contact the Bookstore for assistance.",
+        },
+        { status: 403 }
+      );
+    }
+
+    /*
      * Make sure the book has a storage key.
      */
     if (!orderItem.book.r2FileKey) {
@@ -140,12 +168,9 @@ export async function GET(
     });
 
     /*
-     * Generate a temporary download URL.
-     *
-     * IMPORTANT:
-     * Our current lib/r2.ts is only a placeholder URL generator.
-     * We will replace it with the real Cloudflare R2 signing code
-     * once the R2 bucket and credentials are configured.
+     * Generate a temporary, signed Cloudflare R2 download URL. Requires
+     * R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET_NAME
+     * to be configured in the environment (see lib/r2.ts).
      */
     const signedUrl = await getR2PresignedUrl(
       orderItem.book.r2FileKey,

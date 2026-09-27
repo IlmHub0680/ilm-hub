@@ -602,7 +602,7 @@ export default function ManageBookPage() {
                   style={{
                     marginTop: 8,
                     fontSize: 12,
-                    color: '#64748b',
+                    color: 'var(--ink-soft)',
                     wordBreak: 'break-all',
                   }}
                 >
@@ -614,8 +614,8 @@ export default function ManageBookPage() {
             <div
               style={{
                 color: book.r2FileKey
-                  ? '#15803d'
-                  : '#b45309',
+                  ? 'var(--brand)'
+                  : 'var(--warning)',
                 fontWeight: 700,
               }}
             >
@@ -666,7 +666,7 @@ export default function ManageBookPage() {
             {book.r2FileKey && (
               <span
                 style={{
-                  color: '#64748b',
+                  color: 'var(--ink-soft)',
                   fontSize: 13,
                 }}
               >
@@ -756,11 +756,11 @@ function Textarea({
 
 function StatusBadge({ status }) {
   const colors = {
-    DRAFT: ['#e2e8f0', '#334155'],
-    PENDING_REVIEW: ['#fef3c7', '#92400e'],
-    APPROVED: ['#dcfce7', '#166534'],
-    PUBLISHED: ['#dbeafe', '#1d4ed8'],
-    REJECTED: ['#fee2e2', '#991b1b'],
+    DRAFT: ['var(--border)', 'var(--ink-soft)'],
+    PENDING_REVIEW: ['var(--warning-tint)', 'var(--warning)'],
+    APPROVED: ['var(--success-tint)', 'var(--brand-light)'],
+    PUBLISHED: ['var(--info-tint)', 'var(--brand-dark)'],
+    REJECTED: ['var(--danger-tint)', 'var(--danger)'],
   };
 
   const [background, color] =
@@ -782,7 +782,7 @@ function StatusBadge({ status }) {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#f4f7fb',
+    background: 'var(--paper)',
     padding: 32,
     fontFamily: 'Arial, sans-serif',
   },
@@ -793,7 +793,7 @@ const styles = {
   },
 
   back: {
-    color: '#475569',
+    color: 'var(--ink-soft)',
     textDecoration: 'none',
     display: 'inline-block',
     marginBottom: 20,
@@ -801,8 +801,8 @@ const styles = {
 
   header: {
     background:
-      'linear-gradient(135deg,#0f172a,#1e3a5f)',
-    color: '#fff',
+      'linear-gradient(135deg,var(--ink),var(--brand-dark))',
+    color: 'var(--on-accent)',
     padding: 30,
     borderRadius: 18,
     display: 'flex',
@@ -826,7 +826,7 @@ const styles = {
 
   subtitle: {
     margin: 0,
-    color: '#cbd5e1',
+    color: 'var(--border)',
   },
 
   badge: {
@@ -838,7 +838,7 @@ const styles = {
   },
 
   card: {
-    background: '#fff',
+    background: 'var(--surface)',
     borderRadius: 16,
     padding: 25,
     marginBottom: 20,
@@ -846,8 +846,8 @@ const styles = {
   },
 
   dangerCard: {
-    background: '#fff',
-    border: '1px solid #fecaca',
+    background: 'var(--surface)',
+    border: '1px solid var(--danger-tint)',
     borderRadius: 16,
     padding: 25,
     marginBottom: 30,
@@ -859,7 +859,7 @@ const styles = {
 
   sectionTitle: {
     marginTop: 0,
-    color: '#0f172a',
+    color: 'var(--ink)',
   },
 
   lifecycle: {
@@ -873,18 +873,18 @@ const styles = {
   step: {
     padding: 14,
     borderRadius: 10,
-    background: '#f1f5f9',
-    color: '#64748b',
+    background: 'var(--border-soft)',
+    color: 'var(--ink-soft)',
     textAlign: 'center',
     fontSize: 12,
     fontWeight: 800,
   },
 
   activeStep: {
-    background: '#dbeafe',
-    color: '#1d4ed8',
+    background: 'var(--info-tint)',
+    color: 'var(--brand-dark)',
     boxShadow:
-      'inset 0 0 0 2px #60a5fa',
+      'inset 0 0 0 2px var(--info)',
   },
 
   statusActions: {
@@ -905,7 +905,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: 7,
-    color: '#334155',
+    color: 'var(--ink-soft)',
     fontWeight: 700,
   },
 
@@ -913,12 +913,12 @@ const styles = {
     display: 'flex',
     gap: 25,
     margin: '10px 0 22px',
-    color: '#334155',
+    color: 'var(--ink-soft)',
   },
 
   primaryButton: {
-    background: '#2563eb',
-    color: '#fff',
+    background: 'var(--brand)',
+    color: 'var(--on-accent)',
     border: 0,
     padding: '11px 18px',
     borderRadius: 9,
@@ -927,8 +927,8 @@ const styles = {
   },
 
   approveButton: {
-    background: '#15803d',
-    color: '#fff',
+    background: 'var(--brand)',
+    color: 'var(--on-accent)',
     border: 0,
     padding: '11px 18px',
     borderRadius: 9,
@@ -937,8 +937,8 @@ const styles = {
   },
 
   rejectButton: {
-    background: '#dc2626',
-    color: '#fff',
+    background: 'var(--danger)',
+    color: 'var(--on-accent)',
     border: 0,
     padding: '11px 18px',
     borderRadius: 9,
@@ -947,8 +947,8 @@ const styles = {
   },
 
   publishButton: {
-    background: '#0f766e',
-    color: '#fff',
+    background: 'var(--info)',
+    color: 'var(--on-accent)',
     border: 0,
     padding: '11px 20px',
     borderRadius: 9,
@@ -957,9 +957,9 @@ const styles = {
   },
 
   secondaryButton: {
-    background: '#fff',
-    color: '#334155',
-    border: '1px solid #cbd5e1',
+    background: 'var(--surface)',
+    color: 'var(--ink-soft)',
+    border: '1px solid var(--border)',
     padding: '11px 18px',
     borderRadius: 9,
     fontWeight: 700,
@@ -967,8 +967,8 @@ const styles = {
   },
 
   deleteButton: {
-    background: '#dc2626',
-    color: '#fff',
+    background: 'var(--danger)',
+    color: 'var(--on-accent)',
     border: 0,
     padding: '11px 18px',
     borderRadius: 9,
@@ -981,35 +981,35 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 20,
-    background: '#f8fafc',
-    border: '1px solid #e2e8f0',
+    background: 'var(--paper)',
+    border: '1px solid var(--border)',
     borderRadius: 12,
     padding: 18,
   },
 
   muted: {
-    color: '#64748b',
+    color: 'var(--ink-soft)',
     marginBottom: 0,
   },
 
   help: {
-    color: '#64748b',
+    color: 'var(--ink-soft)',
     fontSize: 13,
     lineHeight: 1.6,
     marginTop: 15,
   },
 
   success: {
-    background: '#dcfce7',
-    color: '#166534',
+    background: 'var(--success-tint)',
+    color: 'var(--brand-light)',
     padding: 14,
     borderRadius: 10,
     marginBottom: 18,
   },
 
   error: {
-    background: '#fee2e2',
-    color: '#991b1b',
+    background: 'var(--danger-tint)',
+    color: 'var(--danger)',
     padding: 14,
     borderRadius: 10,
     marginBottom: 18,
@@ -1018,7 +1018,7 @@ const styles = {
   loading: {
     maxWidth: 1000,
     margin: '60px auto',
-    background: '#fff',
+    background: 'var(--surface)',
     padding: 30,
     borderRadius: 15,
   },

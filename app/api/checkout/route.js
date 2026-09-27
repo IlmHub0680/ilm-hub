@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { generateOrderNumber } from '@/lib/orderNumber';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,13 +42,6 @@ function getPaystackExchangeRate() {
 
 async function getAuthenticatedUser() {
   return getCurrentUser();
-}
-
-function generateOrderNumber() {
-  return `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random()
-    .toString(36)
-    .slice(2, 8)
-    .toUpperCase()}`;
 }
 
 function generatePaymentReference() {
@@ -321,7 +315,7 @@ export async function POST(request) {
       method = 'MTN_MOBILE_MONEY';
     }
 
-    const orderNumber = generateOrderNumber();
+    const orderNumber = await generateOrderNumber();
 
     const order = await prisma.order.create({
       data: {

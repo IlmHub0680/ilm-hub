@@ -1,6 +1,6 @@
-# Ilm Hub - Islamic Educational Platform
+# Ulul Azm Institute - Islamic Educational Platform
 
-Production-ready Phase 1 of Ilm Hub, an Islamic educational platform.
+Production-ready Phase 1 of Ulul Azm Institute, an Islamic educational platform.
 
 ## Quick Start
 
@@ -46,4 +46,4 @@ Deploy to Vercel by connecting your GitHub repository.
 
 ---
 
-© 2024 Ilm Hub. All rights reserved.
+© 2024 Ulul Azm Institute. All rights reserved.

@@ -48,7 +48,13 @@ export async function GET() {
         image: book.coverImageUrl || null,
         coverImageUrl: book.coverImageUrl || null,
 
-        r2FileKey: book.r2FileKey || null,
+        // Model 28 fix: r2FileKey is a raw Cloudflare R2 object storage
+        // path -- it must never reach an unauthenticated public listing
+        // endpoint (rule #9). The storefront only ever needed to know
+        // *whether* a digital copy exists, which digitalAvailable
+        // already covers; the real, protected download flow (which
+        // performs its own ownership/entitlement check before ever
+        // touching this key) lives at /api/downloads/[orderId]/[bookId].
         digitalAvailable: Boolean(book.r2FileKey),
 
         author: book.author

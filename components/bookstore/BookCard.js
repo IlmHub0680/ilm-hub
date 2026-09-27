@@ -61,7 +61,7 @@ export default function BookCard({
   const arabicTitle = getText(book?.arabicTitle);
   const author = getText(
     book?.author,
-    'Ilm-Hub Academic Collection'
+    'Ulul Azm Academic Collection'
   );
   const description = getText(book?.description);
   const category = getText(
@@ -148,7 +148,7 @@ export default function BookCard({
           }}
         >
           <div>
-            <span>ILM-HUB</span>
+            <span>ULUL AZM</span>
             <strong>{title}</strong>
             <small>{author}</small>
           </div>

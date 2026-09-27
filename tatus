@@ -1,0 +1,147 @@
+app/api/student/portal/route.js:1: trailing whitespace.
+[32m+[m[32mimport { NextResponse } from "next/server";[m[41m[m
+app/api/student/portal/route.js:2: trailing whitespace.
+[32m+[m[32mimport { prisma } from "@/lib/prisma";[m[41m[m
+app/api/student/portal/route.js:3: trailing whitespace.
+[32m+[m[32mimport { requireUser } from "@/lib/auth";[m[41m[m
+app/api/student/portal/route.js:4: trailing whitespace.
+[32m+[m[41m[m
+app/api/student/portal/route.js:5: trailing whitespace.
+[32m+[m[32mexport const dynamic = "force-dynamic";[m[41m[m
+app/api/student/portal/route.js:6: trailing whitespace.
+[32m+[m[41m[m
+app/api/student/portal/route.js:7: trailing whitespace.
+[32m+[m[32mfunction gradeLetter(score) {[m[41m[m
+app/api/student/portal/route.js:8: trailing whitespace.
+[32m+[m[32m  if (score == null) return "-";[m[41m[m
+app/api/student/portal/route.js:9: trailing whitespace.
+[32m+[m[32m  if (score >= 90) return "A";[m[41m[m
+app/api/student/portal/route.js:10: trailing whitespace.
+[32m+[m[32m  if (score >= 85) return "A-";[m[41m[m
+app/api/student/portal/route.js:11: trailing whitespace.
+[32m+[m[32m  if (score >= 80) return "B+";[m[41m[m
+app/api/student/portal/route.js:12: trailing whitespace.
+[32m+[m[32m  if (score >= 75) return "B";[m[41m[m
+app/api/student/portal/route.js:13: trailing whitespace.
+[32m+[m[32m  if (score >= 70) return "B-";[m[41m[m
+app/api/student/portal/route.js:14: trailing whitespace.
+[32m+[m[32m  if (score >= 65) return "C+";[m[41m[m
+app/api/student/portal/route.js:15: trailing whitespace.
+[32m+[m[32m  if (score >= 60) return "C";[m[41m[m
+app/api/student/portal/route.js:16: trailing whitespace.
+[32m+[m[32m  return "F";[m[41m[m
+app/api/student/portal/route.js:17: trailing whitespace.
+[32m+[m[32m}[m[41m[m
+app/api/student/portal/route.js:18: trailing whitespace.
+[32m+[m[41m[m
+app/api/student/portal/route.js:19: trailing whitespace.
+[32m+[m[32mexport async function GET() {[m[41m[m
+app/api/student/portal/route.js:20: trailing whitespace.
+[32m+[m[32m  try {[m[41m[m
+app/api/student/portal/route.js:21: trailing whitespace.
+[32m+[m[32m    const user = await requireUser();[m[41m[m
+app/api/student/portal/route.js:22: trailing whitespace.
+[32m+[m[41m[m
+app/api/student/portal/route.js:23: trailing whitespace.
+[32m+[m[32m    if (user.role !== "STUDENT") {[m[41m[m
+app/api/student/portal/route.js:24: trailing whitespace.
+[32m+[m[32m      return NextResponse.json([m[41m[m
+app/api/student/portal/route.js:25: trailing whitespace.
+[32m+[m[32m        { success: false, error: "Student access required." },[m[41m[m
+app/api/student/portal/route.js:26: trailing whitespace.
+[32m+[m[32m        { status: 403 }[m[41m[m
+app/api/student/portal/route.js:27: trailing whitespace.
+[32m+[m[32m      );[m[41m[m
+app/api/student/portal/route.js:28: trailing whitespace.
+[32m+[m[32m    }[m[41m[m
+app/api/student/portal/route.js:29: trailing whitespace.
+[32m+[m[41m[m
+app/api/student/portal/route.js:30: trailing whitespace.
+[32m+[m[32m    const studentProfile = await prisma.studentProfile.findUnique({[m[41m[m
+app/api/student/portal/route.js:31: trailing whitespace.
+[32m+[m[32m      where: { userId: user.id },[m[41m[m
+app/api/student/portal/route.js:32: trailing whitespace.
+[32m+[m[32m      include: {[m[41m[m
+app/api/student/portal/route.js:33: trailing whitespace.
+[32m+[m[32m        faculty: true,[m[41m[m
+app/api/student/portal/route.js:34: trailing whitespace.
+[32m+[m[32m        department: true,[m[41m[m
+app/api/student/portal/route.js:35: trailing whitespace.
+[32m+[m[32m        program: { include: { courses: true } },[m[41m[m
+app/api/student/portal/route.js:36: trailing whitespace.
+[32m+[m[32m        academicAdvisor: { include: { user: true } },[m[41m[m
+app/api/student/portal/route.js:37: trailing whitespace.
+[32m+[m[32m      },[m[41m[m
+app/api/student/portal/route.js:38: trailing whitespace.
+[32m+[m[32m    });[m[41m[m
+app/api/student/portal/route.js:39: trailing whitespace.
+[32m+[m[41m[m
+app/api/student/portal/route.js:40: trailing whitespace.
+[32m+[m[32m    if (!studentProfile) {[m[41m[m
+app/api/student/portal/route.js:41: trailing whitespace.
+[32m+[m[32m      return NextResponse.json([m[41m[m
+app/api/student/portal/route.js:42: trailing whitespace.
+[32m+[m[32m        { success: false, error: "No student profile found for this account." },[m[41m[m
+app/api/student/portal/route.js:43: trailing whitespace.
+[32m+[m[32m        { status: 404 }[m[41m[m
+app/api/student/portal/route.js:44: trailing whitespace.
+[32m+[m[32m      );[m[41m[m
+app/api/student/portal/route.js:45: trailing whitespace.
+[32m+[m[32m    }[m[41m[m
+app/api/student/portal/route.js:46: trailing whitespace.
+[32m+[m[41m[m
+app/api/student/portal/route.js:47: trailing whitespace.
+[32m+[m[32m    const [enrollments, grades, termRecords, requests, transcripts, announcements, notifications] =[m[41m[m
+app/api/student/portal/route.js:48: trailing whitespace.
+[32m+[m[32m      await Promise.all([[m[41m[m
+app/api/student/portal/route.js:49: trailing whitespace.
+[32m+[m[32m        prisma.enrollment.findMany({[m[41m[m
+app/api/student/portal/route.js:50: trailing whitespace.
+[32m+[m[32m          where: { userId: user.id },[m[41m[m
+app/api/student/portal/route.js:51: trailing whitespace.
+[32m+[m[32m          include: { course: true },[m[41m[m
+app/api/student/portal/route.js:52: trailing whitespace.
+[32m+[m[32m          orderBy: { createdAt: "desc" },[m[41m[m
+app/api/student/portal/route.js:53: trailing whitespace.
+[32m+[m[32m        }),[m[41m[m
+app/api/student/portal/route.js:54: trailing whitespace.
+[32m+[m[32m        prisma.grade.findMany({[m[41m[m
+app/api/student/portal/route.js:55: trailing whitespace.
+[32m+[m[32m          where: { studentId: user.id },[m[41m[m
+app/api/student/portal/route.js:56: trailing whitespace.
+[32m+[m[32m          include: { course: true },[m[41m[m
+app/api/student/portal/route.js:57: trailing whitespace.
+[32m+[m[32m          orderBy: { updatedAt: "desc" },[m[41m[m
+app/api/student/portal/route.js:58: trailing whitespace.
+[32m+[m[32m        }),[m[41m[m
+app/api/student/portal/route.js:59: trailing whitespace.
+[32m+[m[32m        prisma.termRecord.findMany({[m[41m[m
+app/api/student/portal/route.js:60: trailing whitespace.
+[32m+[m[32m          where: { studentId: studentProfile.id },[m[41m[m
+app/api/student/portal/route.js:61: trailing whitespace.
+[32m+[m[32m          include: { term: true },[m[41m[m
+app/api/student/portal/route.js:62: trailing whitespace.
+[32m+[m[32m          orderBy: { createdAt: "desc" },[m[41m[m
+app/api/student/portal/route.js:63: trailing whitespace.
+[32m+[m[32m        }),[m[41m[m
+app/api/student/portal/route.js:64: trailing whitespace.
+[32m+[m[32m        prisma.request.findMany({[m[41m[m
+app/api/student/portal/route.js:65: trailing whitespace.
+[32m+[m[32m          where: { studentId: studentProfile.id },[m[41m[m
+app/api/student/portal/route.js:66: trailing whitespace.
+[32m+[m[32m          orderBy: { createdAt: "desc" },[m[41m[m
+app/api/student/portal/route.js:67: trailing whitespace.
+[32m+[m[32m        }),[m[41m[m
+app/api/student/portal/route.js:68: trailing whitespace.
+[32m+[m[32m        prisma.transcriptIssue.findMany({[m[41m[m
+app/api/student/portal/route.js:69: trailing whitespace.
+[32m+[m[32m          where: { studentId: studentProfile.id },[m[41m[m
+app/api/student/portal/route.js:70: trailing whitespace.
+[32m+[m[32m          orderBy: { issuedAt: "desc" },[m[41m[m
+app/api/student/portal/route.js:71: trailing whitespace.
+[32m+[m[32m        }),[m[41m[m
+app/api/student/portal/route.js:72: trailing whitespace.
+[32m+[m[32m        prisma.announcement.findMany({[m[41m[m
+app/api/student/portal/route.js:73: trailing whitespace.
+[32m+[m[32m          where: {[m[41m[m
+app/api/student/portal/route.js:74: tr

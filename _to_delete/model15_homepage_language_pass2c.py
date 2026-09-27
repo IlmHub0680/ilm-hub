@@ -1,0 +1,227 @@
+# -*- coding: utf-8 -*-
+import io
+
+def load(path):
+    with io.open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+def save(path, content):
+    with io.open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+def r1(content, old, new, label):
+    c = content.count(old)
+    assert c == 1, "%s: expected 1 match, found %d (context: %r)" % (label, c, old[:120])
+    return content.replace(old, new)
+
+path = "app/page.jsx"
+c = load(path)
+
+# Media & Library section.
+c = r1(
+    c,
+    "      <section style={lightSection}>\n"
+    "\n"
+    "        <div style={sectionInner}>\n"
+    "\n"
+    "          <span style={goldLabel}>\n"
+    "            MEDIA & LIBRARY\n"
+    "          </span>\n"
+    "\n"
+    "          <h2 style={sectionTitle}>\n"
+    "            Learn, Listen & Read\n"
+    "          </h2>\n"
+    "\n"
+    "          <p style={sectionDescription}>\n"
+    "            Recorded lessons, Khutbahs, Mutun Al-Ilmiyyah and Manzumat live in\n"
+    "            Media; articles, fatwas, research papers and classical texts live\n"
+    "            in the Library — two separate, dedicated sections.\n"
+    "          </p>\n"
+    "\n"
+    "          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>\n"
+    "            <Link\n"
+    "              href=\"/media\"\n"
+    "              style={mainButton}\n"
+    "            >\n"
+    "              Explore Media →</Link>\n"
+    "\n"
+    "            <Link\n"
+    "              href=\"/library\"\n"
+    "              style={mainButton}\n"
+    "            >\n"
+    "              Browse Library →</Link>\n"
+    "          </div>\n"
+    "\n"
+    "        </div>\n"
+    "\n"
+    "      </section>",
+    "      <section style={lightSection} dir={dir}>\n"
+    "\n"
+    "        <div style={sectionInner}>\n"
+    "\n"
+    "          <span style={goldLabel}>\n"
+    "            {t('MEDIA & LIBRARY')}\n"
+    "          </span>\n"
+    "\n"
+    "          <h2 style={sectionTitle}>\n"
+    "            {t('Learn, Listen & Read')}\n"
+    "          </h2>\n"
+    "\n"
+    "          <p style={sectionDescription}>\n"
+    "            {t('Recorded lessons, Khutbahs, Mutun Al-Ilmiyyah and Manzumat live in Media; articles, fatwas, research papers and classical texts live in the Library — two separate, dedicated sections.')}\n"
+    "          </p>\n"
+    "\n"
+    "          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>\n"
+    "            <Link\n"
+    "              href=\"/media\"\n"
+    "              style={mainButton}\n"
+    "            >\n"
+    "              {t('Explore Media →')}</Link>\n"
+    "\n"
+    "            <Link\n"
+    "              href=\"/library\"\n"
+    "              style={mainButton}\n"
+    "            >\n"
+    "              {t('Browse Library →')}</Link>\n"
+    "          </div>\n"
+    "\n"
+    "        </div>\n"
+    "\n"
+    "      </section>",
+    "page: Media & Library section translation",
+)
+
+# Why Ulul Azm section.
+c = r1(
+    c,
+    "      <section style={sectionStyle}>\n"
+    "\n"
+    "        <div style={headingContainer}>\n"
+    "\n"
+    "          <span style={goldLabel}>\n"
+    "            OUR APPROACH\n"
+    "          </span>\n"
+    "\n"
+    "          <h2 style={sectionTitle}>\n"
+    "            More than a website — a learning environment\n"
+    "          </h2>\n"
+    "\n"
+    "          <p style={sectionDescription}>\n"
+    "            We aim to make the pursuit of Islamic knowledge organized,\n"
+    "            accessible, responsible and beneficial.\n"
+    "          </p>\n"
+    "\n"
+    "        </div>\n"
+    "\n"
+    "        <div style={infoGrid}>\n"
+    "\n"
+    "          <InfoBox\n"
+    "            number=\"01\"\n"
+    "            title=\"Authentic Foundations\"\n"
+    "            text=\"Begin with foundational disciplines before progressing into advanced studies.\"\n"
+    "          />\n"
+    "\n"
+    "          <InfoBox\n"
+    "            number=\"02\"\n"
+    "            title=\"Structured Programmes\"\n"
+    "            text=\"Study through clearly defined academic areas rather than disconnected lessons.\"\n"
+    "          />\n"
+    "\n"
+    "          <InfoBox\n"
+    "            number=\"03\"\n"
+    "            title=\"Responsible Scholarship\"\n"
+    "            text=\"Approach Islamic knowledge with sincerity, humility, discipline and respect for scholarship.\"\n"
+    "          />\n"
+    "\n"
+    "        </div>\n"
+    "\n"
+    "      </section>",
+    "      <section style={sectionStyle} dir={dir}>\n"
+    "\n"
+    "        <div style={headingContainer}>\n"
+    "\n"
+    "          <span style={goldLabel}>\n"
+    "            {t('OUR APPROACH')}\n"
+    "          </span>\n"
+    "\n"
+    "          <h2 style={sectionTitle}>\n"
+    "            {t('More than a website — a learning environment')}\n"
+    "          </h2>\n"
+    "\n"
+    "          <p style={sectionDescription}>\n"
+    "            {t('We aim to make the pursuit of Islamic knowledge organized, accessible, responsible and beneficial.')}\n"
+    "          </p>\n"
+    "\n"
+    "        </div>\n"
+    "\n"
+    "        <div style={infoGrid}>\n"
+    "\n"
+    "          <InfoBox\n"
+    "            number=\"01\"\n"
+    "            title={t('Authentic Foundations')}\n"
+    "            text={t('Begin with foundational disciplines before progressing into advanced studies.')}\n"
+    "          />\n"
+    "\n"
+    "          <InfoBox\n"
+    "            number=\"02\"\n"
+    "            title={t('Structured Programmes')}\n"
+    "            text={t('Study through clearly defined academic areas rather than disconnected lessons.')}\n"
+    "          />\n"
+    "\n"
+    "          <InfoBox\n"
+    "            number=\"03\"\n"
+    "            title={t('Responsible Scholarship')}\n"
+    "            text={t('Approach Islamic knowledge with sincerity, humility, discipline and respect for scholarship.')}\n"
+    "          />\n"
+    "\n"
+    "        </div>\n"
+    "\n"
+    "      </section>",
+    "page: Why Ulul Azm section translation",
+)
+
+# CTA section.
+c = r1(
+    c,
+    "      <section style={ctaSection}>\n"
+    "\n"
+    "        <div style={ctaInner}>\n"
+    "\n"
+    "          <div style={arabic}>\n"
+    "            BISMILLAH • SEEK KNOWLEDGE • SERVE WITH EXCELLENCE\n"
+    "          </div>\n"
+    "\n"
+    "          <h2 style={ctaTitle}>\n"
+    "            Begin Your Journey of Knowledge\n"
+    "          </h2>\n"
+    "\n"
+    "          <p style={whiteDescription}>\n"
+    "            Explore academic programmes, educational resources, media library, and\n"
+    "            admissions opportunities.\n"
+    "          </p>\n"
+    "\n"
+    "        </div>\n"
+    "      </section>",
+    "      <section style={ctaSection} dir={dir}>\n"
+    "\n"
+    "        <div style={ctaInner}>\n"
+    "\n"
+    "          <div style={arabic}>\n"
+    "            {t('BISMILLAH • SEEK KNOWLEDGE • SERVE WITH EXCELLENCE')}\n"
+    "          </div>\n"
+    "\n"
+    "          <h2 style={ctaTitle}>\n"
+    "            {t('Begin Your Journey of Knowledge')}\n"
+    "          </h2>\n"
+    "\n"
+    "          <p style={whiteDescription}>\n"
+    "            {t('Explore academic programmes, educational resources, media library, and admissions opportunities.')}\n"
+    "          </p>\n"
+    "\n"
+    "        </div>\n"
+    "      </section>",
+    "page: CTA section translation",
+)
+
+save(path, c)
+print("app/page.jsx: pass 2c (Media & Library + Why Ulul Azm + CTA sections) done.")

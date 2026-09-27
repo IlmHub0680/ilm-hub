@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { createRoyaltyLedgerEntriesForOrder } from "@/lib/royalty";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -34,6 +35,8 @@ export async function POST(request, { params }) {
                 titleEn: true,
                 titleAr: true,
                 r2FileKey: true,
+                authorId: true,
+                royaltyRatePct: true,
               },
             },
           },
@@ -177,7 +180,7 @@ export async function POST(request, { params }) {
          * ACTIVATED is the only successful access state.
          * This matches the download endpoint.
          */
-        return tx.order.update({
+        const activated = await tx.order.update({
           where: {
             id: order.id,
           },
@@ -186,10 +189,15 @@ export async function POST(request, { params }) {
             status: "ACTIVATED",
             approvedAt: now,
             paidAt: order.paidAt || now,
+            // Fall back to totalUSD converted at the order's own
+            // exchangeRate, never raw totalUSD, so a defensive fallback
+            // can never mislabel a USD figure as the order's charge
+            // currency (e.g. GHS).
             paidAmount:
               Number(order.paidAmount) > 0
                 ? order.paidAmount
-                : order.totalUSD,
+                : Number(order.totalUSD) *
+                  Number(order.exchangeRate || 1),
           },
 
           include: {
@@ -201,12 +209,25 @@ export async function POST(request, { params }) {
                     titleEn: true,
                     titleAr: true,
                     r2FileKey: true,
+                    authorId: true,
+                    royaltyRatePct: true,
                   },
                 },
               },
             },
           },
         });
+
+        /*
+         * The real, permanent Author Royalty ledger — one row per
+         * authored book sold, created the moment the sale becomes
+         * final (see lib/royalty.js). Never generated anywhere else,
+         * and never duplicated if this route somehow runs twice
+         * (orderItemId is a unique key on the ledger table).
+         */
+        await createRoyaltyLedgerEntriesForOrder(tx, activated);
+
+        return activated;
       }
     );
 

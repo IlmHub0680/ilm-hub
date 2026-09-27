@@ -108,6 +108,30 @@ export async function deleteFromR2(
   await client.send(command);
 }
 
+export async function getR2Object(
+  key: string
+) {
+  const cleanKey =
+    key.trim();
+
+  if (!cleanKey) {
+    throw new Error(
+      "R2 file key is missing."
+    );
+  }
+
+  const client =
+    getR2Client();
+
+  const command =
+    new GetObjectCommand({
+      Bucket: getBucket(),
+      Key: cleanKey,
+    });
+
+  return client.send(command);
+}
+
 export async function getR2PresignedUrl(
   key: string,
   expiresInSeconds: number = 60

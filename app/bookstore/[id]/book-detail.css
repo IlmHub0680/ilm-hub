@@ -73,13 +73,23 @@
 .detail-content h1 {
   margin: 15px 0 8px;
   color: #123b26;
-  font: 48px/1.1 Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 48px;
+  line-height: 1.1;
 }
 
+/*
+ * The English title above uses the site's Latin display face.
+ * This h2 renders the book's Arabic title (see page.jsx: <h2 dir="rtl">)
+ * so it must use the Arabic display face — Georgia has no real Arabic
+ * glyphs and was silently overriding the global [dir="rtl"] h1/h2/h3
+ * Amiri rule in globals.css.
+ */
 .detail-content h2 {
   margin: 0 0 15px;
   color: #047857;
-  font: 22px Georgia, serif;
+  font-family: var(--font-arabic-display), "Amiri", serif;
+  font-size: 22px;
 }
 
 .author {

@@ -8,22 +8,40 @@ export async function GET() {
   try {
     await requireAdmin();
 
-    const pendingAuthors = await prisma.user.findMany({
+    // Only surface applicants who have actually paid the author
+    // application fee (AuthorAdmission moves PENDING -> PAID once
+    // /api/author/paystack/verify or the webhook confirms payment).
+    // An author who registered but never paid should not appear in
+    // the admin review queue at all.
+    const pendingAdmissions = await prisma.authorAdmission.findMany({
       where: {
-        role: "AUTHOR",
-        authorStatus: "PENDING",
+        status: { in: ["PAID", "UNDER_REVIEW"] },
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        authorStatus: true,
-        createdAt: true,
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, authorStatus: true, createdAt: true },
+        },
       },
       orderBy: {
         createdAt: "asc",
       },
     });
+
+    const pendingAuthors = pendingAdmissions
+      .filter((admission) => admission.user.authorStatus === "PENDING")
+      .map((admission) => ({
+        id: admission.user.id,
+        name: admission.user.name,
+        email: admission.user.email,
+        authorStatus: admission.user.authorStatus,
+        createdAt: admission.user.createdAt,
+        admissionId: admission.id,
+        admissionStatus: admission.status,
+        applicationFee: admission.applicationFee ? Number(admission.applicationFee) : null,
+        currencyCode: admission.currencyCode,
+        feeBasis: admission.feeBasis,
+        countryOfResidence: admission.countryOfResidence,
+      }));
 
     return NextResponse.json({
       success: true,

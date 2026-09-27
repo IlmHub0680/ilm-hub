@@ -1,7 +1,7 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import AdminDashboardContent from "./AdminDashboardContent";
+export const dynamic = "force-dynamic";
 
 export default function AdminDashboard() {
-  return <AdminDashboardContent />;
+  redirect("/admin");
 }

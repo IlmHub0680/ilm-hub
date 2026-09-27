@@ -24,12 +24,21 @@ model Book {
   sellerId      String?
   status        BookStatus   @default(PENDING_REVIEW)
   updatedAt     DateTime     @default(now()) @updatedAt
+  // Optional per-book royalty rate override (percent, e.g. 65.00 =
+  // 65%). Nullable: most books use the author's own override rate, or
+  // failing that the institution-wide default — see
+  // lib/royalty.js:resolveRoyaltyRate() for the exact resolution
+  // order. Never a second, disconnected "rate" the admin has to keep
+  // in sync by hand.
+  royaltyRatePct Decimal?    @db.Decimal(5, 2)
   author        User?        @relation("BookAuthor", fields: [authorId], references: [id])
   category      Category     @relation(fields: [categoryId], references: [id])
   seller        User?        @relation("BookSeller", fields: [sellerId], references: [id])
   bookAccess    BookAccess[]
   cartItems     CartItem[]
   orderItems    OrderItem[]
+  royaltyLedgerEntries RoyaltyLedgerEntry[]
+  courseReadings CourseReading[]
 
   @@index([authorId])
   @@index([sellerId])
@@ -63,6 +72,8 @@ model Order {
   items           OrderItem[]
   payments        Payment[]
   receipt         Receipt?
+  royaltyLedgerEntries RoyaltyLedgerEntry[]
+  refundRequests  RefundRequest[]
 
   @@index([userId])
   @@index([status])
@@ -96,6 +107,41 @@ model Payment {
   @@index([transactionId])
 }
 
+enum RefundRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PROCESSED
+}
+
+// Model 32 §4 -- Finance work-queue item. A refund is never applied to
+// an Order/Payment automatically; this only records that a refund was
+// requested and, once a Finance staff member with FINANCE_FEES edit
+// access decides it, what the outcome was. The actual money movement
+// (reversing a Stripe/Paystack charge) stays a real-world action taken
+// outside this record -- PROCESSED means Finance confirms it was done.
+model RefundRequest {
+  id              String               @id @default(cuid())
+  orderId         String
+  requestedById   String
+  amountUSD       Decimal              @db.Decimal(10, 2)
+  reason          String               @db.Text
+  status          RefundRequestStatus  @default(PENDING)
+  resolutionNote  String?
+  resolvedById    String?
+  resolvedAt      DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  requestedBy User         @relation("RefundRequestRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+  resolvedBy  StaffProfile? @relation("RefundRequestResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([requestedById])
+  @@index([status])
+}
+
 model OrderItem {
   id       String  @id @default(cuid())
   orderId  String
@@ -104,6 +150,7 @@ model OrderItem {
   quantity Int     @default(1)
   book     Book    @relation(fields: [bookId], references: [id])
   order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  royaltyLedgerEntry RoyaltyLedgerEntry?
 
   @@index([orderId])
   @@index([bookId])
@@ -150,12 +197,107 @@ model CartItem {
 }
 
 model Category {
-  id      String   @id
-  nameEn  String
-  nameAr  String
-  slug    String   @unique
-  books   Book[]
-  courses Course[]
+  id       String    @id
+  nameEn   String
+  nameAr   String
+  slug     String    @unique
+  books    Book[]
+  courses  Course[]
+  programs Program[]
+}
+
+// The public /bookstore page's own surrounding copy (Model 27) --
+// hero text, section labels/headings, the publisher CTA and the
+// footer About blurb. Singleton row, same pattern as
+// HomepageSectionsText. The book catalogue itself (Book, Category,
+// BookOrder, ...) was already admin-editable before this model.
+model BookstorePageContent {
+  id                String   @id @default(cuid())
+  heroEyebrow       String
+  heroTitle         String
+  heroSubtitle      String   @db.Text
+  // The 3 short "✓ ..." trust-checklist phrases under the hero search bar.
+  heroTrust         String[] @default([])
+  categoryLabel     String
+  categoryHeading   String
+  featuredLabel     String
+  featuredHeading   String
+  featuredSubtitle  String
+  collectionLabel   String
+  collectionHeading String
+  publisherLabel    String
+  publisherHeading  String
+  publisherText     String   @db.Text
+  footerAboutText   String   @db.Text
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+}
+
+// The "why shop with us" value-strip cards on /bookstore (Model
+// 27) -- same shape/pattern as HomepageFeatureCard.
+model BookstoreValueCard {
+  id        String   @id @default(cuid())
+  icon      String
+  title     String
+  text      String   @db.Text
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+}
+
+// Alumni (Model 29) -- public /alumni page. Page copy is a
+// singleton like BookstorePageContent/HomepageSectionsText.
+// Statistics and Spotlight are separate ordered lists an admin
+// fills in with real figures and real graduate stories -- both
+// start empty and the public page simply doesn't render a section
+// until content exists, the same pattern as HomepageHeroBanner.
+// Deliberately independent of StudentProfile/GraduationApplication:
+// those are internal student records, not something to publish
+// as public alumni profiles without the graduate's consent.
+model AlumniPageContent {
+  id                String   @id @default(cuid())
+  heroEyebrow       String
+  heroTitle         String
+  heroSubtitle      String   @db.Text
+  statsHeading      String
+  spotlightLabel    String
+  spotlightHeading  String
+  spotlightSubtitle String   @db.Text
+  ctaHeading        String
+  ctaText           String   @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model AlumniStat {
+  id        String   @id @default(cuid())
+  value     String
+  label     String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+}
+
+model AlumniProfile {
+  id             String   @id @default(cuid())
+  name           String
+  graduationYear String?
+  program        String?
+  photoUrl       String?
+  currentRole    String?
+  quote          String?  @db.Text
+  order          Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([order])
 }
 
 model Country {
@@ -178,23 +320,135 @@ model ExchangeRate {
 }
 
 model Course {
-  id            String          @id
+  id            String   @id
   titleEn       String
   titleAr       String
-  slug          String          @unique
+  slug          String   @unique
+  courseCode    String   @unique
   descriptionEn String
   descriptionAr String
-  isPaid        Boolean         @default(false)
-  priceUSD      Decimal         @default(0.00) @db.Decimal(10, 2)
+  creditHours   Int      @default(3)
+  isPaid        Boolean  @default(false)
+  priceUSD      Decimal  @default(0.00) @db.Decimal(10, 2)
   thumbnailUrl  String
-  isPublished   Boolean         @default(false)
+  isPublished   Boolean  @default(false)
   categoryId    String
-  createdAt     DateTime        @default(now())
-  category      Category        @relation(fields: [categoryId], references: [id])
-  sections      CourseSection[]
-  enrollments   Enrollment[]
+  programId     String?
+  createdAt     DateTime @default(now())
+
+  // Course approval workflow (Model 11) — Academic Governance already
+  // named this gap twice: a course had isPublished only, no distinct
+  // "approved" state a Head of Department could actually set. Defaults
+  // to APPROVED so the Academy's existing, already-taught courses are
+  // not silently unapproved by this migration; a course created going
+  // forward through the Programme Coordinator's own creation API starts
+  // at DRAFT instead (see app/api/coordinator/courses/route.js).
+  approvalStatus ApprovalStatus @default(APPROVED)
+  approvalNote   String?
+
+  // The course's real, approved primary learning outcome and
+  // assessment type, exactly as stated in the academy-course-
+  // catalogue governance document (Model 15) -- not a new academic
+  // decision, just giving already-approved text a queryable home.
+  outcomeEn      String?
+  assessmentType String?
+
+  // Model 19 -- whether this course has an approved practical
+  // assessment component (e.g. Qur'an recitation, Tajweed
+  // performance, a teaching demonstration), and that component's
+  // approved pass requirement stated as text -- never a number this
+  // document would otherwise have to invent. Both left unset by
+  // default: a course has no practical component until Academic
+  // Records/the Programme Coordinator explicitly says it does.
+  practicalRequired        Boolean @default(false)
+  practicalPassRequirement String?
+
+  // Curriculum sequencing for real automatic course assignment — which
+  // programme year/semester this course belongs to. Named distinctly
+  // from the unrelated "level" label already used elsewhere (a
+  // programme's degree level, e.g. "Bachelor's") to avoid any
+  // collision. Nullable: existing courses have no value until Academic
+  // Records sets one, and the auto-assignment engine simply skips
+  // courses with no semesterLevel set rather than guessing.
+  semesterLevel Int?
+
+  category    Category           @relation(fields: [categoryId], references: [id])
+  program     Program?           @relation(fields: [programId], references: [id], onDelete: SetNull)
+  sections    CourseSection[]
+  enrollments Enrollment[]
+  instructors InstructorCourse[]
+  grades      Grade[]
+  exams       Exam[]
+
+  // Self-referencing prerequisite graph (implicit many-to-many): a course
+  // can require any number of other courses to be completed-and-passed
+  // first. Empty by default for every existing course.
+  prerequisites     Course[] @relation("CoursePrerequisites")
+  isPrerequisiteFor Course[] @relation("CoursePrerequisites")
+
+  attendanceRecords Attendance[]
+  assignments       Assignment[]
+  quizzes           Quiz[]
+  tutoringRequests  TutoringRequest[]
+  absenceExcuses    AbsenceExcuse[]
+  qualityReviews    QualityReview[]
+  courseRequests    Request[]
+  discussions       Discussion[]
+  liveClasses       LiveClass[]
+  evaluations       CourseEvaluation[]
+  integrityCases    IntegrityCase[]
+  readings          CourseReading[]
+  learningOutcomes  CourseLearningOutcome[]
 
   @@index([categoryId])
+  @@index([programId])
+}
+
+enum CourseReadingType {
+  REQUIRED
+  RECOMMENDED
+}
+
+// Model 28: links a Course's syllabus directly to an authoritative
+// LibraryResource, Book, or InstituteLibraryResource row for required
+// textbooks / recommended readings, instead of duplicating a file
+// across multiple rows. Exactly one of libraryResourceId / bookId /
+// instituteLibraryResourceId is set per row -- never more than one,
+// and never a fourth, disconnected reading-list table.
+//
+// instituteLibraryResourceId (added alongside the institute Digital
+// Library -- see InstituteLibraryResource below) is a deliberate,
+// separate integration: an authorized academic user may link an
+// approved institute Digital Library resource to a course, exactly as
+// they already can with the owner's personal LibraryResource or a
+// Bookstore Book. This is additive, not a merge of the systems --
+// linking a resource to a course never grants the institute Library
+// ownership over the Bookstore or the personal Library, and vice
+// versa. Unlike the personal libraryResourceId/bookId branches (which
+// carry no further access check once linked), a linked institute
+// resource still enforces its own visibility tier for the requesting
+// student at read time -- see
+// app/api/student/courses/[id]/readings/route.js.
+model CourseReading {
+  id                        String            @id @default(cuid())
+  courseId                  String
+  libraryResourceId         String?
+  bookId                    String?
+  instituteLibraryResourceId String?
+  readingType               CourseReadingType @default(REQUIRED)
+  note                      String?
+  order                     Int               @default(0)
+  createdAt                 DateTime          @default(now())
+
+  course                  Course                   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  libraryResource         LibraryResource?         @relation(fields: [libraryResourceId], references: [id], onDelete: Cascade)
+  book                    Book?                    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  instituteLibraryResource InstituteLibraryResource? @relation(fields: [instituteLibraryResourceId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([libraryResourceId])
+  @@index([bookId])
+  @@index([instituteLibraryResourceId])
 }
 
 model CourseProgress {
@@ -254,6 +508,267 @@ model DownloadLog {
   @@index([bookId])
 }
 
+enum MediaCategory {
+  SCHOLARLY_TALKS
+  VIDEO_LESSONS
+  AUDIO_RECORDINGS
+  KHUTBAH
+  POEMS
+  MUTOON
+  LECTURES
+}
+
+enum LibraryCategory {
+  ARTICLES
+  FATWAS
+  RESEARCH_PAPERS
+  HISTORICAL_MATERIALS
+  MANUSCRIPTS
+  EDUCATIONAL_RESOURCES
+  CLASSICAL_TEXTS
+}
+
+enum MediaSubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+model MediaItem {
+  id                   String        @id @default(cuid())
+  titleEn              String
+  titleAr              String
+  slug                 String        @unique
+  descriptionEn        String
+  descriptionAr        String
+  category             MediaCategory
+  mediaType            MediaType     @default(VIDEO)
+  mediaUrl             String
+  thumbnailUrl         String?
+  speaker              String?
+  durationSec          Int           @default(0)
+  isPublished          Boolean       @default(true)
+  isFreePreview        Boolean       @default(false)
+  requiresSubscription Boolean       @default(true)
+  priceUSD             Decimal?      @db.Decimal(10, 2)
+  uploadedById         String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([category])
+  @@index([isPublished])
+  @@index([uploadedById])
+}
+
+// Written/reference content shown on the public "Library" page —
+// articles, fatwas, research papers, manuscripts, etc. Deliberately
+// separate from MediaItem: no subscription gate, no media-player
+// fields (duration, mediaType). Access is controlled only by
+// isPublished, per the Library's own independent (non-subscription)
+// access rules.
+//
+// Named LibraryResource (not LibraryItem) to avoid colliding with the
+// pre-existing LibraryItem model below, which is an unrelated physical
+// book lending/loan catalogue run by the Librarian role — same English
+// word, two different features. See CLAUDE.md.
+model LibraryResource {
+  id            String          @id @default(cuid())
+  titleEn       String
+  titleAr       String
+  slug          String          @unique
+  descriptionEn String
+  descriptionAr String
+  category      LibraryCategory
+  // Admin-entered, may point at an external/already-public URL (see
+  // lib/r2FileLifecycle.ts's own comment on this field).
+  fileUrl       String
+  thumbnailUrl  String?
+  author        String?
+  isPublished   Boolean         @default(true)
+  uploadedById  String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  courseReadings CourseReading[]
+
+  @@index([category])
+  @@index([isPublished])
+  @@index([uploadedById])
+}
+
+// =====================================================================
+// INSTITUTE DIGITAL LIBRARY (spec §12) -- a Delegated Operation owned
+// by the Librarian / Library Services role, run through the same
+// LIBRARY_OPS module already used for the physical circulation system
+// below (LibraryItem/LibraryLoan/LibraryReservation). Deliberately a
+// THIRD, distinct model from both:
+//   - LibraryResource (Personal Management) -- the platform owner's
+//     own personal public reading library, isPublished-only, no
+//     viewer-tiering. See that model's own comment.
+//   - LibraryItem (Delegated Operations) -- the physical book
+//     lending/loan catalogue (title/author/ISBN/copies/loans), run by
+//     the same Librarian role but a completely different kind of
+//     content (physical circulation, not digital reading content).
+// InstituteLibraryResource is the institute's own DIGITAL content --
+// e-books, articles, fatwas, research papers, manuscripts, mutoon/
+// texts, academic resources, course resources -- created and
+// published by institute Library staff, never by the platform owner
+// personally and never overlapping with the physical catalogue.
+// =====================================================================
+
+enum InstituteLibraryCategory {
+  DIGITAL_BOOKS
+  EBOOKS
+  ARTICLES
+  FATWAS
+  RESEARCH_PAPERS
+  MANUSCRIPTS
+  MUTOON_TEXTS
+  ACADEMIC_RESOURCES
+  ISLAMIC_SCHOLARLY_RESOURCES
+  COURSE_RESOURCES
+}
+
+// Institute Digital Library visibility tiers. A distinct enum from
+// LibraryResourceVisibility on purpose (there is in fact no such enum
+// any more -- an earlier build mistakenly added viewer-tiering to the
+// PERSONAL LibraryResource model; that was reverted, and this enum is
+// the correct home for the same well-designed rank system). See
+// lib/institute-library-visibility.js for the single enforcement
+// helper and full rank documentation.
+//   0 PUBLIC              -- anyone, including anonymous visitors
+//   1 INSTITUTE_ONLY      -- any signed-in institute account
+//   2 STUDENTS_AND_STAFF  -- enrolled students and staff
+//   3 FACULTY_STAFF_ONLY  -- faculty/instructional staff and above
+//   4 RESTRICTED          -- Admin/SUPER_ADMIN or a LIBRARY_OPS holder
+enum InstituteLibraryVisibility {
+  INSTITUTE_ONLY
+  STUDENTS_AND_STAFF
+  FACULTY_STAFF_ONLY
+  PUBLIC
+  RESTRICTED
+}
+
+// Institute Digital Library resource-status workflow. Kept as its own
+// field distinct from isPublished/visibility: the spec's "resource
+// status" wording implies an editorial workflow (a resource is
+// drafted, then reviewed, then published), which is a different axis
+// from WHO may see it once published (visibility) or WHETHER it is
+// visible at all (isPublished as the coarse kill-switch). A resource
+// can sit in UNDER_REVIEW while isPublished stays false; PUBLISHED is
+// the only status a Librarian would pair with isPublished = true.
+enum InstituteLibraryResourceStatus {
+  DRAFT
+  UNDER_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+// Named InstituteLibraryResource -- distinctly "Institute"-prefixed so
+// it can never be confused with either LibraryResource (personal) or
+// LibraryItem (physical circulation). Owned end-to-end by the
+// Librarian / Library Services delegated role via the LIBRARY_OPS
+// module; Admin/SUPER_ADMIN retain read-only oversight only (see
+// app/admin/library/page.tsx), never operational control.
+model InstituteLibraryResource {
+  id            String                         @id @default(cuid())
+  titleEn       String
+  titleAr       String
+  descriptionEn String
+  descriptionAr String
+  slug          String                         @unique
+  category      InstituteLibraryCategory
+  status        InstituteLibraryResourceStatus @default(DRAFT)
+
+  // Two distinct fields rather than one flexible URL: fileUrl is for
+  // an app-hosted/uploaded document (e.g. an R2-stored PDF the
+  // Librarian uploads directly), externalUrl is for the spec's
+  // explicitly-called-out "external resource links" (e.g. a link to
+  // a resource hosted elsewhere). Both optional since a resource may
+  // have only one, but at least one must be present -- enforced at
+  // the route layer, not the schema layer, matching how this
+  // codebase validates "at least one of" conditions elsewhere.
+  fileUrl     String?
+  externalUrl String?
+
+  thumbnailUrl String?
+  author       String?
+  subject      String?
+  topic        String?
+
+  // Coarse kill-switch, same semantics as LibraryResource.isPublished
+  // -- but defaults to FALSE here (unlike the personal library's
+  // @default(true)): this is institute content, so it must be
+  // deliberately published from day one. There are zero existing rows
+  // for this brand-new model, so there is no legacy-data concern the
+  // way there was for the original (now-reverted) migration onto
+  // LibraryResource.
+  isPublished Boolean @default(false)
+
+  // Fine-grained visibility tier, layered UNDER isPublished: a viewer
+  // must satisfy isPublished === true AND their access tier must
+  // cover this value (see lib/institute-library-visibility.js).
+  // Defaults to INSTITUTE_ONLY, never PUBLIC -- a resource only
+  // becomes Public when an authorized Library staff member explicitly
+  // re-tiers it there (logged in the Audit Log).
+  visibility InstituteLibraryVisibility @default(INSTITUTE_ONLY)
+
+  // Institute departmental content created by institute staff, not
+  // the platform owner personally -- references StaffProfile, not
+  // User (contrast with LibraryResource.uploadedById -> User).
+  uploadedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploadedBy     StaffProfile?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  courseReadings CourseReading[]
+
+  @@index([category])
+  @@index([status])
+  @@index([isPublished])
+  @@index([visibility])
+  @@index([uploadedById])
+}
+
+model MediaSubscriptionPlan {
+  id            String   @id @default(cuid())
+  name          String
+  descriptionEn String?
+  priceUSD      Decimal  @db.Decimal(10, 2)
+  durationDays  Int      @default(30)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  subscriptions UserMediaSubscription[]
+}
+
+model UserMediaSubscription {
+  id             String                  @id @default(cuid())
+  userId         String
+  planId         String
+  status         MediaSubscriptionStatus @default(PENDING)
+  startedAt      DateTime                @default(now())
+  expiresAt      DateTime
+  paymentGateway PaymentGateway?
+  paymentRef     String?                 @unique
+  paidAmount     Decimal?                @db.Decimal(10, 2)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  user User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan MediaSubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+}
+
 model Enrollment {
   id        String       @id
   userId    String
@@ -265,6 +780,209 @@ model Enrollment {
 
   @@unique([userId, courseId])
   @@index([courseId])
+}
+
+// Model 21 -- the instructor's role on this specific assignment, and
+// whether the assignment itself is still current. Both additive and
+// defaulted so every existing row (recorded before either existed)
+// keeps working exactly as it did today: role LEAD matches the "one
+// instructor per course" case this app has only ever had, and status
+// ACTIVE matches every existing row's real state. WITHDRAWN lets a
+// Head of Department end an assignment (e.g. mid-term) without
+// destroying the historical teaching record the way a hard delete
+// would -- the existing DELETE endpoint stays available too, for
+// correcting an assignment made in error rather than ending a real one.
+enum InstructorCourseRole {
+  LEAD
+  CO_INSTRUCTOR
+  TEACHING_ASSISTANT
+}
+
+enum InstructorCourseStatus {
+  ACTIVE
+  WITHDRAWN
+}
+
+model InstructorCourse {
+  id           String   @id @default(cuid())
+  instructorId String
+  courseId     String
+  createdAt    DateTime @default(now())
+
+  // Model 21 -- which academic period this assignment is for. Nullable
+  // so pre-existing assignments (recorded before this field existed)
+  // keep working unchanged; a Head of Department picks the term when
+  // making a new assignment, the same way instructors already pick a
+  // term for exams and grades (Exam.termId, Grade.termId).
+  termId String?
+  role   InstructorCourseRole   @default(LEAD)
+  status InstructorCourseStatus @default(ACTIVE)
+
+  instructor User          @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  course     Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  term       AcademicTerm? @relation(fields: [termId], references: [id], onDelete: SetNull)
+
+  @@unique([instructorId, courseId])
+  @@index([instructorId])
+  @@index([courseId])
+  @@index([termId])
+}
+
+// Section Discussion — a professional, per-course group discussion space.
+// "Section" here is a course's real cohort: everyone with an Enrollment
+// in that course, plus the instructor(s) assigned to it via
+// InstructorCourse. No separate administrative "Section" entity exists
+// in this data model (no course is actually split into multiple
+// sections), so scoping to the course itself is the honest real
+// boundary rather than an invented one — a student in a different
+// course never sees this course's discussions or submissions.
+//
+// isExercise marks a discussion posted by an instructor as a real
+// activity with a deadline and (optionally) supporting files, rather
+// than an open-ended discussion thread; only an instructor assigned to
+// the course can create one (enforced in the API, not just the UI).
+model Discussion {
+  id            String    @id @default(cuid())
+  courseId      String
+  authorId      String
+  title         String
+  body          String
+  isExercise    Boolean   @default(false)
+  deadline      DateTime?
+  attachmentUrl String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  course      Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  author      User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments    DiscussionComment[]
+  submissions ExerciseSubmission[]
+
+  @@index([courseId])
+  @@index([authorId])
+}
+
+model DiscussionComment {
+  id           String   @id @default(cuid())
+  discussionId String
+  authorId     String
+  body         String
+  createdAt    DateTime @default(now())
+
+  discussion Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  author     User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([discussionId])
+  @@index([authorId])
+}
+
+// A student's answer to an exercise discussion — visible to every
+// student in the same course (peer/group-learning visibility, as
+// requested), not just to the instructor. One submission per student
+// per exercise; resubmitting before the deadline replaces it rather
+// than creating a duplicate.
+model ExerciseSubmission {
+  id           String   @id @default(cuid())
+  discussionId String
+  studentId    String
+  answerText   String?
+  fileUrl      String?
+  feedback     String?
+  submittedAt  DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  discussion Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  student    User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([discussionId, studentId])
+  @@index([discussionId])
+  @@index([studentId])
+}
+
+model Grade {
+  id         String   @id @default(cuid())
+  studentId  String
+  courseId   String
+  // Which academic term this grade was earned in. Nullable so existing
+  // grade rows (recorded before this field existed) keep working — the
+  // UI shows "Term not recorded" for those, real data for everything
+  // else. Instructors pick the term when entering new grades, the same
+  // way they already do for exams (see Exam.termId).
+  termId     String?
+  quiz1      Float?
+  quiz2      Float?
+  assignment Float?
+  midterm    Float?
+  final      Float?
+  // Model 19 -- the practical-assessment mark, only meaningful for a
+  // course with Course.practicalRequired = true. Recorded and shown
+  // on its own; deliberately not part of any calculated-total
+  // formula (see app/instructor-dashboard/grades/page.tsx) since no
+  // approved policy yet states how it should combine with the
+  // knowledge-assessment components.
+  practical  Float?
+  // Grade finalization -- closes the gap where an instructor could
+  // silently overwrite an already-recorded grade forever. DRAFT rows
+  // may still be freely upserted by the instructor
+  // (app/api/instructor/portal/grades/route.js); once an instructor
+  // finalizes a row (their own "Finalize" action), it becomes
+  // FINALIZED and locked -- the only way to change it after that is
+  // the Registrar's controlled GradeCorrection workflow below
+  // (app/api/records/grade-corrections/route.ts). Defaults every
+  // existing and newly-created row to DRAFT so no legacy data is
+  // silently finalized.
+  status            GradeStatus @default(DRAFT)
+  finalizedAt       DateTime?
+  finalizedByUserId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  student User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  term    AcademicTerm? @relation(fields: [termId], references: [id], onDelete: SetNull)
+  corrections GradeCorrection[]
+
+  // One row per attempt: a repeated course gets a second row (a new
+  // termId) instead of overwriting the first attempt's grade. Prior
+  // legacy rows saved before a term was required keep termId = null
+  // and are left exactly as they are.
+  @@unique([studentId, courseId, termId])
+  @@index([studentId])
+  @@index([courseId])
+  @@index([termId])
+  @@index([status])
+}
+
+// Whether a Grade row is still open for the instructor to edit (DRAFT)
+// or has been locked in by the instructor's own "Finalize" action
+// (FINALIZED) and can now only change via the Registrar's controlled
+// GradeCorrection workflow.
+enum GradeStatus {
+  DRAFT
+  FINALIZED
+}
+
+// Model 19 Section 27 -- a controlled audit trail for a change to an
+// ALREADY-RECORDED Grade, kept separate from an instructor's
+// ordinary first-time entry (which stays exactly as it was). Written
+// only by the dedicated correction endpoint
+// (app/api/records/grade-corrections/route.ts), gated on Academic
+// Records edit access -- an instructor's own save can never silently
+// overwrite an official result without this record existing.
+model GradeCorrection {
+  id               String   @id @default(cuid())
+  gradeId          String
+  fieldChanged     String
+  originalValue    Float?
+  correctedValue   Float?
+  reason           String   @db.Text
+  correctedByStaffId String
+  correctedByName    String
+  correctedAt        DateTime @default(now())
+
+  grade Grade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  @@index([gradeId])
 }
 
 model ManuscriptRevision {
@@ -314,17 +1032,30 @@ model NewsletterSubscriber {
   subscribedAt DateTime @default(now())
 }
 
+// type is nullable and defaults to unset -- every existing call site
+// (admin dashboard, publishing, bookstore uploads) keeps creating
+// plain notifications exactly as before. Community likes/mentions/
+// comments are the first caller to set it, so they can be filtered
+// into their own inbox view instead of mixing into the same stream
+// as registration/academic alerts (Model 25 §13) without inventing a
+// second Notification table.
+enum NotificationType {
+  COMMUNITY
+}
+
 model Notification {
-  id        String   @id
+  id        String            @id @default(cuid())
   userId    String
   title     String
   message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType?
+  isRead    Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isRead])
+  @@index([type])
 }
 
 model Receipt {
@@ -354,6 +1085,7 @@ model AdmissionApplication {
   email                 String
   passwordHash          String?
   fullName              String
+  preferredName         String?
   dateOfBirth           DateTime
   gender                String
   nationality           String
@@ -370,10 +1102,42 @@ model AdmissionApplication {
   emergencyRelationship String
   highestEducation      String
   institutionName       String
-  programId             String
-  programName           String
-  programLevel          String
+  programId             String?
+  programLevel          String?
+  programName           String?
+  // Which of the Academy's five pathways (Academy Pathways §1) the
+  // applicant believes fits them — a starting point for Placement
+  // (§8 of that document), never a substitute for it: the actual
+  // pathway a learner enters is decided by the placement assessment
+  // below, not by this preference alone.
+  pathwayPreference     String?
+  preferredDepartmentId String?
+  specialization        String?
+  studyMode             StudyMode?
+  admissionType         AdmissionType          @default(PROGRAM)
   studySession          String
+
+  // Academic background and placement self-assessment, collected at
+  // application time. These are the applicant's own account, used as
+  // a starting point for the actual Placement workflow (Academy
+  // Pathways §8) — never treated as the placement result itself; see
+  // the PlacementAssessment model below for the assessed outcome.
+  islamicStudiesBackground String?         @db.Text
+  quranReadingSelf         SelfRatedLevel?
+  quranTajweedSelf         SelfRatedLevel?
+  quranHifzSelf            SelfRatedLevel?
+  quranRecitationSelf      SelfRatedLevel?
+  arabicReadingSelf        SelfRatedLevel?
+  arabicWritingSelf        SelfRatedLevel?
+  arabicGrammarSelf        SelfRatedLevel?
+  arabicVocabularySelf     SelfRatedLevel?
+  arabicConversationSelf   SelfRatedLevel?
+  quranicArabicSelf        SelfRatedLevel?
+  learningGoals            String?         @db.Text
+  supportNeeds             String?         @db.Text
+  declarationAccepted      Boolean         @default(false)
+  declarationAcceptedAt    DateTime?
+
   identityDocType       String
   identityDocumentUrl   String?
   passportPictureUrl    String?
@@ -385,16 +1149,23 @@ model AdmissionApplication {
   currencyCode          String
   feeBasis              String
   status                StudentAdmissionStatus @default(PENDING_PAYMENT)
+  declineReason         String?                @db.Text
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   paidAt                DateTime?
   payment               AdmissionPayment?
+  notes                 AdmissionNote[]
+  auditLogs             AdmissionAuditLog[]
+  admissionLetter       AdmissionLetter?
+  program               Program?               @relation(fields: [programId], references: [id], onDelete: Restrict)
+  preferredDepartment   Department?            @relation(fields: [preferredDepartmentId], references: [id], onDelete: SetNull)
 
   @@index([email])
   @@index([status])
   @@index([createdAt])
   @@index([countryOfResidence])
   @@index([programId])
+  @@index([preferredDepartmentId])
 }
 
 model AdmissionPayment {
@@ -420,43 +1191,210 @@ model AdmissionPayment {
   @@index([transactionId])
 }
 
+enum NoteVisibility {
+  // Staff-only. Never returned by any applicant-facing route.
+  INTERNAL
+  // Shown to the applicant on their tracking page.
+  APPLICANT_VISIBLE
+}
+
+model AdmissionNote {
+  id            String         @id @default(cuid())
+  applicationId String
+  visibility    NoteVisibility @default(INTERNAL)
+  note          String         @db.Text
+  authorStaffId String?
+  authorName    String
+  createdAt     DateTime       @default(now())
+
+  application AdmissionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([visibility])
+}
+
+// Every admission status transition and decision gets a row here --
+// who did it, when, and the before/after status. This is what Model
+// 16's "full audit trail for admission decisions" requirement is
+// built on; nothing like it existed before.
+model AdmissionAuditLog {
+  id            String   @id @default(cuid())
+  applicationId String
+  action        String
+  fromStatus    String?
+  toStatus      String?
+  actorUserId   String?
+  actorName     String?
+  note          String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  application AdmissionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([createdAt])
+}
+
+// Model 17 (Registry, Admission Decisions & Admission Documents).
+// The Letter of Admission workflow: Generate (DRAFT, editable) ->
+// Review -> Finalize (locked, official PDF). A correction after
+// finalization reopens the letter (status back to DRAFT, version
+// incremented) rather than silently overwriting the issued document
+// -- the prior version is preserved in `previousVersions` for
+// traceability. One letter per application; the applicant only ever
+// sees the current FINALIZED pdfUrl (via /api/admissions/track/letter
+// and the student portal), never a DRAFT.
+enum AdmissionLetterStatus {
+  DRAFT
+  FINALIZED
+}
+
+model AdmissionLetter {
+  id                 String                @id @default(cuid())
+  applicationId      String                @unique
+  status             AdmissionLetterStatus @default(DRAFT)
+  version            Int                   @default(1)
+  programmeText      String?
+  departmentText     String?
+  qualificationText  String?
+  intakeSession      String?
+  admissionDate      DateTime?
+  conditions         String?               @db.Text
+  signatoryName      String?
+  signatoryTitle     String?
+  pdfUrl             String?
+  previousVersions   Json?
+  generatedByStaffId String?
+  generatedByName    String?
+  finalizedByStaffId String?
+  finalizedByName    String?
+  finalizedAt        DateTime?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  application AdmissionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([status])
+}
+
 model User {
-  id                String                 @id
+  id                String       @id
   name              String
-  email             String                 @unique
+  email             String       @unique
   emailVerified     DateTime?
   passwordHash      String
-  role              Role                   @default(USER)
-  authorStatus      AuthorStatus           @default(PENDING)
-  preferredLanguage Language               @default(EN)
+  avatarUrl         String?
+  role              Role         @default(USER)
+  authorStatus      AuthorStatus @default(PENDING)
+  preferredLanguage Language     @default(EN)
   countryId         String?
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  authorAdmission   AuthorAdmission?
-  books             Book[]                 @relation("BookAuthor")
-  soldBooks         Book[]                 @relation("BookSeller")
-  bookAccess        BookAccess[]
-  cart              Cart?
-  courseProgress    CourseProgress[]
-  downloads         DownloadLog[]
-  enrollments       Enrollment[]
-  manuscripts       ManuscriptSubmission[]
-  notifications     Notification[]
-  orders            Order[]
-  country           Country?               @relation(fields: [countryId], references: [id])
+  // Security audit fix -- bumped on password change or an explicit
+  // "log out of all devices" action. Every signed session token embeds
+  // the tokenVersion that was current when it was issued, so bumping
+  // this instantly invalidates every previously-issued token for this
+  // user without needing a server-side session table.
+  tokenVersion      Int          @default(0)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  authorAdmission AuthorAdmission?
+  staffProfile    StaffProfile?
+  studentProfile  StudentProfile?
+
+  books              Book[]                  @relation("BookAuthor")
+  soldBooks          Book[]                  @relation("BookSeller")
+  bookAccess         BookAccess[]
+  cart               Cart?
+  courseProgress     CourseProgress[]
+  downloads          DownloadLog[]
+  enrollments        Enrollment[]
+  manuscripts        ManuscriptSubmission[]
+  notifications      Notification[]
+  orders             Order[]
+  mediaItems         MediaItem[]
+  libraryResources   LibraryResource[]
+  mediaSubscriptions UserMediaSubscription[]
+
+  country Country? @relation(fields: [countryId], references: [id])
+
+  instructorCourses InstructorCourse[]
+  liveClasses       LiveClass[]
+  grades            Grade[]
+  announcements     Announcement[]
+  submissions       Submission[]
+  quizAttempts      QuizAttempt[]
+  ictTickets        ICTTicket[]
+  sponsors          Sponsor[]
+
+  discussionsAuthored Discussion[]
+  discussionComments  DiscussionComment[]
+  exerciseSubmissions ExerciseSubmission[]
+  academicCalendars   AcademicCalendar[]
+
+  // Ulul Azm Community (student-wide, cross-course -- distinct from the
+  // course-scoped Discussion/DiscussionComment above).
+  communityPosts    CommunityPost[]
+  communityComments CommunityComment[]
+  communityProfile  CommunityProfile?
+  communityBlocksMade     CommunityBlock[]  @relation("CommunityBlocksMade")
+  communityBlocksReceived CommunityBlock[]  @relation("CommunityBlocksReceived")
+  communityReportsMade     CommunityReport[] @relation("CommunityReportsMade")
+  communityReportsReviewed CommunityReport[] @relation("CommunityReportsReviewed")
+  communityGuidelinesAcceptance CommunityGuidelinesAcceptance?
+  auditLogEntries AuditLog[] @relation("AuditLogActor")
+  eventsCreated   Event[]    @relation("EventCreatedBy")
+  newsCreated     NewsArticle[] @relation("NewsCreatedBy")
+
+  // Author Royalty & Payout system — an author's own optional rate
+  // override, their real per-sale ledger, and their payout history.
+  royaltyOverride       AuthorRoyaltyOverride?
+  royaltyLedgerEntries  RoyaltyLedgerEntry[]     @relation("AuthorRoyaltyLedger")
+  royaltyPayouts        AuthorPayout[]           @relation("AuthorPayouts")
+  refundRequests        RefundRequest[]          @relation("RefundRequestRequestedBy")
 
   @@index([countryId])
   @@index([role])
 }
 
 model AuthorAdmission {
-  id        String          @id @default(cuid())
-  userId    String          @unique
-  status    AdmissionStatus @default(PENDING)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payment   AuthorPayment?
+  id                 String          @id @default(cuid())
+  userId             String          @unique
+  status             AdmissionStatus @default(PENDING)
+  // Set once at application time from AuthorFeeSettings + the
+  // applicant's stated country of residence, then charged verbatim
+  // during Paystack initialize — mirrors AdmissionApplication's own
+  // admissionFee/currencyCode/feeBasis fields.
+  countryOfResidence String?
+  applicationFee     Decimal?        @db.Decimal(10, 2)
+  currencyCode       String?
+  feeBasis           String?
+  // Set at application time from AuthorFeeSettings.validityDays (when
+  // configured) — an unpaid application past this date is treated as
+  // expired and must be resubmitted rather than paid for.
+  feeExpiresAt       DateTime?
+  // Real author profile + standing payout preference, set by the
+  // author themselves from the Author Portal (Author Profile /
+  // Payment & Settings). All nullable — an author who hasn't set
+  // these yet simply has none, never a fabricated placeholder.
+  bio                    String?
+  specialty              String?
+  payoutMethodPreference AuthorPayoutMethodPreference?
+  // Bank transfer destination (free text — no hardcoded bank list).
+  // NOTE: stored as plain, unencrypted-at-rest text (no existing
+  // encrypted-at-rest precedent for an account-number-shaped field
+  // elsewhere in this schema). Treat as sensitive author-supplied
+  // banking information: expose only to staff who need it, never in
+  // a general/public API response.
+  bankName               String?
+  bankAccountNumber      String?
+  // Mobile money destination (provider is free text — no hardcoded
+  // network list, same reasoning as bankName above).
+  momoProvider           String?
+  momoNumber             String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment            AuthorPayment?
 }
 
 model AuthorPayment {
@@ -470,6 +1408,10 @@ model AuthorPayment {
   gatewayReference  String?
   checkoutReference String?
   checkoutUrl       String?
+  // Paystack's own transaction id, distinct from gatewayReference
+  // (our reference) — recorded on verification for auditing, same
+  // as AdmissionPayment.transactionId.
+  transactionId     String?
   paidAt            DateTime?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
@@ -480,11 +1422,805 @@ model AuthorPayment {
   @@index([gatewayReference])
 }
 
+// Institution-wide Author Application Fee configuration — a
+// singleton row (id: "default-author-fees") the Super Admin manages
+// from Admin > Author Application Fee. Deliberately separate from
+// AdmissionFeeSettings (student admissions): authors pay one fee per
+// residency tier, not the student age-tier structure.
+model AuthorFeeSettings {
+  id                    String    @id @default(cuid())
+  ghana                 Decimal   @db.Decimal(10, 2)
+  ghanaCurrency         String    @default("GHS")
+  international         Decimal   @db.Decimal(10, 2)
+  internationalCurrency String    @default("USD")
+  isActive              Boolean   @default(true)
+  description           String?
+  paymentMethod         String    @default("Paystack")
+  validityDays          Int?
+  effectiveDate         DateTime?
+  updatedAt             DateTime  @updatedAt
+  createdAt             DateTime  @default(now())
+}
+
+// Author Royalty & Payout system — the Bookstore's real revenue-share
+// engine. A RoyaltyLedgerEntry is created once, automatically, the
+// moment an order is activated (app/api/orders/[id]/approve/route.js)
+// for every item whose book has an author — never hand-entered, and
+// never recomputed differently in two places (mirrors the same
+// "compute once in lib/, never duplicate the business logic"
+// discipline used for GPA and quiz grading elsewhere in this app).
+//
+// Rate resolution order (see lib/royalty.js resolveRoyaltyRate()):
+//   1. Book.royaltyRatePct (a specific book's own negotiated rate)
+//   2. AuthorRoyaltyOverride.ratePct (that author's standing rate)
+//   3. RoyaltySettings.defaultRatePct (the institution-wide default)
+// The rate actually applied is snapshotted onto the ledger entry
+// itself, so a later change to any of the three settings above never
+// silently rewrites the historical record of what an author was
+// really owed and paid for a past sale.
+model RoyaltySettings {
+  id             String   @id @default(cuid())
+  defaultRatePct Decimal  @db.Decimal(5, 2) @default(70.00)
+  isActive       Boolean  @default(true)
+  effectiveDate  DateTime @default(now())
+  description    String?
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+}
+
+// One optional standing override per author, on top of the
+// institution-wide default — e.g. a senior author negotiated a
+// higher share across their whole catalog.
+model AuthorRoyaltyOverride {
+  id        String   @id @default(cuid())
+  authorId  String   @unique
+  ratePct   Decimal  @db.Decimal(5, 2)
+  isActive  Boolean  @default(true)
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+enum RoyaltyEntryStatus {
+  PENDING
+  PAID
+  VOID
+}
+
+// One row per sold book copy (per OrderItem) — the actual, permanent
+// royalty ledger. PENDING until included in a payout (status flips to
+// PAID and payoutId is set); VOID if the underlying order is later
+// removed (Order -> OrderItem -> RoyaltyLedgerEntry all cascade, so a
+// deleted/refunded order can never leave a stale ledger entry
+// counted toward an author's balance).
+model RoyaltyLedgerEntry {
+  id               String             @id @default(cuid())
+  authorId         String
+  bookId           String
+  orderId          String
+  orderItemId      String             @unique
+  saleAmountUSD    Decimal            @db.Decimal(10, 2)
+  royaltyRatePct   Decimal            @db.Decimal(5, 2)
+  royaltyAmountUSD Decimal            @db.Decimal(10, 2)
+  status           RoyaltyEntryStatus @default(PENDING)
+  payoutId         String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  author    User          @relation("AuthorRoyaltyLedger", fields: [authorId], references: [id], onDelete: Cascade)
+  book      Book          @relation(fields: [bookId], references: [id])
+  order     Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  payout    AuthorPayout? @relation(fields: [payoutId], references: [id])
+
+  @@index([authorId])
+  @@index([bookId])
+  @@index([orderId])
+  @@index([status])
+  @@index([payoutId])
+}
+
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+// Admin-managed payouts of accumulated royalty balance to an author —
+// review the ledger, approve, mark paid with a real reference, or
+// reject back to pending. Mirrors the same review->approve->complete
+// shape already used for Graduation applications and Author
+// admissions elsewhere in this app.
+model AuthorPayout {
+  id                 String       @id @default(cuid())
+  authorId           String
+  amountUSD          Decimal      @db.Decimal(10, 2)
+  method             String?
+  reference          String?
+  note               String?
+  status             PayoutStatus @default(PENDING)
+  requestedAt        DateTime     @default(now())
+  processedAt        DateTime?
+  processedByStaffId String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  author        User                 @relation("AuthorPayouts", fields: [authorId], references: [id], onDelete: Cascade)
+  ledgerEntries RoyaltyLedgerEntry[]
+
+  @@index([authorId])
+  @@index([status])
+}
+
+model Faculty {
+  id          String   @id @default(cuid())
+  nameEn      String
+  nameAr      String
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  deanId      String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  dean           StaffProfile?    @relation("FacultyDean", fields: [deanId], references: [id], onDelete: SetNull)
+  departments    Department[]
+  programs       Program[]
+  staff          StaffProfile[]
+  students       StudentProfile[]
+  qualityReviews QualityReview[]
+
+  @@index([isActive])
+  @@index([deanId])
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  facultyId   String
+  nameEn      String
+  nameAr      String
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  headId      String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  faculty           Faculty          @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  head              StaffProfile?    @relation("DepartmentHead", fields: [headId], references: [id], onDelete: SetNull)
+  programs          Program[]
+  staff             StaffProfile[]
+  students          StudentProfile[]
+  qualityReviews    QualityReview[]
+  complaintRequests Request[]        @relation("RequestRecipientDepartment")
+  preferredByApplicants AdmissionApplication[]
+
+  @@index([facultyId])
+  @@index([isActive])
+  @@index([headId])
+}
+
+model Program {
+  id            String       @id @default(cuid())
+  departmentId  String
+  facultyId     String
+  categoryId    String?
+  coordinatorId String?
+  nameEn        String
+  nameAr        String
+  code          String       @unique
+  descriptionEn String?
+  descriptionAr String?
+  level         ProgramLevel
+  durationYears Int?
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Programme approval workflow (Model 11) — the Program-level twin of
+  // Course.approvalStatus above; same reasoning, same default.
+  approvalStatus ApprovalStatus @default(APPROVED)
+  approvalNote   String?
+
+  faculty                Faculty                 @relation(fields: [facultyId], references: [id], onDelete: Restrict)
+  department             Department              @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  category               Category?               @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  coordinator            StaffProfile?           @relation("ProgramCoordinator", fields: [coordinatorId], references: [id], onDelete: SetNull)
+  courses                Course[]
+  learningOutcomes       ProgramLearningOutcome[]
+  students               StudentProfile[]
+  applications           AdmissionApplication[]
+  qualityReviews         QualityReview[]
+  graduationApplications GraduationApplication[]
+  placementRecommendations PlacementAssessment[]
+
+  @@index([facultyId])
+  @@index([departmentId])
+  @@index([categoryId])
+  @@index([coordinatorId])
+  @@index([level])
+  @@index([isActive])
+}
+
+model Position {
+  id          String   @id @default(cuid())
+  nameEn      String   @unique
+  nameAr      String
+  code        String   @unique
+  description String?
+  isAcademic  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  staff       StaffProfile[]
+  permissions PositionPermission[]
+
+  @@index([isAcademic])
+  @@index([isActive])
+}
+
+model StaffProfile {
+  id           String      @id @default(cuid())
+  userId       String      @unique
+  facultyId    String?
+  departmentId String?
+  positionId   String
+  employeeNo   String      @unique
+  title        String?
+  isActive     Boolean     @default(true)
+  status       StaffStatus @default(ACTIVE)
+  joinedAt     DateTime?
+
+  // Instructor Profile (Model 10) — a staff member's own teaching
+  // profile, distinct from the operational fields above. Qualifications
+  // (general and Islamic) and professional development are one-to-many
+  // (StaffQualification / StaffDevelopmentRecord below) since a person
+  // may hold several; specialization/experience/languages are simple
+  // enough to keep as scalars here rather than their own tables.
+  specialization  String?
+  yearsExperience Int?
+  languages       String[] @default([])
+
+  // Public Faculty profile (Model 15) -- both optional and unset by
+  // default; a staff member only appears on the public Faculty page
+  // with a photo/bio once someone actually supplies them. Never a
+  // personal email or phone number -- those stay off the public API
+  // regardless of what's added here.
+  bio      String?
+  photoUrl String?
+  isPublic Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  unitId String?
+
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  faculty              Faculty?              @relation(fields: [facultyId], references: [id], onDelete: SetNull)
+  department           Department?           @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  position             Position              @relation(fields: [positionId], references: [id], onDelete: Restrict)
+  unit                 Unit?                 @relation("UnitStaff", fields: [unitId], references: [id], onDelete: SetNull)
+  deanOfFaculty        Faculty?              @relation("FacultyDean")
+  headsDepartment      Department?           @relation("DepartmentHead")
+  headsUnit            Unit?                 @relation("UnitHead")
+  coordinatedPrograms  Program[]             @relation("ProgramCoordinator")
+  advisedStudents      StudentProfile[]      @relation("StudentAcademicAdvisor")
+  assignedRequests     Request[]             @relation("RequestAssignee")
+  tutoringRequests     TutoringRequest[]
+  assignedTickets      ICTTicket[]
+  ictTicketNotes       ICTTicketNote[]
+  qualityReviews       QualityReview[]       @relation("QAReviewer")
+  qaSubjectReviews     QualityReview[]       @relation("QAStaffSubject")
+  duplicateFlagsRaised   DuplicateFlag[]      @relation("DuplicateFlagRaisedBy")
+  duplicateFlagsResolved DuplicateFlag[]      @relation("DuplicateFlagResolvedBy")
+  graduationClearances GraduationClearance[]
+  placementAssessments PlacementAssessment[]
+  reportedIntegrityCases  IntegrityCase[] @relation("IntegrityCaseReporter")
+  resolvedIntegrityCases  IntegrityCase[] @relation("IntegrityCaseResolver")
+  salary               StaffSalary?
+  payslips             Payslip[]
+  refundRequestsResolved RefundRequest[] @relation("RefundRequestResolver")
+
+  qualifications              StaffQualification[]
+  developmentRecords          StaffDevelopmentRecord[]
+  performanceReviewsReceived  StaffPerformanceReview[] @relation("StaffPerformanceReviewee")
+  performanceReviewsConducted StaffPerformanceReview[] @relation("StaffPerformanceReviewer")
+
+  // Research & Scholarly Affairs (delegated operation, RESEARCH_OPS)
+  researchProjectsLed         ResearchProject[]            @relation("ResearchProjectPI")
+  researchTeamMemberships     ResearchTeamMember[]         @relation("ResearchTeamMemberStaff")
+  researchProposalsSubmitted  ResearchProposal[]           @relation("ResearchProposalSubmitter")
+  researchProposalReviews     ResearchProposalReview[]     @relation("ResearchProposalReviewer")
+  researchProposalDecisions   ResearchProposalDecision[]   @relation("ResearchProposalDecisionActor")
+  researchPublicationsCreated ResearchPublication[]        @relation("ResearchPublicationCreator")
+  researchPublicationAuthorships ResearchPublicationAuthor[] @relation("ResearchPublicationAuthorStaff")
+  researchSupervisions        ResearchSupervision[]        @relation("ResearchSupervisionSupervisor")
+  researchCoSupervisions      ResearchCoSupervisor[]       @relation("ResearchCoSupervisorStaff")
+  researchIntegrityCasesReported ResearchIntegrityCase[]   @relation("ResearchIntegrityCaseReporter")
+  researchIntegrityCasesResolved ResearchIntegrityCase[]   @relation("ResearchIntegrityCaseResolver")
+
+  // Institute Digital Library (delegated operation, LIBRARY_OPS) --
+  // contrast with LibraryResource.uploadedBy, which references User
+  // (the platform owner's own personal library), not StaffProfile.
+  instituteLibraryResources InstituteLibraryResource[]
+
+  @@index([facultyId])
+  @@index([departmentId])
+  @@index([positionId])
+  @@index([unitId])
+  @@index([isActive])
+}
+
+model StudentProfile {
+  id                String        @id @default(cuid())
+  userId            String        @unique
+  studentNo         String        @unique
+  facultyId         String?
+  departmentId      String?
+  programId         String?
+  level             Int?
+  admissionYear     Int?
+  studySession      String?
+  status            StudentStatus @default(ACTIVE)
+  academicAdvisorId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  faculty         Faculty?      @relation(fields: [facultyId], references: [id], onDelete: SetNull)
+  department      Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  program         Program?      @relation(fields: [programId], references: [id], onDelete: SetNull)
+  academicAdvisor StaffProfile? @relation("StudentAcademicAdvisor", fields: [academicAdvisorId], references: [id], onDelete: SetNull)
+
+  requests    Request[]
+  termRecords TermRecord[]
+  transcripts TranscriptIssue[]
+
+  attendanceRecords     Attendance[]
+  tutoringRequests      TutoringRequest[]
+  absenceExcuses        AbsenceExcuse[]
+  advisorMessages       AdvisorMessage[]
+  fees                  StudentFee[]
+  libraryLoans          LibraryLoan[]
+  libraryReservations   LibraryReservation[]
+  graduationApplication GraduationApplication?
+  graduationDocuments   GraduationDocument[]
+  placementAssessment   PlacementAssessment?
+  courseEvaluations     CourseEvaluation[]
+  integrityCases        IntegrityCase[]
+
+  // Research Supervision -- "if the institute offers research-based
+  // programmes" (none are currently seeded; built ready regardless).
+  researchSupervisions  ResearchSupervision[]
+
+  @@index([facultyId])
+  @@index([departmentId])
+  @@index([programId])
+  @@index([status])
+  @@index([academicAdvisorId])
+}
+
+model AcademicSession {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  terms AcademicTerm[]
+
+  @@index([isCurrent])
+  @@index([isActive])
+}
+
+model AcademicTerm {
+  id        String   @id @default(cuid())
+  sessionId String
+  name      String
+  code      String
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  termRecords TermRecord[]
+  exams       Exam[]
+  fees        StudentFee[]
+  grades      Grade[]
+  courseEvaluations CourseEvaluation[]
+  instructorCourses InstructorCourse[]
+
+  @@unique([sessionId, code])
+  @@index([sessionId])
+  @@index([isCurrent])
+  @@index([isActive])
+}
+
+enum CalendarStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// The institution's official Academic Calendar — a versioned, staff-managed
+// document (Academic Records / Registrar), never hard-coded in the UI. Only
+// one calendar is ever PUBLISHED at a time (the one every portal reads);
+// publishing a new one archives whichever was previously published, so
+// past academic calendars are always kept, never overwritten or deleted.
+model AcademicCalendar {
+  id                String         @id @default(cuid())
+  academicYearLabel String
+  hijriYearLabel    String
+  status            CalendarStatus @default(DRAFT)
+  publishedAt       DateTime?
+  createdById       String
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  createdBy User                    @relation(fields: [createdById], references: [id])
+  entries   AcademicCalendarEntry[]
+
+  @@index([status])
+}
+
+// One row of the published calendar's Procedure / Gregorian Date / Hijri
+// Date table. `section` groups rows under a semester heading (e.g. "First
+// Semester", "Second Semester", "Summer Semester") — the final row of the
+// last section is conventionally "Start of the New Academic Year".
+model AcademicCalendarEntry {
+  id            String @id @default(cuid())
+  calendarId    String
+  section       String
+  procedure     String
+  gregorianDate String
+  hijriDate     String
+  sortOrder     Int    @default(0)
+
+  calendar AcademicCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@index([calendarId])
+}
+
+// Institution holidays shown on the public Academic Calendar
+// alongside the semester procedure tables (Model 28) -- managed by
+// Academic Records staff at /academic-records-dashboard/holidays.
+// Deliberately independent of AcademicCalendar's draft/publish
+// workflow: a holiday is live as soon as it's saved and active,
+// the same as the site's other simple admin-managed lists.
+model InstitutionHoliday {
+  id        String   @id @default(cuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  note      String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+  @@index([startDate])
+}
+
+model Unit {
+  id          String   @id @default(cuid())
+  type        UnitType
+  nameEn      String
+  nameAr      String
+  code        String   @unique
+  description String?
+  headId      String?  @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  head     StaffProfile?  @relation("UnitHead", fields: [headId], references: [id], onDelete: SetNull)
+  staff    StaffProfile[] @relation("UnitStaff")
+  requests Request[]
+
+  graduationClearances GraduationClearance[]
+
+  @@index([type])
+  @@index([isActive])
+}
+
+model PositionPermission {
+  id         String   @id @default(cuid())
+  positionId String
+  module     Module
+  canView    Boolean  @default(true)
+  canEdit    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, module])
+  @@index([positionId])
+  @@index([module])
+}
+
+model Request {
+  id        String        @id @default(cuid())
+  studentId String
+  type      RequestType
+  status    RequestStatus @default(SUBMITTED)
+  details   String
+
+  // Complaint-specific fields (type = COMPLAINT). Left null for the
+  // other, pre-existing request types (transcript, deferment, etc).
+  topic                 String?
+  recipientDepartmentId String?
+
+  // Course add/drop-specific fields (type = COURSE_ADD_DROP). Left null
+  // for every other request type. Structured (not parsed from free
+  // text) so approving the request can reliably create or remove the
+  // real Enrollment row for courseId.
+  courseId     String?
+  courseAction CourseRequestAction?
+
+  attachmentUrl   String?
+  assignedUnitId  String?
+  assignedStaffId String?
+  responseNote    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  resolvedAt      DateTime?
+
+  student             StudentProfile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assignedUnit        Unit?             @relation(fields: [assignedUnitId], references: [id], onDelete: SetNull)
+  recipientDepartment Department?       @relation("RequestRecipientDepartment", fields: [recipientDepartmentId], references: [id], onDelete: SetNull)
+  assignedStaff       StaffProfile?     @relation("RequestAssignee", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  course              Course?           @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  transcriptIssue     TranscriptIssue?
+  activities          RequestActivity[]
+
+  @@index([studentId])
+  @@index([type])
+  @@index([status])
+  @@index([assignedUnitId])
+  @@index([assignedStaffId])
+  @@index([recipientDepartmentId])
+}
+
+// One row per meaningful event in a request/complaint's lifecycle —
+// submission, assignment, transfer between units, status changes, and
+// the final response. This is what lets a student see the full
+// "Submitted -> Assigned -> Transferred -> Under Review -> Responded ->
+// Closed" progression and transfer history, without overloading the
+// single current `status` field.
+model RequestActivity {
+  id         String         @id @default(cuid())
+  requestId  String
+  action     String
+  // Human-readable snapshots of the recipient before/after this event
+  // (e.g. "Department of Computer Science", "Student Affairs"). Plain
+  // text rather than a relation because a complaint can move between
+  // Units AND Departments, and this is a read-only history trail, not
+  // a live reference.
+  fromLabel  String?
+  toLabel    String?
+  fromStatus RequestStatus?
+  toStatus   RequestStatus?
+  note       String?
+  actorLabel String
+  createdAt  DateTime       @default(now())
+
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+model TermRecord {
+  id               String           @id @default(cuid())
+  studentId        String
+  termId           String
+  gpa              Float
+  creditsAttempted Int
+  creditsEarned    Int
+  standing         AcademicStanding @default(GOOD_STANDING)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  term    AcademicTerm   @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, termId])
+  @@index([studentId])
+  @@index([termId])
+}
+
+model TranscriptIssue {
+  id               String   @id @default(cuid())
+  studentId        String
+  requestId        String?  @unique
+  pdfUrl           String
+  cumulative       Float
+  // Public reference code printed on the transcript PDF -- looked
+  // up (exact match only) at the public /verify page (Model 30).
+  verificationCode String   @unique
+  issuedAt         DateTime @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  request Request?       @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
+  @@index([studentId])
+}
+
+model Announcement {
+  id           String            @id @default(cuid())
+  titleEn      String
+  titleAr      String
+  bodyEn       String
+  bodyAr       String
+  scope        AnnouncementScope
+  facultyId    String?
+  departmentId String?
+  programId    String?
+  courseId     String?
+  createdById  String
+  isActive     Boolean           @default(true)
+  publishedAt  DateTime          @default(now())
+  expiresAt    DateTime?
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([scope])
+  @@index([facultyId])
+  @@index([departmentId])
+  @@index([programId])
+  @@index([courseId])
+  @@index([isActive])
+}
+
+enum SponsorStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// Institution sponsors/partners — managed by Admin (Sponsor Manager) and,
+// when active + public, surfaced on public-facing pages (e.g. /sponsored).
+model Sponsor {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  logoUrl     String?
+  websiteUrl  String?
+  amountUSD   Decimal?      @db.Decimal(10, 2)
+  status      SponsorStatus @default(ACTIVE)
+  isPublic    Boolean       @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([status])
+  @@index([isPublic])
+}
+
+model Exam {
+  id          String   @id @default(cuid())
+  courseId    String
+  termId      String
+  examType    ExamType
+  scheduledAt DateTime
+  durationMin Int
+  venue       String?
+  maxScore    Float    @default(100)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  term   AcademicTerm @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  resultSubmission ExamResultSubmission?
+
+  @@index([courseId])
+  @@index([termId])
+  @@index([examType])
+}
+
+// Result submission / verification / reconciliation (audit gap fix):
+// the Examinations Officer's tracking layer over an already-scheduled
+// Exam sitting. This model does NOT store a score -- the score of
+// record stays on Grade, owned by the Instructor
+// (app/api/instructor/portal/grades/route.js) and never written by
+// this workflow. Instead it records that this specific Exam's results
+// have been collected from the instructor and reconciled against the
+// matching Grade bucket for the course+term (targetGradeField reuses
+// Grade's own bucket names -- quiz1/quiz2/midterm/final -- so it's
+// explicit which bucket this exam's sitting maps to; a course can
+// have several MIDTERM-type Exam rows in one term, e.g. a resit, so
+// the mapping lives per-Exam rather than assuming one midterm per
+// course+term). One row per Exam -- a single verification pass is all
+// one sitting needs -- created the first time an Examinations Officer
+// opens the reconciliation view for that exam (see
+// app/api/examinations/results/route.ts), and updated (never
+// duplicated) when they mark it verified/reconciled or add a
+// discrepancy note. If a real discrepancy is found, the fix goes
+// through the existing, controlled GradeCorrection workflow
+// (app/api/records/grade-corrections/route.ts, owned by Academic
+// Records/Registrar) -- this table only tracks that the check
+// happened, it is never a shortcut to editing Grade itself.
+model ExamResultSubmission {
+  id              String                   @id @default(cuid())
+  examId          String                   @unique
+  targetGradeField String
+  status          ExamResultStatus         @default(PENDING)
+  note            String?                  @db.Text
+  verifiedByUserId String?
+  verifiedAt      DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+enum ExamResultStatus {
+  PENDING
+  SUBMITTED
+  VERIFIED
+  RECONCILED
+}
+
+// Instructor-scheduled virtual class sessions — the real backing store
+// for both the Instructor Portal's "Live Classes" tool and the Student
+// Portal's "Live Classes" tab, which previously showed unrelated
+// hardcoded demo sessions. Scoped to a course exactly like Exam and
+// Assignment: any student with an Enrollment in the course sees the
+// session, and only an instructor with a matching InstructorCourse
+// assignment may create, edit, or cancel it.
+model LiveClass {
+  id           String   @id @default(cuid())
+  courseId     String
+  instructorId String
+  topic        String
+  scheduledAt  DateTime
+  durationMin  Int      @default(60)
+  meetingLink  String
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  course     Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  instructor User   @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([instructorId])
+}
+
 enum StudentAdmissionStatus {
   PENDING_PAYMENT
   PAID
   UNDER_REVIEW
+  // Model 16: applicant has cleared initial review but this is NOT
+  // final admission -- Pending Final Approval still has to happen.
+  INITIAL_ACCEPTANCE
+  // Model 16: awaiting the final approval decision. Still not final.
+  PENDING_FINAL_APPROVAL
   APPROVED
+  // Displayed to applicants as "Declined" (see app/admission/track and
+  // the admin admissions UI) -- the enum value itself is left as
+  // REJECTED rather than renamed, since it is already referenced by
+  // real application rows and by status checks throughout the
+  // codebase; renaming the value itself is a larger, separate change
+  // if wanted later.
   REJECTED
 }
 
@@ -512,11 +2248,18 @@ enum PaymentStatus {
   PAID
   FAILED
   CANCELLED
+  UNDER_VERIFICATION
+  REFUNDED
 }
 
 enum PaymentGateway {
   STRIPE
   PAYSTACK
+}
+
+enum AuthorPayoutMethodPreference {
+  BANK_TRANSFER
+  MOBILE_MONEY
 }
 
 enum AccessStatus {
@@ -564,6 +2307,7 @@ enum Role {
   ADMIN
   SUPER_ADMIN
   STUDENT
+  INSTRUCTOR
 }
 
 enum SubmissionStatus {
@@ -574,4 +2318,2360 @@ enum SubmissionStatus {
   IN_PRODUCTION
   PUBLISHED
   REJECTED
+}
+
+enum ProgramLevel {
+  CERTIFICATE
+  DIPLOMA
+  UNDERGRADUATE
+  POSTGRADUATE
+  MASTERS
+  DOCTORATE
+  SHORT_COURSE
+  // Added Model 12 (Website, Recognition Readiness & Master Integration)
+  // — the Academy's own three pathway tiers below Diploma. Academy
+  // Pathways named these from the start; academyPrograms in
+  // prisma/seed.js could not create real Program rows for them until
+  // these values existed (decision 20 in /academy-pathways, closed).
+  FOUNDATION
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum AdmissionType {
+  PROGRAM
+  PRIVATE_COURSE
+}
+
+enum StudyMode {
+  FULL_TIME
+  PART_TIME
+}
+
+// A single self-rating scale reused for both the applicant's own
+// account of their ability (AdmissionApplication, self-reported) and
+// the staff-assessed outcome (PlacementAssessment, evidence-based) —
+// same scale, so the two are directly comparable rather than using
+// two different vocabularies for the same seven Academy Pathways §8
+// placement inputs.
+enum SelfRatedLevel {
+  NONE
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  PROFICIENT
+}
+
+enum StudentStatus {
+  APPLICANT
+  ADMITTED
+  ACTIVE
+  SUSPENDED
+  DEFERRED
+  GRADUATED
+  WITHDRAWN
+  DISMISSED
+}
+
+enum UnitType {
+  RECTORATE
+  REGISTRAR
+  ACADEMIC_ADMINISTRATION
+  REGISTRY_ADMISSIONS
+  EXAMINATIONS_RECORDS
+  STUDENT_AFFAIRS
+  FINANCE
+  LIBRARY
+  QUALITY_ASSURANCE
+  ICT
+  OTHER
+}
+
+enum Module {
+  STUDENT_MATTERS
+  ACADEMIC_RECORDS
+  FACULTY_MATTERS
+  DEPARTMENT_MATTERS
+  PROGRAM_MATTERS
+  COURSES_GRADES
+  EXAMINATIONS
+  FINANCE_FEES
+  FINANCE_PAYROLL
+  LIBRARY_OPS
+  ICT_OPS
+  ADMISSIONS
+  QUALITY_ASSURANCE
+  OTHER_ADMIN
+  RESEARCH_OPS
+}
+
+enum CourseRequestAction {
+  ADD
+  DROP
+}
+
+enum RequestType {
+  TRANSCRIPT
+  LEAVE_OF_ABSENCE
+  DEFERMENT
+  COURSE_ADD_DROP
+  LETTER_CONFIRMATION
+  GRADE_APPEAL
+  COMPLAINT
+  GRADUATE_SUPPORT
+  OTHER
+}
+
+enum RequestStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum AcademicStanding {
+  GOOD_STANDING
+  DEANS_LIST
+  PROBATION
+  SUSPENDED
+}
+
+enum AnnouncementScope {
+  INSTITUTION
+  FACULTY
+  DEPARTMENT
+  PROGRAM
+  COURSE
+}
+
+enum ExamType {
+  QUIZ
+  MIDTERM
+  FINAL
+  MAKEUP
+}
+
+// =====================================================================
+// ATTENDANCE
+// =====================================================================
+
+model Attendance {
+  id           String   @id @default(cuid())
+  studentId    String
+  courseId     String
+  totalClasses Int      @default(0)
+  attended     Int      @default(0)
+  late         Int      @default(0)
+  absent       Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+  @@index([studentId])
+  @@index([courseId])
+}
+
+// =====================================================================
+// ASSIGNMENTS & SUBMISSIONS
+// =====================================================================
+
+enum AssignmentSubmissionStatus {
+  PENDING
+  SUBMITTED
+  LATE
+  GRADED
+}
+
+model Assignment {
+  id            String   @id @default(cuid())
+  courseId      String
+  title         String
+  description   String?
+  dueDate       DateTime
+  maxScore      Float    @default(100)
+  attachmentUrl String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  submissions Submission[]
+
+  @@index([courseId])
+}
+
+model Submission {
+  id           String                     @id @default(cuid())
+  assignmentId String
+  studentId    String
+  fileUrl      String?
+  answerText   String?
+  status       AssignmentSubmissionStatus @default(PENDING)
+  score        Float?
+  feedback     String?
+  submittedAt  DateTime?
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentId])
+  @@index([studentId])
+  @@index([status])
+}
+
+// =====================================================================
+// PRIVATE TUTORING
+// =====================================================================
+
+enum TutoringStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model TutoringRequest {
+  id                String         @id @default(cuid())
+  studentId         String
+  courseId          String
+  instructorStaffId String?
+  preferredSchedule String?
+  notes             String?
+  status            TutoringStatus @default(PENDING)
+  feeUSD            Float?
+  isPaid            Boolean        @default(false)
+  paymentGateway    PaymentGateway?
+  paymentRef        String?        @unique
+  paidAmount        Decimal?       @db.Decimal(10, 2)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  student    StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course     Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  instructor StaffProfile?  @relation(fields: [instructorStaffId], references: [id], onDelete: SetNull)
+
+  @@index([studentId])
+  @@index([courseId])
+  @@index([instructorStaffId])
+  @@index([status])
+}
+
+// =====================================================================
+// ABSENCE EXCUSES
+// A student-submitted excuse for missing a lecture, midterm or final
+// examination. Reviewed by administration the same way TutoringRequest
+// is -- created PENDING, no automated approval workflow exists yet.
+// =====================================================================
+
+enum AbsenceExcuseType {
+  LECTURE
+  MIDTERM
+  FINAL
+}
+
+enum AbsenceExcuseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model AbsenceExcuse {
+  id          String              @id @default(cuid())
+  studentId   String
+  courseId    String
+  type        AbsenceExcuseType
+  absenceDate DateTime
+  reason      String              @db.Text
+  status      AbsenceExcuseStatus @default(PENDING)
+  reviewNote  String?             @db.Text
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([courseId])
+  @@index([status])
+}
+
+// =====================================================================
+// ACADEMIC SUPERVISOR MESSAGING
+// =====================================================================
+
+enum MessageSender {
+  STUDENT
+  ADVISOR
+}
+
+model AdvisorMessage {
+  id         String        @id @default(cuid())
+  studentId  String
+  senderRole MessageSender
+  message    String
+  isRead     Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([isRead])
+}
+
+// =====================================================================
+// PLACEMENT
+// The evidence-based assessment Academy Pathways §8 requires before a
+// learner is confirmed into a pathway — never the applicant's own
+// self-assessment alone (AdmissionApplication's *Self fields above),
+// and never age. One row per student, created once their
+// AdmissionApplication reaches APPROVED and administered by Academic
+// Advising or the relevant Department, per that document's placement
+// principle.
+// =====================================================================
+
+model PlacementAssessment {
+  id        String          @id @default(cuid())
+  studentId String          @unique
+  status    PlacementStatus @default(PENDING)
+
+  quranReadingLevel       SelfRatedLevel?
+  quranTajweedLevel       SelfRatedLevel?
+  quranHifzLevel          SelfRatedLevel?
+  quranRecitationLevel    SelfRatedLevel?
+  arabicReadingLevel      SelfRatedLevel?
+  arabicWritingLevel      SelfRatedLevel?
+  arabicGrammarLevel      SelfRatedLevel?
+  arabicVocabularyLevel   SelfRatedLevel?
+  arabicConversationLevel SelfRatedLevel?
+  quranicArabicLevel      SelfRatedLevel?
+
+  // The assessment's actual output: which pathway (Academy Pathways
+  // §1 naming, e.g. "Foundation Studies") and, once one is chosen,
+  // which specific Program the student is placed into.
+  recommendedPathway   String?
+  recommendedProgramId String?
+
+  assessorNote      String?   @db.Text
+  assessedByStaffId String?
+  scheduledAt       DateTime?
+  completedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student            StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  recommendedProgram Program?       @relation(fields: [recommendedProgramId], references: [id], onDelete: SetNull)
+  assessedByStaff    StaffProfile?  @relation(fields: [assessedByStaffId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([recommendedProgramId])
+  @@index([assessedByStaffId])
+}
+
+// =====================================================================
+// STUDENT FEES / BILLING
+// =====================================================================
+
+enum FeeStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+model StudentFee {
+  id        String    @id @default(cuid())
+  studentId String
+  termId    String?
+  feeType   String
+  amountUSD Float
+  paidUSD   Float     @default(0)
+  status    FeeStatus @default(PENDING)
+  dueDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  term    AcademicTerm?  @relation(fields: [termId], references: [id], onDelete: SetNull)
+
+  @@index([studentId])
+  @@index([termId])
+  @@index([status])
+}
+
+enum PayslipStatus {
+  PENDING
+  PAID
+}
+
+// A staff member's standing salary structure — the base figure and
+// standard allowances Finance sets up once per employee. Payroll
+// generation snapshots these into each month's Payslip rather than
+// reading this record live, so a later raise never silently rewrites
+// an already-issued payslip.
+model StaffSalary {
+  id         String   @id @default(cuid())
+  staffId    String   @unique
+  baseSalary Float
+  allowances Float    @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  staff    StaffProfile @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  payslips Payslip[]
+
+  @@index([staffId])
+}
+
+// One real, generated payroll record per staff member per calendar
+// month. netPay is always server-computed (baseSalary + allowances -
+// deductions) — never a manually-typed figure — so the payroll process
+// this models is a genuine calculation, not a placeholder display.
+model Payslip {
+  id         String        @id @default(cuid())
+  staffId    String
+  salaryId   String?
+  year       Int
+  month      Int
+  baseSalary Float
+  allowances Float         @default(0)
+  deductions Float         @default(0)
+  netPay     Float
+  status     PayslipStatus @default(PENDING)
+  note       String?
+  paidAt     DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  staff  StaffProfile @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  salary StaffSalary? @relation(fields: [salaryId], references: [id], onDelete: SetNull)
+
+  @@unique([staffId, year, month])
+  @@index([staffId])
+  @@index([status])
+  @@index([year, month])
+}
+
+// =====================================================================
+// LIBRARY
+// =====================================================================
+
+model LibraryItem {
+  id              String   @id @default(cuid())
+  title           String
+  author          String
+  isbn            String?
+  category        String?
+  totalCopies     Int      @default(1)
+  availableCopies Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  loans        LibraryLoan[]
+  reservations LibraryReservation[]
+
+  @@index([title])
+}
+
+enum LoanStatus {
+  BORROWED
+  RETURNED
+  OVERDUE
+}
+
+// Fine tracking lives directly on the loan rather than a separate
+// model or Finance's StudentFee: a loan has at most one fine, computed
+// from its own overdue duration, so a second table would only add a
+// join for no extra capability. It also deliberately stays out of
+// Finance's StudentFee/payment flow -- that would require library
+// staff (LIBRARY_OPS) to also hold FINANCE_FEES access (or hand off
+// to Finance) just to record a paid/waived fine, for a charge that
+// never involves a real payment gateway. NONE means the loan has
+// never had an overdue fine assessed; UNPAID/PAID/WAIVED track a real
+// one once it has.
+enum LibraryFineStatus {
+  NONE
+  UNPAID
+  PAID
+  WAIVED
+}
+
+model LibraryLoan {
+  id         String     @id @default(cuid())
+  itemId     String
+  studentId  String
+  borrowedAt DateTime   @default(now())
+  dueAt      DateTime
+  returnedAt DateTime?
+  status     LoanStatus @default(BORROWED)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  // Renewals -- capped at MAX_RENEWALS (see the renew route) so a loan
+  // can't be extended indefinitely; each renewal pushes dueAt forward
+  // by a fixed period rather than duplicating a new loan row.
+  renewalCount Int @default(0)
+
+  // Fine -- computed (never typed in) from real days-overdue x a flat
+  // per-day rate at return/renew/computation time. fineStatus stays
+  // NONE until an actual overdue fine is assessed.
+  fineAmountUSD  Float             @default(0)
+  fineStatus     LibraryFineStatus @default(NONE)
+  fineWaivedNote String?
+  fineClearedAt  DateTime?
+
+  item        LibraryItem          @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  student     StudentProfile       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  reservation LibraryReservation?
+
+  @@index([itemId])
+  @@index([studentId])
+  @@index([status])
+  @@index([fineStatus])
+}
+
+enum LibraryReservationStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+  EXPIRED
+}
+
+// A hold placed on an item that has no available copies right now.
+// Deliberately its own lightweight model rather than reusing
+// LibraryLoan with a "not yet borrowed" status: a reservation has no
+// borrowedAt/dueAt/fine of its own, and fulfilledLoanId links it to
+// the real loan that's created once the hold is actually issued.
+model LibraryReservation {
+  id            String                    @id @default(cuid())
+  itemId        String
+  studentId     String
+  requestedAt   DateTime                  @default(now())
+  status        LibraryReservationStatus  @default(PENDING)
+  fulfilledLoanId String?                 @unique
+  fulfilledAt   DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+
+  item          LibraryItem      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  student       StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  fulfilledLoan LibraryLoan?     @relation(fields: [fulfilledLoanId], references: [id], onDelete: SetNull)
+
+  @@index([itemId])
+  @@index([studentId])
+  @@index([status])
+}
+
+// =====================================================================
+// ICT SUPPORT
+// =====================================================================
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  // A ticket that was RESOLVED/CLOSED and got reopened. Kept distinct
+  // from OPEN so the ticket's history (and the reopen cap below)
+  // can tell "never touched yet" apart from "came back after being
+  // marked done" -- an operationally different situation for ICT
+  // staff even though both need attention.
+  REOPENED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model ICTTicket {
+  id              String         @id @default(cuid())
+  raisedByUserId  String
+  subject         String
+  description     String
+  status          TicketStatus   @default(OPEN)
+  priority        TicketPriority @default(MEDIUM)
+  // Free-text like LibraryItem.category -- there's no existing fixed
+  // category list anywhere in the raise flow or seed data to promote
+  // into an enum, so this follows the same free-text pattern already
+  // used for LibraryItem.category rather than inventing categories
+  // with no basis in the product today.
+  category        String?
+  assignedStaffId String?
+  resolvedAt      DateTime?
+
+  // SLA / response tracking -- set once, the first time an ICT
+  // staffer actually engages the ticket (adds a note, or moves it off
+  // OPEN/REOPENED), never a placeholder default.
+  firstRespondedAt DateTime?
+
+  // Escalation -- a simple flag+timestamp an ICT staffer can set on
+  // any open ticket to flag it for senior attention, independent of
+  // status/priority.
+  escalated   Boolean   @default(false)
+  escalatedAt DateTime?
+
+  // Reopening -- bounded rather than unlimited: a ticket can be
+  // reopened at most MAX_REOPENS times (see the [id] route) and only
+  // within a fixed window after it was last resolved/closed, so a
+  // ticket can't be resurrected indefinitely long after the fact.
+  reopenedCount Int       @default(0)
+  lastReopenedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  raisedBy      User          @relation(fields: [raisedByUserId], references: [id], onDelete: Cascade)
+  assignedStaff StaffProfile? @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  notes         ICTTicketNote[]
+
+  @@index([raisedByUserId])
+  @@index([assignedStaffId])
+  @@index([status])
+  @@index([priority])
+}
+
+// A running internal log of staff notes on a ticket -- deliberately
+// its own model rather than a single overwritable text field, since
+// notes need to accumulate (who said what, when), not replace each
+// other. Staff-only: never exposed to the student/staff member who
+// raised the ticket.
+model ICTTicketNote {
+  id             String   @id @default(cuid())
+  ticketId       String
+  authorStaffId  String
+  note           String
+  // R2 object key (same pattern as the transcript-request attachment
+  // flow: lib/r2.ts uploadToR2/getR2PresignedUrl) for an optional
+  // file attached to this note -- e.g. a screenshot of the issue or a
+  // resolution artifact. Never a public URL; downloaded only via a
+  // fresh presigned URL.
+  attachmentUrl  String?
+  createdAt      DateTime @default(now())
+
+  ticket      ICTTicket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorStaff StaffProfile @relation(fields: [authorStaffId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([authorStaffId])
+}
+
+model QualityReview {
+  id             String         @id @default(cuid())
+  subjectType    QASubjectType
+  programId      String?
+  courseId       String?
+  departmentId   String?
+  facultyId      String?
+  // Set when subjectType = STAFF — an instructor evaluation. Kept on
+  // the same model as every other QA review type rather than a
+  // parallel "InstructorEvaluation" table, since an instructor
+  // evaluation is, in substance, a QualityReview whose subject happens
+  // to be a person: same findings/recommendation/status/outcome shape,
+  // same reviewer relation, same follow-up mechanism.
+  staffId        String?
+  reviewType     String
+  findings       String
+  recommendation String?
+  status         QAReviewStatus @default(SCHEDULED)
+  outcome        QAOutcome?
+  // Real tracking for a recommendation that becomes a required
+  // improvement plan, distinct from outcome (which grades the review
+  // itself) — NOT_REQUIRED is the default so existing/typical reviews
+  // are not misread as having an open plan.
+  improvementStatus ImprovementPlanStatus @default(NOT_REQUIRED)
+  // Model 11/audit brief -- "Corrective actions... Action owners...
+  // Deadlines" are three distinct capabilities; followUpDate below
+  // already covers the deadline, but there was no field for WHO owns
+  // seeing a corrective action/improvement plan through (distinct
+  // from reviewedById, which is who conducted the review itself).
+  // Free text, not a StaffProfile FK: the owner is very often a whole
+  // unit ("Department of Islamic Studies", "Programme Coordinator")
+  // rather than one named person, the same reasoning already used for
+  // CourseLearningOutcome.assessmentMethods above.
+  actionOwner       String?
+  // A lightweight evidence repository: supporting documents (an
+  // observation record, a syllabus excerpt, a sample of graded work,
+  // a survey export) attached directly to the review they evidence,
+  // rather than a separate unlinked document store.
+  evidenceUrls   String[]       @default([])
+  followUpDate   DateTime?
+  reviewedById   String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  completedAt    DateTime?
+
+  program    Program?      @relation(fields: [programId], references: [id], onDelete: Cascade)
+  course     Course?       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  department Department?   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  faculty    Faculty?      @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  staff      StaffProfile? @relation("QAStaffSubject", fields: [staffId], references: [id], onDelete: Cascade)
+  reviewedBy StaffProfile  @relation("QAReviewer", fields: [reviewedById], references: [id], onDelete: Cascade)
+
+  @@index([subjectType])
+  @@index([status])
+  @@index([programId])
+  @@index([courseId])
+  @@index([departmentId])
+  @@index([facultyId])
+  @@index([staffId])
+  @@index([reviewedById])
+}
+
+enum QASubjectType {
+  PROGRAM
+  COURSE
+  DEPARTMENT
+  FACULTY
+  STAFF
+}
+
+enum ImprovementPlanStatus {
+  NOT_REQUIRED
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum QAReviewStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum QAOutcome {
+  COMPLIANT
+  MINOR_NON_COMPLIANCE
+  MAJOR_NON_COMPLIANCE
+}
+
+// =====================================================================
+// CURRICULUM OUTCOME MAPPING (Model 30 §6)
+// Program Learning Outcomes (PLOs) are the institution's approved,
+// programme-level outcome statements. Course Learning Outcomes (CLOs)
+// belong to a specific course and, when they trace up to a programme
+// outcome, record how deeply that course develops it via `depth`.
+// `assessmentMethods` stays free text (matching the existing
+// Course.assessmentType / outcomeEn convention already used above)
+// rather than a rigid FK to Exam/Quiz/Grade -- this is a curriculum
+// planning record, not a second live grading pipeline, and the
+// institution's real assessment methods are often described in prose
+// (e.g. "written exam + Qur'an recitation") rather than resolving
+// cleanly to one row in one live table.
+// =====================================================================
+
+enum OutcomeDepthLevel {
+  INTRODUCED
+  DEVELOPED
+  REINFORCED
+  MASTERED
+}
+
+model ProgramLearningOutcome {
+  id          String   @id @default(cuid())
+  programId   String
+  code        String
+  statementEn String
+  statementAr String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  program              Program                @relation(fields: [programId], references: [id], onDelete: Cascade)
+  courseLearningOutcomes CourseLearningOutcome[]
+
+  @@unique([programId, code])
+  @@index([programId])
+}
+
+model CourseLearningOutcome {
+  id                String             @id @default(cuid())
+  courseId          String
+  programLearningOutcomeId String?
+  code              String
+  statementEn       String
+  statementAr       String?
+  depth             OutcomeDepthLevel?
+  assessmentMethods String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  course                 Course                  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  programLearningOutcome ProgramLearningOutcome? @relation(fields: [programLearningOutcomeId], references: [id], onDelete: SetNull)
+
+  @@unique([courseId, code])
+  @@index([courseId])
+  @@index([programLearningOutcomeId])
+}
+
+// =====================================================================
+// DUPLICATION / OVERLAP FLAGS (Model 30 §7)
+// A lightweight, human-reviewed flag -- never an automatic delete or
+// merge. QA (or any staff member with edit access) raises a flag
+// naming two possibly-overlapping subjects (two courses, two
+// programmes, or two taxonomy categories) and a reviewer resolves it
+// with a real, recorded decision.
+// =====================================================================
+
+enum DuplicateFlagSubjectType {
+  COURSE
+  PROGRAM
+  CATEGORY
+}
+
+enum DuplicateFlagStatus {
+  OPEN
+  CONFIRMED_DUPLICATE
+  NOT_A_DUPLICATE
+  MERGED
+}
+
+model DuplicateFlag {
+  id           String                   @id @default(cuid())
+  subjectType  DuplicateFlagSubjectType
+  subjectAId   String
+  subjectBId   String
+  reason       String
+  status       DuplicateFlagStatus      @default(OPEN)
+  resolutionNote String?
+  flaggedById  String
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  flaggedBy  StaffProfile  @relation("DuplicateFlagRaisedBy", fields: [flaggedById], references: [id], onDelete: Cascade)
+  resolvedBy StaffProfile? @relation("DuplicateFlagResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([subjectType])
+  @@index([status])
+  @@index([flaggedById])
+}
+
+// =====================================================================
+// GRADUATION PROCEDURES
+// A standard clearance-style graduation workflow: the student applies
+// once eligible, and each relevant office (library, finance, academic
+// administration, etc.) independently clears them before the Registrar
+// gives final approval and the student's status moves to GRADUATED.
+// =====================================================================
+
+model GraduationApplication {
+  id           String           @id @default(cuid())
+  studentId    String           @unique
+  programId    String?
+  status       GraduationStatus @default(NOT_STARTED)
+  appliedAt    DateTime?
+  decidedAt    DateTime?
+  decisionNote String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  student    StudentProfile        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  program    Program?              @relation(fields: [programId], references: [id], onDelete: SetNull)
+  clearances GraduationClearance[]
+  documents  GraduationDocument[]
+
+  @@index([studentId])
+  @@index([programId])
+  @@index([status])
+}
+
+model GraduationClearance {
+  id               String          @id @default(cuid())
+  applicationId    String
+  unitId           String
+  status           ClearanceStatus @default(PENDING)
+  note             String?
+  clearedByStaffId String?
+  clearedAt        DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  application    GraduationApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  unit           Unit                  @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  clearedByStaff StaffProfile?         @relation(fields: [clearedByStaffId], references: [id], onDelete: SetNull)
+
+  @@unique([applicationId, unitId])
+  @@index([applicationId])
+  @@index([unitId])
+  @@index([status])
+}
+
+enum GraduationStatus {
+  NOT_STARTED
+  ELIGIBLE
+  APPLIED
+  CLEARANCE_IN_PROGRESS
+  CLEARED
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum ClearanceStatus {
+  PENDING
+  CLEARED
+  FLAGGED
+}
+
+enum PlacementStatus {
+  PENDING
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
+// A student's official post-graduation documents — issued automatically
+// once their GraduationApplication reaches COMPLETED (see the admin
+// "complete" action), and regenerated on first request if missing.
+model GraduationDocument {
+  id               String                 @id @default(cuid())
+  applicationId    String
+  studentId        String
+  type             GraduationDocumentType
+  pdfUrl           String
+  // Public reference code printed on the certificate/statement PDF
+  // -- looked up (exact match only) at the public /verify page
+  // (Model 30).
+  verificationCode String                 @unique
+  issuedAt         DateTime               @default(now())
+
+  application GraduationApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  student     StudentProfile        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, type])
+  @@index([applicationId])
+  @@index([studentId])
+}
+
+enum GraduationDocumentType {
+  CERTIFICATE
+  STATEMENT_OF_COMPLETION
+}
+
+// ---------------------------------------------------------------------
+// Homepage CMS
+//
+// Makes the public homepage's Hero section, social links, and the
+// site-navigation footer link columns admin-editable instead of
+// hardcoded in app/page.jsx. Deliberately scoped to plain
+// text/link content: the footer's rich modal content (About,
+// Contact, Privacy Policy, Terms, Refund Policy, FAQ, Resources)
+// stays in code, since making that safely editable would need a
+// full rich-text/WYSIWYG system, which is out of scope here.
+// Institution-wide Announcements already have their own
+// admin-managed model (Announcement, above) and are unaffected.
+// ---------------------------------------------------------------------
+
+model HomepageHero {
+  id             String   @id @default(cuid())
+  badge          String
+  title          String
+  subtitle       String   @db.Text
+  primaryLabel   String
+  primaryHref    String
+  secondaryLabel String
+  secondaryHref  String
+  features       String[]
+  // Arabic translations (Model 15/16 follow-up) -- all optional. When a
+  // field's Arabic version is blank, the public homepage's EN/AR toggle
+  // falls back to the English text rather than showing nothing, so this
+  // is safe to leave unset until an admin actually fills it in.
+  badgeAr          String?
+  titleAr          String?
+  subtitleAr       String?  @db.Text
+  primaryLabelAr   String?
+  secondaryLabelAr String?
+  featuresAr       String[] @default([])
+  // Uploaded brand assets (Model 15/16 follow-up) -- both store a
+  // /api/assets/<key> path (see lib/r2.ts + app/api/assets), not a raw
+  // R2 key or an external URL. logoUrl is the site's own mark, shown in
+  // the header/footer alongside the hero; heroImageUrl is an optional
+  // image/photo for the hero banner itself. Both null until an admin
+  // uploads one -- the site falls back to the existing text glyph and
+  // plain gradient background respectively.
+  logoUrl      String?
+  heroImageUrl String?
+  // Admin-selectable logo size, as a percentage of the header/footer's
+  // normal logo size (100 = default). Null until an admin picks a
+  // size; the header/footer components clamp this again on read, so
+  // no value stored here can ever break their layout.
+  logoSize     Int?
+  // Optional institute banner image shown behind all three real login
+  // pages (Student Portal /login, Staff Portal /staff-login, and the
+  // Bookstore/Media/Author /account form). Null until an admin uploads
+  // one -- every login page falls back to its existing plain brand
+  // gradient background exactly as before. Reuses the same
+  // upload/PATCH/clear flow as logoUrl/heroImageUrl above rather than
+  // introducing a separate settings model, since this is the same
+  // "admin-managed brand asset" concept.
+  loginBackgroundUrl String?
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+}
+
+// Up to 5 rotating banner images for the homepage hero slider
+// (Model 25) -- independent of HomepageHero.heroImageUrl, which
+// remains the single fallback image shown when no banners here are
+// enabled. Reordered / toggled / replaced from
+// /admin/homepage/banner-slider; the public homepage only shows
+// rows with isActive true, in "order" order.
+model HomepageHeroBanner {
+  id        String   @id @default(cuid())
+  // /api/assets/<key> path from /api/admin/uploads/image, same
+  // convention as HomepageHero.heroImageUrl and SectionBanner.imageUrl.
+  imageUrl  String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+// Homepage "Welcome", "Academy" and "Our Approach" section text, plus
+// the closing "Bismillah" CTA banner (Model 17) -- one singleton row
+// covering all four, since each is just a badge/title/subtitle (or,
+// for the banner, an Arabic line/title/description) with no repeating
+// items of its own. Fixed id "default-homepage-sections", same
+// convention as HomepageHero. Admin-editable at /admin/homepage/sections.
+model HomepageSectionsText {
+  id               String   @id @default(cuid())
+  welcomeBadge     String
+  welcomeTitle     String
+  welcomeSubtitle  String   @db.Text
+  academyBadge     String
+  academyTitle     String
+  academySubtitle  String   @db.Text
+  approachBadge    String
+  approachTitle    String
+  approachSubtitle String   @db.Text
+  ctaArabicLine    String
+  ctaTitle         String
+  ctaDescription   String   @db.Text
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
+}
+
+// The four feature cards under the homepage's "Welcome" section
+// (icon + title + short text). Same ordered-list pattern as
+// AcademyHubCard.
+model HomepageFeatureCard {
+  id        String   @id @default(cuid())
+  icon      String
+  title     String
+  text      String   @db.Text
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+}
+
+// The homepage Academy section's grid of subject icons (icon + short
+// label) -- Qur'anic Sciences, Arabic Language, etc.
+model HomepageAcademyItem {
+  id        String   @id @default(cuid())
+  icon      String
+  text      String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+}
+
+// The homepage's "Our Approach" section's three numbered steps.
+model HomepageApproachStep {
+  id        String   @id @default(cuid())
+  number    String
+  title     String
+  text      String   @db.Text
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+}
+
+// A single uploaded banner image per public section (Model 17) -- the
+// same "upload an image, save it independently, it applies
+// immediately" pattern as HomepageHero's brand assets, but scoped to
+// one section instead of a whole hero. id is the section key itself
+// ('bookstore' | 'media' | 'library'), matching HomepageHero's fixed
+// 'default-homepage-hero' id -- one row per section, upserted by key,
+// never a growing table. Each section's own page keeps its existing
+// hardcoded eyebrow/title/subtitle text; only the background image is
+// admin-editable here.
+//
+// titleEn/bodyEn are nullable and, for now, used only by the
+// 'homepage-beneficial-knowledge' row (the homepage's "Beneficial
+// Knowledge" box -- its heading and paragraph were hardcoded in
+// app/page.jsx until this). bookstore/media/library keep their
+// existing hardcoded page copy and simply never set these two
+// columns, so this stays a single shared model rather than a new one
+// per section.
+model SectionBanner {
+  id        String   @id
+  imageUrl  String?
+  titleEn   String?
+  bodyEn    String?  @db.Text
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model SocialLink {
+  id        String   @id @default(cuid())
+  name      String
+  // A single glyph/character rendered as the button's icon (e.g. "f",
+  // "▶", "𝕏", "✈"), matching the existing hardcoded socialLinks array
+  // — not an uploaded image or icon-library reference.
+  icon      String
+  url       String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+}
+
+model FooterLinkGroup {
+  id        String       @id @default(cuid())
+  title     String
+  order     Int          @default(0)
+  isActive  Boolean      @default(true)
+  links     FooterLink[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([order])
+}
+
+model FooterLink {
+  id        String          @id @default(cuid())
+  groupId   String
+  label     String
+  href      String
+  order     Int             @default(0)
+  isActive  Boolean         @default(true)
+  group     FooterLinkGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([groupId])
+  @@index([order])
+}
+
+// The public /academy hub page's hero copy (singleton row, fixed id
+// "default-academy-hub-hero", same convention as HomepageHero) and its
+// grid of document/programme cards. Admin-editable at /admin/academy-hub.
+model AcademyHubHero {
+  id        String   @id @default(cuid())
+  badge     String
+  title     String
+  subtitle  String   @db.Text
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model AcademyHubCard {
+  id          String   @id @default(cuid())
+  icon        String
+  title       String
+  description String   @db.Text
+  href        String
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([order])
+}
+
+// =====================================================================
+// PUBLIC EVENTS & NEWS (Model 27)
+// Authorized staff manage Events and News from the Admin dashboard;
+// only rows with isPublished:true resolve on the public /events and
+// /news routes and the homepage's Upcoming Events / Latest News
+// sections. Genuinely separate from Announcement (an internal,
+// audience-scoped notice board for students/faculty/departments) --
+// these are public-facing, richer content types with their own
+// images, categories and (for Events) scheduling/location fields, and
+// were previously nonexistent rather than duplicated from anywhere.
+// =====================================================================
+
+model Event {
+  id            String   @id @default(cuid())
+  titleEn       String
+  titleAr       String?
+  descriptionEn String   @db.Text
+  descriptionAr String?  @db.Text
+  eventDate     DateTime
+  eventTime     String?
+  // Physical location, or left blank when onlineLink is set (an
+  // online-only event) -- both may be filled for a hybrid event.
+  location      String?
+  onlineLink    String?
+  // /api/assets/<key> path from /api/admin/uploads/image, same
+  // convention as HomepageHero.heroImageUrl and SectionBanner.imageUrl.
+  thumbnailUrl  String?
+  // Optional external/registration link ("Register" / "Details").
+  detailsLink   String?
+  isPublished   Boolean  @default(false)
+  createdById   String
+  createdBy     User     @relation("EventCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Research & Scholarly Affairs integration (spec model, §17 Research
+  // Events) -- additive, nullable so every existing Event row and every
+  // existing Event-creation code path keeps working unchanged with no
+  // value. Lets a Research-hosted event (conference, seminar, defense,
+  // etc.) be created through this SAME existing Event flow and tagged
+  // as research-related, instead of Research building a second events
+  // platform of its own.
+  category      EventCategory?
+
+  @@index([isPublished])
+  @@index([eventDate])
+  @@index([category])
+}
+
+enum EventCategory {
+  RESEARCH
+  SEMINAR
+  CONFERENCE
+  WORKSHOP
+  GENERAL
+}
+
+enum NewsCategory {
+  ANNOUNCEMENT
+  ACADEMIC
+  ADMISSIONS
+  COMMUNITY
+  ACHIEVEMENT
+  GENERAL
+}
+
+model NewsArticle {
+  id               String       @id @default(cuid())
+  titleEn          String
+  titleAr          String?
+  bodyEnHtml       String       @db.Text
+  bodyArHtml       String?      @db.Text
+  featuredImageUrl String?
+  category         NewsCategory @default(GENERAL)
+  isPublished      Boolean      @default(false)
+  publishedAt      DateTime?
+  createdById      String
+  createdBy        User         @relation("NewsCreatedBy", fields: [createdById], references: [id])
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([isPublished])
+  @@index([category])
+  @@index([publishedAt])
+}
+
+// =====================================================================
+// LEGAL / INFO PAGES CMS
+// About, Privacy Policy, Terms of Use, Refund Policy are long-form
+// rich-text pages the Super Admin edits from Admin > Legal & Info
+// Pages; FAQ is a managed, ordered list of question/answer pairs;
+// Contact is a singleton set of structured contact fields. All are
+// read publicly through /api/legal-content, which falls back to
+// defaults matching the institute's original hardcoded footer content
+// whenever a row is missing — so the public pages never regress.
+// =====================================================================
+
+model LegalPage {
+  id        String   @id @default(cuid())
+  // One of: about, privacy, terms, refund, academy-foundation,
+  // academy-governance, academy-pathways, academy-curriculum,
+  // academy-department-curriculum, academy-course-catalogue,
+  // academy-course-specifications, academy-assessment-grading,
+  // academy-student-lifecycle, academy-faculty-portals,
+  // academy-academic-regulations, academy-master-integration —
+  // enforced at the API layer, not the DB, so no migration is
+  // needed to add another page later.
+  slug      String   @unique
+  title     String
+  bodyHtml  String   @db.Text
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model FaqItem {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String   @db.Text
+  // "general" (shown at /faq, the Resources footer link) or
+  // "technical" (shown at /it-support, the Technical Support footer
+  // link) -- Model 26, so the two FAQ pages can carry genuinely
+  // different content instead of both linking to the same list.
+  category  String   @default("general")
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+  @@index([category])
+}
+
+model ContactInfo {
+  id                String   @id @default(cuid())
+  address           String?
+  poBox             String?
+  phone             String?
+  whatsapp          String?
+  email             String?
+  admissionsEmail   String?
+  bookstoreEmail    String?
+  officeHours       String?
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+}
+
+// =====================================================================
+// QUIZ SYSTEM
+// Instructor-authored, timed assessments distinct from Assignment —
+// multiple-choice, multiple-select, written and video-based questions,
+// server-enforced timing, single-active-attempt handling, and either
+// automatic or instructor-reviewed grading. Mirrors the Assignment /
+// Submission naming convention already used elsewhere in this schema.
+// =====================================================================
+
+enum QuizQuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  WRITTEN
+  VIDEO
+}
+
+enum QuizAttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  AUTO_SUBMITTED
+  GRADED
+}
+
+model Quiz {
+  id                     String   @id @default(cuid())
+  courseId               String
+  title                  String
+  description            String?
+  timeLimitMinutes       Int
+  startAt                DateTime?
+  endAt                  DateTime?
+  maxAttempts            Int      @default(1)
+  passingScore           Float?
+  // Whether a student sees their score/answers right after submitting,
+  // vs. only once the instructor releases results (relevant whenever
+  // any question needs manual review, but the instructor can also hold
+  // back an all-auto-graded quiz's results deliberately).
+  showResultsImmediately Boolean  @default(true)
+  resultsReleased        Boolean  @default(false)
+  isPublished            Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@index([courseId])
+}
+
+model QuizQuestion {
+  id              String           @id @default(cuid())
+  quizId          String
+  order            Int             @default(0)
+  type            QuizQuestionType
+  promptText      String           @db.Text
+  // For VIDEO questions: the video the student must watch before
+  // answering. Nullable for every other question type.
+  videoUrl        String?
+  points          Float            @default(1)
+  // Written (and video-with-written-answer) questions default to
+  // needing a human look — SINGLE_CHOICE/MULTIPLE_CHOICE are always
+  // machine-gradable regardless of this flag.
+  requiresReview  Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options QuizOption[]
+  answers QuizAnswer[]
+
+  @@index([quizId])
+  @@index([order])
+}
+
+model QuizOption {
+  id         String   @id @default(cuid())
+  questionId String
+  text       String
+  isCorrect  Boolean  @default(false)
+  order      Int      @default(0)
+
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+}
+
+model QuizAttempt {
+  id                     String            @id @default(cuid())
+  quizId                 String
+  studentId              String
+  attemptNumber          Int               @default(1)
+  status                 QuizAttemptStatus @default(IN_PROGRESS)
+  startedAt              DateTime          @default(now())
+  // Server-computed at start time (startedAt + quiz.timeLimitMinutes) —
+  // the one deadline every save/submit call is checked against, so the
+  // time limit can never be bypassed by editing the frontend countdown.
+  expiresAt              DateTime
+  submittedAt            DateTime?
+  score                  Float?
+  maxScore               Float
+  // A fresh random value issued every time the student (re)opens this
+  // attempt. Autosave/submit calls must present the current token —
+  // opening the same attempt in a second tab issues a new token there,
+  // so the first tab's stale token is rejected instead of silently
+  // overwriting newer answers.
+  activeToken            String
+  // Best-effort integrity signals — see QuizAttempt.flagCount comment
+  // at the API layer for what "strict environment" can and cannot
+  // actually enforce from a browser.
+  tabSwitchCount         Int               @default(0)
+  copyPasteAttemptCount  Int               @default(0)
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers QuizAnswer[]
+
+  @@unique([quizId, studentId, attemptNumber])
+  @@index([quizId])
+  @@index([studentId])
+}
+
+model QuizAnswer {
+  id                 String   @id @default(cuid())
+  attemptId          String
+  questionId         String
+  // Selected QuizOption ids, for SINGLE_CHOICE/MULTIPLE_CHOICE.
+  selectedOptionIds  String[]
+  // Free-text answer, for WRITTEN/VIDEO questions.
+  answerText         String?  @db.Text
+  score              Float?
+  feedback           String?
+  gradedAt           DateTime?
+  updatedAt          DateTime @updatedAt
+
+  attempt  QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
+}
+
+
+// =====================================================================
+// INSTRUCTOR PROFILE (Model 10)
+// A staff member's qualifications, professional development, and
+// performance review history — none of which existed anywhere in the
+// schema before this. Kept as their own tables (rather than JSON blobs
+// on StaffProfile) since each is a genuine one-to-many history a
+// department head, dean, or the instructor themselves needs to browse
+// and add to over time.
+// =====================================================================
+
+enum QualificationType {
+  GENERAL
+  ISLAMIC
+}
+
+// Staff employment status (Model 21, Section 11) — distinct from the
+// plain isActive boolean so HR-relevant nuance (on leave vs. formally
+// separated) is visible instead of collapsing to one flag. isActive
+// stays the access-control boolean every permission check already
+// uses (true for ACTIVE/ON_LEAVE, false for INACTIVE/FORMER); status
+// is the descriptive/historical field layered on top. No historical
+// teaching/grading/course records are ever deleted when status
+// changes — StaffProfile rows are never removed, only marked.
+enum StaffStatus {
+  ACTIVE
+  ON_LEAVE
+  INACTIVE
+  FORMER
+}
+
+// Shared by Course and Program (Model 11) — the real approval state
+// Academic Governance already named as missing. RETURNED_FOR_REVISION
+// is distinct from DRAFT so a coordinator/HOD can see "this was
+// reviewed and sent back" rather than confusing it with "never
+// submitted."
+enum ApprovalStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  RETURNED_FOR_REVISION
+}
+
+model StaffQualification {
+  id           String            @id @default(cuid())
+  staffId      String
+  type         QualificationType
+  title        String
+  institution  String?
+  yearObtained Int?
+  createdAt    DateTime          @default(now())
+
+  staff StaffProfile @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+}
+
+model StaffDevelopmentRecord {
+  id             String    @id @default(cuid())
+  staffId        String
+  title          String
+  provider       String?
+  completedAt    DateTime?
+  hours          Float?
+  certificateUrl String?
+  createdAt      DateTime  @default(now())
+
+  staff StaffProfile @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+}
+
+enum StaffPerformanceRating {
+  NEEDS_IMPROVEMENT
+  MEETS_EXPECTATIONS
+  EXCEEDS_EXPECTATIONS
+  OUTSTANDING
+}
+
+enum StaffPerformanceReviewStatus {
+  DRAFT
+  SUBMITTED
+  ACKNOWLEDGED
+}
+
+// One review cycle's outcome for one staff member. Free-text `period`
+// (e.g. "2026 Semester 1") rather than a relation to AcademicTerm,
+// since a performance review cycle applies to all staff, not only
+// those tied to a specific student-facing term.
+model StaffPerformanceReview {
+  id             String                       @id @default(cuid())
+  staffId        String
+  reviewerId     String
+  period         String
+  rating         StaffPerformanceRating?
+  strengths      String?
+  areasForGrowth String?
+  status         StaffPerformanceReviewStatus @default(DRAFT)
+  reviewedAt     DateTime?
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+
+  staff    StaffProfile @relation("StaffPerformanceReviewee", fields: [staffId], references: [id], onDelete: Cascade)
+  reviewer StaffProfile @relation("StaffPerformanceReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+  @@index([reviewerId])
+}
+
+// =====================================================================
+// COURSE EVALUATIONS (Model 10)
+// A real, minimal student-submitted course evaluation — no such
+// system existed before this. One submission per student per course
+// per term; QA reads these aggregated, never attributed by name when
+// isAnonymous is true (enforced at the API layer).
+// =====================================================================
+
+model CourseEvaluation {
+  id               String        @id @default(cuid())
+  studentId        String
+  courseId         String
+  termId           String?
+  ratingOverall    Int
+  ratingContent    Int?
+  ratingInstructor Int?
+  comments         String?
+  isAnonymous      Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  term    AcademicTerm?  @relation(fields: [termId], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, courseId, termId])
+  @@index([courseId])
+  @@index([termId])
+}
+
+// =====================================================================
+// ACADEMIC INTEGRITY (Model 11)
+// The real system behind the academic integrity paragraph already
+// drafted, but marked "proposed, not yet founder-confirmed," in Course
+// Specifications' Foundation-tier common policies. No case-tracking of
+// any kind existed before this — violations could only be described in
+// free text through the generic Request/Complaint mechanism, with
+// nothing to query, no severity, and no sanction record.
+// =====================================================================
+
+enum IntegrityViolationType {
+  PLAGIARISM
+  CHEATING
+  UNAUTHORIZED_COLLABORATION
+  FALSIFICATION
+  IMPERSONATION
+  ASSESSMENT_MISCONDUCT
+  AI_MISUSE
+  OTHER
+}
+
+enum IntegrityCaseSeverity {
+  MINOR
+  MAJOR
+}
+
+enum IntegrityCaseStatus {
+  REPORTED
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+model IntegrityCase {
+  id             String                 @id @default(cuid())
+  studentId      String
+  courseId       String?
+  violationType  IntegrityViolationType
+  severity       IntegrityCaseSeverity  @default(MINOR)
+  description    String
+  reportedById   String
+  status         IntegrityCaseStatus    @default(REPORTED)
+  // What was actually applied — free text since real sanctions vary
+  // (a resubmission, a grade penalty, a course fail) rather than a
+  // fixed catalogue this document would otherwise have to invent.
+  sanction       String?
+  // True only when this case actually moved the student through the
+  // existing AcademicStanding process (§9's drafted policy already
+  // anticipates this for a repeat/severe case) — never a second,
+  // competing standing mechanism of its own.
+  standingActionTaken Boolean           @default(false)
+  resolvedById   String?
+  resolvedAt     DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  student    StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course     Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  reportedBy StaffProfile   @relation("IntegrityCaseReporter", fields: [reportedById], references: [id], onDelete: Restrict)
+  resolvedBy StaffProfile?  @relation("IntegrityCaseResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId])
+  @@index([courseId])
+  @@index([reportedById])
+  @@index([status])
+}
+
+// =====================================================================
+// AI ASSISTANT
+// The assistant's own rule-based logic, knowledge base and zone/menu
+// system live in code (lib/assistantKnowledge.js, lib/assistantI18n.js,
+// app/api/assistant/route.js) -- these two models hold only what
+// genuinely has to be data: an admin-editable settings singleton, and a
+// minimal, non-identifying interaction log (never raw message text, so
+// this is safe to keep indefinitely without becoming a privacy record
+// of what any one person asked).
+// =====================================================================
+
+model AssistantSettings {
+  id                 String   @id @default(cuid())
+  isEnabled          Boolean  @default(true)
+  welcomeMessageEn   String?  @db.Text
+  welcomeMessageAr   String?  @db.Text
+  supportedLanguages String[] @default(["en", "ar"])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model AssistantEvent {
+  id        String   @id @default(cuid())
+  // 'open' | 'identity_selected' | 'language_selected' | 'quick_option'
+  // | 'query_matched' | 'query_unmatched'
+  type      String
+  zone      String?
+  identity  String?
+  language  String?
+  // A quick-option label or matched knowledge-entry id only -- never
+  // the visitor's raw typed message.
+  label     String?
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+// =====================================================================
+// ULUL AZM COMMUNITY
+// Student-wide, cross-course discussion space -- distinct from the
+// existing course-scoped Discussion/DiscussionComment models (which
+// stay exactly as they are, for in-course exercise discussion). Kept
+// deliberately modest: posts, comments, light moderation via isHidden.
+// Reachable from inside the existing Student Portal (/academics), not
+// as a new top-level system.
+// =====================================================================
+
+model CommunityPost {
+  id        String   @id @default(cuid())
+  authorId  String
+  title     String
+  body      String   @db.Text
+  category  String   @default("GENERAL")
+  isPinned  Boolean  @default(false)
+  isHidden  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author   User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments CommunityComment[]
+  reports  CommunityReport[]
+
+  @@index([authorId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model CommunityComment {
+  id        String   @id @default(cuid())
+  postId    String
+  authorId  String
+  body      String   @db.Text
+  isHidden  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  reports CommunityReport[]
+
+  @@index([postId])
+  @@index([authorId])
+}
+
+// Optional, Community-only profile info layered on top of an existing
+// User/StudentProfile -- never a duplicate of academic data. Bio,
+// interests and a display photo are genuinely new fields Community
+// needs; department, program and "alumni" status are NOT duplicated
+// here -- they're read live from the user's own StudentProfile
+// (department/program relations, status === 'GRADUATED' for alumni)
+// by the API that serves a Community profile, exactly per Model 25's
+// instruction not to give alumni a second, competing identity.
+// One row per user, created lazily the first time someone edits their
+// Community profile -- most members will simply never have one, and
+// that's the normal/default state (fall back to User.name/avatarUrl).
+model CommunityProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  bio       String?  @db.Text
+  interests String?
+  isPublic  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Member-to-member block for the Community (Model 25 §7). One-directional
+// by design (A blocks B does not require B's consent or notify them) --
+// the API applying this must hide each side from the other in both
+// directions when checking for an existing block, but the row itself
+// only ever represents the blocker's action.
+model CommunityBlock {
+  id          String   @id @default(cuid())
+  blockerId   String
+  blockedId   String
+  createdAt   DateTime @default(now())
+
+  blocker User @relation("CommunityBlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("CommunityBlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+}
+
+enum CommunityReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
+enum CommunityReportReason {
+  SPAM
+  HARASSMENT
+  INAPPROPRIATE_CONTENT
+  MISINFORMATION
+  OTHER
+}
+
+// Member-submitted content report (Model 25 §8) -- exactly one of
+// postId/commentId is set, matching whichever the reporter flagged.
+// Landing status is always OPEN; a moderator (same STUDENT_MATTERS
+// permission already used for hide/pin) reviews and closes it as
+// REVIEWED or DISMISSED from a dedicated admin queue, distinct from
+// the in-page hide/pin controls that already existed before this.
+model CommunityReport {
+  id           String                  @id @default(cuid())
+  reporterId   String
+  postId       String?
+  commentId    String?
+  reason       CommunityReportReason
+  details      String?                 @db.Text
+  status       CommunityReportStatus   @default(OPEN)
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime                @default(now())
+
+  reporter   User              @relation("CommunityReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+  post       CommunityPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment    CommunityComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reviewedBy User?             @relation("CommunityReportsReviewed", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([reporterId])
+  @@index([postId])
+  @@index([commentId])
+  @@index([status])
+}
+
+// Model 25 addendum: mandatory Community Guidelines acknowledgment.
+// One row per user, keyed by a hash of the guidelines content they
+// actually agreed to (see lib/community.js communityGuidelinesContent) --
+// so "require re-acceptance when the guidelines are updated" falls out
+// naturally from comparing hashes, instead of a manual version counter
+// an admin has to remember to bump.
+model CommunityGuidelinesAcceptance {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  contentHash String
+  acceptedAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Model 26 (Admin, RBAC & Institutional Governance) -- a general
+// cross-cutting audit trail for sensitive operations that had NO
+// audit trail at all: Community moderation actions (hide/pin, report
+// resolution) and graduation clearance/approval/document-finalization
+// decisions. Deliberately NOT used for admission decisions (already
+// captured in full by AdmissionAuditLog) or grade corrections (already
+// captured in full by GradeCorrection) -- those two are genuinely
+// solid and are read alongside this table by the unified Audit Log
+// viewer (app/api/admin/audit-log/route.js) instead of being
+// duplicated into a second table.
+enum AuditCategory {
+  DOCUMENT_FINALIZATION
+  ACADEMIC_RECORD_ADJUSTMENT
+  COMMUNITY_MODERATION
+  OTHER
+}
+
+model AuditLog {
+  id          String        @id @default(cuid())
+  actorUserId String?
+  actorName   String
+  actorRole   String
+  department  String?
+  module      Module?
+  action      String
+  category    AuditCategory
+  targetType  String?
+  targetId    String?
+  summary     String        @db.Text
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+
+  actor User? @relation("AuditLogActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([category])
+  @@index([module])
+  @@index([createdAt])
+  @@index([targetType, targetId])
+}
+
+// =====================================================================
+// PAGE FEEDBACK -- lightweight "was this page helpful?" widget used on
+// informational pages (IT Department, Safe Usage Policy, and any page
+// that adds <PageFeedback/>). One row per submission; pageSlug says
+// which page it came from. No admin viewer yet -- rows are just kept
+// for whenever staff want to review them directly in the database.
+// =====================================================================
+
+model PageFeedback {
+  id        String   @id @default(cuid())
+  pageSlug  String
+  response  String
+  createdAt DateTime @default(now())
+
+  @@index([pageSlug])
+}
+
+
+// =====================================================================
+// RESEARCH & SCHOLARLY AFFAIRS (spec Model §17) -- a Delegated
+// Operation: a real institute department run by its own designated
+// role (Research & Scholarly Affairs Officer, RESEARCH_OPS module),
+// never an Admin-operated function. Admin's own surface is read-only
+// oversight at app/admin/research (see that page for the copy
+// convention already used for every other delegated operation).
+//
+// Scholarly Publications is entirely its own model here -- zero
+// coupling to the personal ManuscriptSubmission/Book publishing
+// pipeline, which stays untouched.
+//
+// Research Integrity is deliberately a separate model from
+// IntegrityCase (student academic integrity in a course context):
+// ResearchIntegrityCase tracks misconduct by a RESEARCHER in a
+// RESEARCH PROJECT/PUBLICATION context (authorship disputes, data
+// fabrication, ethics violations) and carries its own strict
+// permission gate at the application layer.
+//
+// Research Funding tracks grant records only -- Finance remains
+// responsible for actual financial transactions; no money-movement
+// logic lives here.
+//
+// Research Supervision is built fully at the schema/API layer (no
+// research-based programme is currently seeded -- see ProgramLevel/
+// Program comments elsewhere in this file), so it exists and is
+// ready; its dashboard UI is kept a light, honest empty-state
+// scaffold given zero real usage today.
+// =====================================================================
+
+enum ResearchProjectStatus {
+  PROPOSED
+  UNDER_REVIEW
+  APPROVED
+  ACTIVE
+  COMPLETED
+  REJECTED
+  SUSPENDED
+}
+
+enum ResearchProposalStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  REVISION_REQUESTED
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ResearchReviewDecision {
+  PENDING
+  APPROVE
+  REQUEST_REVISION
+  REJECT
+}
+
+enum ResearchProposalDecisionType {
+  SUBMITTED
+  REVIEWER_ASSIGNED
+  REVISION_REQUESTED
+  RESUBMITTED
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ResearchTeamRole {
+  PRINCIPAL_INVESTIGATOR
+  CO_INVESTIGATOR
+  RESEARCHER
+  RESEARCH_ASSISTANT
+  EXTERNAL_COLLABORATOR
+}
+
+enum ResearchPublicationType {
+  JOURNAL_ARTICLE
+  BOOK
+  BOOK_CHAPTER
+  CONFERENCE_PAPER
+  RESEARCH_REPORT
+  WORKING_PAPER
+  OTHER
+}
+
+enum ResearchPublicationStatus {
+  DRAFT
+  SUBMITTED
+  ACCEPTED
+  PUBLISHED
+  RETRACTED
+}
+
+enum ResearchSupervisionStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  DISCONTINUED
+}
+
+enum ResearchGrantStatus {
+  APPLIED
+  AWARDED
+  DECLINED
+  ACTIVE
+  CLOSED
+}
+
+enum ResearchIntegrityConcernType {
+  PLAGIARISM
+  DATA_FABRICATION
+  AUTHORSHIP_DISPUTE
+  ETHICS_VIOLATION
+  CONFLICT_OF_INTEREST
+  OTHER
+}
+
+enum ResearchIntegrityCaseStatus {
+  REPORTED
+  UNDER_INVESTIGATION
+  RESOLVED
+  DISMISSED
+}
+
+model ResearchArea {
+  id          String   @id @default(cuid())
+  nameEn      String   @unique
+  nameAr      String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projects   ResearchProject[]
+  proposals  ResearchProposal[]
+}
+
+model ResearchProject {
+  id                       String                @id @default(cuid())
+  title                    String
+  description              String
+  areaId                   String?
+  principalInvestigatorId  String
+  status                   ResearchProjectStatus @default(PROPOSED)
+  startDate                DateTime?
+  endDate                  DateTime?
+  progressNotes            String?
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+
+  area                  ResearchArea?          @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  principalInvestigator StaffProfile           @relation("ResearchProjectPI", fields: [principalInvestigatorId], references: [id], onDelete: Restrict)
+  milestones            ResearchMilestone[]
+  teamMembers           ResearchTeamMember[]
+  proposal              ResearchProposal?
+  publications          ResearchPublication[]
+  partners              ResearchProjectPartner[]
+  grants                ResearchGrant[]
+  integrityCases        ResearchIntegrityCase[]
+
+  @@index([areaId])
+  @@index([principalInvestigatorId])
+  @@index([status])
+}
+
+model ResearchMilestone {
+  id          String    @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  dueDate     DateTime?
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ResearchTeamMember {
+  id                   String           @id @default(cuid())
+  projectId            String
+  staffId              String?
+  externalName         String?
+  externalAffiliation  String?
+  externalEmail        String?
+  role                 ResearchTeamRole @default(RESEARCHER)
+  joinedAt             DateTime         @default(now())
+
+  project ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  staff   StaffProfile?   @relation("ResearchTeamMemberStaff", fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([staffId])
+}
+
+model ResearchProposal {
+  id            String                  @id @default(cuid())
+  title         String
+  summary       String
+  areaId        String?
+  submittedById String
+  projectId     String?                 @unique
+  status        ResearchProposalStatus  @default(SUBMITTED)
+  submittedAt   DateTime                @default(now())
+  decidedAt     DateTime?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  area        ResearchArea?              @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  submittedBy StaffProfile               @relation("ResearchProposalSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
+  project     ResearchProject?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  reviews     ResearchProposalReview[]
+  decisions   ResearchProposalDecision[]
+
+  @@index([areaId])
+  @@index([submittedById])
+  @@index([status])
+}
+
+model ResearchProposalReview {
+  id           String                 @id @default(cuid())
+  proposalId   String
+  reviewerId   String
+  assignedAt   DateTime               @default(now())
+  comments     String?
+  revisionNote String?
+  decision     ResearchReviewDecision @default(PENDING)
+  decidedAt    DateTime?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  proposal ResearchProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  reviewer StaffProfile     @relation("ResearchProposalReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  @@index([proposalId])
+  @@index([reviewerId])
+  @@index([decision])
+}
+
+model ResearchProposalDecision {
+  id         String                       @id @default(cuid())
+  proposalId String
+  type       ResearchProposalDecisionType
+  actorId    String?
+  note       String?
+  createdAt  DateTime                     @default(now())
+
+  proposal ResearchProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  actor    StaffProfile?    @relation("ResearchProposalDecisionActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([proposalId])
+  @@index([actorId])
+}
+
+model ResearchPublication {
+  id           String                     @id @default(cuid())
+  projectId    String?
+  type         ResearchPublicationType
+  status       ResearchPublicationStatus  @default(DRAFT)
+  title        String
+  venue        String?
+  publisher    String?
+  year         Int?
+  doiOrLink    String?
+  abstract     String?
+  isPublic     Boolean                    @default(false)
+  publishedAt  DateTime?
+  createdById  String
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+
+  project        ResearchProject?              @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy      StaffProfile                  @relation("ResearchPublicationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  authors        ResearchPublicationAuthor[]
+  integrityCases ResearchIntegrityCase[]
+
+  @@index([projectId])
+  @@index([createdById])
+  @@index([status])
+  @@index([type])
+}
+
+model ResearchPublicationAuthor {
+  id             String  @id @default(cuid())
+  publicationId  String
+  staffId        String?
+  externalName   String?
+  order          Int     @default(0)
+
+  publication ResearchPublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  staff       StaffProfile?       @relation("ResearchPublicationAuthorStaff", fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([publicationId])
+  @@index([staffId])
+}
+
+model ResearchCollaborationPartner {
+  id           String   @id @default(cuid())
+  name         String
+  type         String?
+  country      String?
+  contactName  String?
+  contactEmail String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  projects ResearchProjectPartner[]
+}
+
+model ResearchProjectPartner {
+  id        String   @id @default(cuid())
+  projectId String
+  partnerId String
+  role      String?
+  createdAt DateTime @default(now())
+
+  project ResearchProject             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  partner ResearchCollaborationPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, partnerId])
+  @@index([projectId])
+  @@index([partnerId])
+}
+
+model ResearchSupervision {
+  id             String                    @id @default(cuid())
+  studentId      String
+  supervisorId   String
+  topic          String
+  status         ResearchSupervisionStatus @default(ACTIVE)
+  startedAt      DateTime                  @default(now())
+  completedAt    DateTime?
+  progressNotes  String?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  student     StudentProfile                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  supervisor  StaffProfile                   @relation("ResearchSupervisionSupervisor", fields: [supervisorId], references: [id], onDelete: Restrict)
+  coSupervisors ResearchCoSupervisor[]
+  meetings    ResearchSupervisionMeeting[]
+
+  @@index([studentId])
+  @@index([supervisorId])
+  @@index([status])
+}
+
+model ResearchCoSupervisor {
+  id             String @id @default(cuid())
+  supervisionId  String
+  staffId        String
+
+  supervision ResearchSupervision @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
+  staff       StaffProfile        @relation("ResearchCoSupervisorStaff", fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([supervisionId, staffId])
+  @@index([supervisionId])
+  @@index([staffId])
+}
+
+model ResearchSupervisionMeeting {
+  id            String   @id @default(cuid())
+  supervisionId String
+  meetingDate   DateTime @default(now())
+  notes         String
+  createdAt     DateTime @default(now())
+
+  supervision ResearchSupervision @relation(fields: [supervisionId], references: [id], onDelete: Cascade)
+
+  @@index([supervisionId])
+}
+
+model ResearchGrant {
+  id              String              @id @default(cuid())
+  projectId       String
+  fundingSource   String
+  amountRequested Decimal?            @db.Decimal(12, 2)
+  amountAwarded   Decimal?            @db.Decimal(12, 2)
+  currency        String              @default("USD")
+  status          ResearchGrantStatus @default(APPLIED)
+  appliedAt       DateTime            @default(now())
+  decidedAt       DateTime?
+  closedAt        DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  project ResearchProject       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reports ResearchGrantReport[]
+
+  @@index([projectId])
+  @@index([status])
+}
+
+model ResearchGrantReport {
+  id         String   @id @default(cuid())
+  grantId    String
+  reportDate DateTime @default(now())
+  notes      String
+  createdAt  DateTime @default(now())
+
+  grant ResearchGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+
+  @@index([grantId])
+}
+
+// Strict permissions: only the Research role holder and Admin/
+// SUPER_ADMIN may ever view/create/resolve these records (enforced in
+// app/api/research/integrity routes, not at the database layer).
+model ResearchIntegrityCase {
+  id                 String                       @id @default(cuid())
+  projectId          String?
+  publicationId      String?
+  concernType        ResearchIntegrityConcernType
+  description        String
+  reportedById       String
+  status             ResearchIntegrityCaseStatus  @default(REPORTED)
+  investigationNotes String?
+  outcome            String?
+  isConfidential     Boolean                      @default(true)
+  resolvedById       String?
+  resolvedAt         DateTime?
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+
+  project     ResearchProject?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  publication ResearchPublication? @relation(fields: [publicationId], references: [id], onDelete: SetNull)
+  reportedBy  StaffProfile         @relation("ResearchIntegrityCaseReporter", fields: [reportedById], references: [id], onDelete: Restrict)
+  resolvedBy  StaffProfile?        @relation("ResearchIntegrityCaseResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([publicationId])
+  @@index([reportedById])
+  @@index([status])
 }

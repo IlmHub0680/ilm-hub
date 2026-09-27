@@ -1,0 +1,1158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Book {
+  id            String       @id @default(cuid())
+  titleEn       String
+  titleAr       String
+  slug          String       @unique
+  descriptionEn String
+  descriptionAr String
+  priceUSD      Decimal      @db.Decimal(10, 2)
+  coverImageUrl String
+  r2FileKey     String
+  isFeatured    Boolean      @default(false)
+  isNewRelease  Boolean      @default(true)
+  categoryId    String
+  authorId      String?
+  createdAt     DateTime     @default(now())
+  sellerId      String?
+  status        BookStatus   @default(PENDING_REVIEW)
+  updatedAt     DateTime     @default(now()) @updatedAt
+  author        User?        @relation("BookAuthor", fields: [authorId], references: [id])
+  category      Category     @relation(fields: [categoryId], references: [id])
+  seller        User?        @relation("BookSeller", fields: [sellerId], references: [id])
+  bookAccess    BookAccess[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+
+  @@index([authorId])
+  @@index([sellerId])
+  @@index([categoryId])
+  @@index([status])
+}
+
+model Order {
+  id              String          @id @default(cuid())
+  orderNumber     String          @unique
+  userId          String
+  totalUSD        Decimal         @db.Decimal(10, 2)
+  paidAmount      Decimal         @db.Decimal(10, 2)
+  currencyCode    String
+  exchangeRate    Decimal         @db.Decimal(12, 6)
+  status          OrderStatus     @default(ORDER_PLACED)
+  paymentMethod   PaymentMethod
+  paymentRef      String?         @unique
+  paymentProofUrl String?
+  rejectionReason String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  approvedAt      DateTime?
+  paidAt          DateTime?
+  paymentGateway  PaymentGateway?
+  paymentStatus   PaymentStatus   @default(PENDING)
+  rejectedAt      DateTime?
+  bookAccess      BookAccess[]
+  downloads       DownloadLog[]
+  user            User            @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+  payments        Payment[]
+  receipt         Receipt?
+
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([paymentGateway])
+  @@index([createdAt])
+}
+
+model Payment {
+  id                String         @id @default(cuid())
+  orderId           String
+  gateway           PaymentGateway
+  method            PaymentMethod
+  status            PaymentStatus  @default(PENDING)
+  amount            Decimal        @db.Decimal(10, 2)
+  currencyCode      String
+  exchangeRate      Decimal        @db.Decimal(12, 6)
+  gatewayReference  String?
+  checkoutReference String?
+  transactionId     String?
+  authorizationUrl  String?
+  paidAt            DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  order             Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([gateway])
+  @@index([status])
+  @@index([gatewayReference])
+  @@index([transactionId])
+}
+
+model OrderItem {
+  id       String  @id @default(cuid())
+  orderId  String
+  bookId   String
+  priceUSD Decimal @db.Decimal(10, 2)
+  quantity Int     @default(1)
+  book     Book    @relation(fields: [bookId], references: [id])
+  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([bookId])
+}
+
+model BookAccess {
+  id         String    @id @default(cuid())
+  userId     String
+  bookId     String
+  orderId    String
+  approvedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  book       Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId, orderId])
+  @@index([userId])
+  @@index([bookId])
+  @@index([orderId])
+}
+
+model Cart {
+  id        String     @id
+  userId    String     @unique
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
+  id       String @id
+  cartId   String
+  bookId   String
+  quantity Int    @default(1)
+  book     Book   @relation(fields: [bookId], references: [id])
+  cart     Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, bookId])
+  @@index([cartId])
+  @@index([bookId])
+}
+
+model Category {
+  id      String    @id
+  nameEn  String
+  nameAr  String
+  slug    String    @unique
+  books   Book[]
+  courses Course[]
+  Program Program[]
+}
+
+model Country {
+  id             String        @id
+  code           String        @unique
+  name           String
+  currencyCode   String
+  currencySymbol String
+  exchangeRate   ExchangeRate?
+  users          User[]
+}
+
+model ExchangeRate {
+  id           String   @id
+  currencyCode String   @unique
+  rateToUSD    Decimal  @db.Decimal(12, 6)
+  updatedAt    DateTime
+  countryId    String   @unique
+  country      Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+}
+
+model Course {
+  id                String             @id
+  titleEn           String
+  titleAr           String
+  slug              String             @unique
+  descriptionEn     String
+  descriptionAr     String
+  isPaid            Boolean            @default(false)
+  priceUSD          Decimal            @default(0.00) @db.Decimal(10, 2)
+  thumbnailUrl      String
+  isPublished       Boolean            @default(false)
+  categoryId        String
+  createdAt         DateTime           @default(now())
+  courseCode        String             @unique
+  programId         String?
+  category          Category           @relation(fields: [categoryId], references: [id])
+  Program           Program?           @relation(fields: [programId], references: [id])
+  sections          CourseSection[]
+  enrollments       Enrollment[]
+  Exam              Exam[]
+  Grade             Grade[]
+  instructorCourses InstructorCourse[]
+
+  @@index([categoryId])
+  @@index([programId])
+}
+
+model InstructorCourse {
+  id           String   @id @default(cuid())
+  instructorId String
+  courseId     String
+  createdAt    DateTime @default(now())
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  instructor   User     @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+
+  @@unique([instructorId, courseId])
+  @@index([instructorId])
+  @@index([courseId])
+}
+
+model CourseProgress {
+  id          String   @id
+  userId      String
+  lectureId   String
+  isCompleted Boolean  @default(true)
+  completedAt DateTime @default(now())
+  lecture     Lecture  @relation(fields: [lectureId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lectureId])
+  @@index([userId])
+  @@index([lectureId])
+}
+
+model CourseSection {
+  id       String    @id
+  titleEn  String
+  titleAr  String
+  order    Int
+  courseId String
+  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lectures Lecture[]
+
+  @@index([courseId])
+}
+
+model Lecture {
+  id            String           @id
+  titleEn       String
+  titleAr       String
+  mediaType     MediaType        @default(VIDEO)
+  mediaUrl      String
+  durationSec   Int              @default(0)
+  isFreePreview Boolean          @default(false)
+  order         Int
+  sectionId     String
+  progress      CourseProgress[]
+  section       CourseSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+}
+
+model DownloadLog {
+  id           String   @id
+  userId       String
+  orderId      String
+  bookId       String
+  downloadedAt DateTime @default(now())
+  ipAddress    String
+  order        Order    @relation(fields: [orderId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([bookId])
+}
+
+model Enrollment {
+  id        String       @id
+  userId    String
+  courseId  String
+  status    AccessStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  course    Course       @relation(fields: [courseId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+model ManuscriptRevision {
+  id           String               @id
+  submissionId String
+  fileUrl      String
+  notes        String?
+  createdAt    DateTime             @default(now())
+  submission   ManuscriptSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+}
+
+model ManuscriptSubmission {
+  id             String               @id
+  authorId       String
+  title          String
+  genre          String
+  description    String
+  manuscriptUrl  String
+  services       String[]
+  status         SubmissionStatus     @default(SUBMITTED)
+  quoteAmount    Float?
+  quoteDetails   String?
+  assignedEditor String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  revisions      ManuscriptRevision[]
+  author         User                 @relation(fields: [authorId], references: [id])
+
+  @@index([authorId])
+  @@index([status])
+}
+
+model NewsletterCampaign {
+  id       String   @id
+  subject  String
+  content  String
+  category String
+  sentAt   DateTime @default(now())
+}
+
+model NewsletterSubscriber {
+  id           String   @id
+  email        String   @unique
+  isActive     Boolean  @default(true)
+  subscribedAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model Receipt {
+  id        String   @id
+  receiptNo String   @unique
+  orderId   String   @unique
+  pdfUrl    String
+  issuedAt  DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model AdmissionFeeSettings {
+  id                  String   @id @default(cuid())
+  juniorGhana         Decimal  @db.Decimal(10, 2)
+  seniorGhana         Decimal  @db.Decimal(10, 2)
+  matureGhana         Decimal  @db.Decimal(10, 2)
+  juniorInternational Decimal  @db.Decimal(10, 2)
+  seniorInternational Decimal  @db.Decimal(10, 2)
+  matureInternational Decimal  @db.Decimal(10, 2)
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
+}
+
+model AdmissionApplication {
+  id                    String                 @id @default(cuid())
+  applicationNumber     String                 @unique
+  email                 String
+  passwordHash          String?
+  fullName              String
+  dateOfBirth           DateTime
+  gender                String
+  nationality           String
+  countryOfResidence    String
+  phoneNumber           String
+  idNumber              String
+  residentialAddress    String
+  applicantCategory     String
+  guardianName          String
+  guardianPhone         String
+  guardianRelationship  String
+  emergencyName         String
+  emergencyPhone        String
+  emergencyRelationship String
+  highestEducation      String
+  institutionName       String
+  programId             String?
+  programName           String?
+  programLevel          String?
+  studySession          String
+  identityDocType       String
+  identityDocumentUrl   String?
+  passportPictureUrl    String?
+  transcriptsUrl        String?
+  certificateUrl        String?
+  testimonialUrl        String?
+  recommendationUrl     String?
+  admissionFee          Decimal                @db.Decimal(10, 2)
+  currencyCode          String
+  feeBasis              String
+  status                StudentAdmissionStatus @default(PENDING_PAYMENT)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  paidAt                DateTime?
+  admissionType         AdmissionType          @default(PROGRAM)
+  Program               Program?               @relation(fields: [programId], references: [id], onDelete: Restrict)
+  payment               AdmissionPayment?
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@index([countryOfResidence])
+  @@index([programId])
+}
+
+model AdmissionPayment {
+  id                String               @id @default(cuid())
+  applicationId     String               @unique
+  gateway           PaymentGateway
+  method            PaymentMethod
+  status            PaymentStatus        @default(PENDING)
+  amount            Decimal              @db.Decimal(10, 2)
+  currencyCode      String
+  gatewayReference  String?
+  checkoutReference String?
+  transactionId     String?
+  authorizationUrl  String?
+  paidAt            DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  application       AdmissionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([gateway])
+  @@index([status])
+  @@index([gatewayReference])
+  @@index([transactionId])
+}
+
+model User {
+  id                String                 @id
+  name              String
+  email             String                 @unique
+  emailVerified     DateTime?
+  passwordHash      String
+  role              Role                   @default(USER)
+  authorStatus      AuthorStatus           @default(PENDING)
+  preferredLanguage Language               @default(EN)
+  countryId         String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  Announcement      Announcement[]
+  authorAdmission   AuthorAdmission?
+  books             Book[]                 @relation("BookAuthor")
+  soldBooks         Book[]                 @relation("BookSeller")
+  bookAccess        BookAccess[]
+  cart              Cart?
+  courseProgress    CourseProgress[]
+  downloads         DownloadLog[]
+  enrollments       Enrollment[]
+  Grade             Grade[]
+  instructorCourses InstructorCourse[]
+  manuscripts       ManuscriptSubmission[]
+  notifications     Notification[]
+  orders            Order[]
+  StaffProfile      StaffProfile?
+  StudentProfile    StudentProfile?
+  country           Country?               @relation(fields: [countryId], references: [id])
+
+  @@index([countryId])
+  @@index([role])
+}
+
+model AuthorAdmission {
+  id        String          @id @default(cuid())
+  userId    String          @unique
+  status    AdmissionStatus @default(PENDING)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment   AuthorPayment?
+}
+
+model AuthorPayment {
+  id                String          @id @default(cuid())
+  admissionId       String          @unique
+  gateway           PaymentGateway
+  status            PaymentStatus   @default(PENDING)
+  amount            Decimal         @db.Decimal(10, 2)
+  currencyCode      String
+  exchangeRate      Decimal         @db.Decimal(12, 6)
+  gatewayReference  String?
+  checkoutReference String?
+  checkoutUrl       String?
+  paidAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  admission         AuthorAdmission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+
+  @@index([gateway])
+  @@index([status])
+  @@index([gatewayReference])
+}
+
+model AcademicSession {
+  id           String         @id
+  name         String         @unique
+  startDate    DateTime
+  endDate      DateTime
+  isCurrent    Boolean        @default(false)
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  AcademicTerm AcademicTerm[]
+
+  @@index([isActive])
+  @@index([isCurrent])
+}
+
+model AcademicTerm {
+  id              String          @id
+  sessionId       String
+  name            String
+  code            String
+  startDate       DateTime
+  endDate         DateTime
+  isCurrent       Boolean         @default(false)
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime
+  AcademicSession AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  Exam            Exam[]
+  TermRecord      TermRecord[]
+
+  @@unique([sessionId, code])
+  @@index([isActive])
+  @@index([isCurrent])
+  @@index([sessionId])
+}
+
+model AdvisorMessage {
+  id         String        @id
+  studentId  String
+  senderRole MessageSender
+  message    String
+  isRead     Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+
+  @@index([isRead])
+  @@index([studentId])
+}
+
+model Announcement {
+  id           String            @id
+  titleEn      String
+  titleAr      String
+  bodyEn       String
+  bodyAr       String
+  scope        AnnouncementScope
+  facultyId    String?
+  departmentId String?
+  programId    String?
+  courseId     String?
+  createdById  String
+  isActive     Boolean           @default(true)
+  publishedAt  DateTime          @default(now())
+  expiresAt    DateTime?
+  User         User              @relation(fields: [createdById], references: [id])
+
+  @@index([courseId])
+  @@index([departmentId])
+  @@index([facultyId])
+  @@index([isActive])
+  @@index([programId])
+  @@index([scope])
+}
+
+model Assignment {
+  id          String   @id
+  courseId    String
+  title       String
+  description String?
+  dueDate     DateTime
+  maxScore    Float    @default(100)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+
+  @@index([courseId])
+}
+
+model Attendance {
+  id           String   @id
+  studentId    String
+  courseId     String
+  totalClasses Int      @default(0)
+  attended     Int      @default(0)
+  absent       Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+
+  @@unique([studentId, courseId])
+  @@index([courseId])
+  @@index([studentId])
+}
+
+model Department {
+  id                                                 String           @id
+  facultyId                                          String
+  nameEn                                             String
+  nameAr                                             String
+  code                                               String           @unique
+  description                                        String?
+  isActive                                           Boolean          @default(true)
+  headId                                             String?          @unique
+  createdAt                                          DateTime         @default(now())
+  updatedAt                                          DateTime
+  Faculty                                            Faculty          @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  StaffProfile_Department_headIdToStaffProfile       StaffProfile?    @relation("Department_headIdToStaffProfile", fields: [headId], references: [id])
+  Program                                            Program[]
+  StaffProfile_StaffProfile_departmentIdToDepartment StaffProfile[]   @relation("StaffProfile_departmentIdToDepartment")
+  StudentProfile                                     StudentProfile[]
+
+  @@index([facultyId])
+  @@index([headId])
+  @@index([isActive])
+}
+
+model Exam {
+  id           String       @id
+  courseId     String
+  termId       String
+  examType     ExamType
+  scheduledAt  DateTime
+  durationMin  Int
+  venue        String?
+  maxScore     Float        @default(100)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime
+  Course       Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  AcademicTerm AcademicTerm @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([examType])
+  @@index([termId])
+}
+
+model Faculty {
+  id                                           String           @id
+  nameEn                                       String
+  nameAr                                       String
+  code                                         String           @unique
+  description                                  String?
+  isActive                                     Boolean          @default(true)
+  deanId                                       String?          @unique
+  createdAt                                    DateTime         @default(now())
+  updatedAt                                    DateTime
+  Department                                   Department[]
+  StaffProfile_Faculty_deanIdToStaffProfile    StaffProfile?    @relation("Faculty_deanIdToStaffProfile", fields: [deanId], references: [id])
+  Program                                      Program[]
+  StaffProfile_StaffProfile_facultyIdToFaculty StaffProfile[]   @relation("StaffProfile_facultyIdToFaculty")
+  StudentProfile                               StudentProfile[]
+
+  @@index([deanId])
+  @@index([isActive])
+}
+
+model Grade {
+  id         String   @id
+  studentId  String
+  courseId   String
+  quiz1      Float?
+  quiz2      Float?
+  assignment Float?
+  midterm    Float?
+  final      Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  Course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+  @@index([courseId])
+  @@index([studentId])
+}
+
+model Position {
+  id                 String               @id
+  nameEn             String               @unique
+  nameAr             String
+  code               String               @unique
+  description        String?
+  isAcademic         Boolean              @default(false)
+  isActive           Boolean              @default(true)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  PositionPermission PositionPermission[]
+  StaffProfile       StaffProfile[]
+
+  @@index([isAcademic])
+  @@index([isActive])
+}
+
+model PositionPermission {
+  id         String   @id
+  positionId String
+  module     Module
+  canView    Boolean  @default(true)
+  canEdit    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  Position   Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, module])
+  @@index([module])
+  @@index([positionId])
+}
+
+model Program {
+  id                   String                 @id
+  departmentId         String
+  facultyId            String
+  categoryId           String?
+  coordinatorId        String?
+  nameEn               String
+  nameAr               String
+  code                 String                 @unique
+  descriptionEn        String?
+  descriptionAr        String?
+  level                ProgramLevel
+  durationYears        Int?
+  isActive             Boolean                @default(true)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime
+  AdmissionApplication AdmissionApplication[]
+  Course               Course[]
+  Category             Category?              @relation(fields: [categoryId], references: [id])
+  StaffProfile         StaffProfile?          @relation(fields: [coordinatorId], references: [id])
+  Department           Department             @relation(fields: [departmentId], references: [id])
+  Faculty              Faculty                @relation(fields: [facultyId], references: [id])
+  StudentProfile       StudentProfile[]
+
+  @@index([categoryId])
+  @@index([coordinatorId])
+  @@index([departmentId])
+  @@index([facultyId])
+  @@index([isActive])
+  @@index([level])
+}
+
+model Request {
+  id              String           @id
+  studentId       String
+  type            RequestType
+  status          RequestStatus    @default(SUBMITTED)
+  details         String
+  attachmentUrl   String?
+  assignedUnitId  String?
+  assignedStaffId String?
+  responseNote    String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime
+  resolvedAt      DateTime?
+  StaffProfile    StaffProfile?    @relation(fields: [assignedStaffId], references: [id])
+  Unit            Unit?            @relation(fields: [assignedUnitId], references: [id])
+  StudentProfile  StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  TranscriptIssue TranscriptIssue?
+
+  @@index([assignedStaffId])
+  @@index([assignedUnitId])
+  @@index([status])
+  @@index([studentId])
+  @@index([type])
+}
+
+model StaffProfile {
+  id                                               String           @id
+  userId                                           String           @unique
+  facultyId                                        String?
+  departmentId                                     String?
+  positionId                                       String
+  employeeNo                                       String           @unique
+  title                                            String?
+  isActive                                         Boolean          @default(true)
+  joinedAt                                         DateTime?
+  createdAt                                        DateTime         @default(now())
+  updatedAt                                        DateTime
+  unitId                                           String?
+  Department_Department_headIdToStaffProfile       Department?      @relation("Department_headIdToStaffProfile")
+  Faculty_Faculty_deanIdToStaffProfile             Faculty?         @relation("Faculty_deanIdToStaffProfile")
+  Program                                          Program[]
+  Request                                          Request[]
+  Department_StaffProfile_departmentIdToDepartment Department?      @relation("StaffProfile_departmentIdToDepartment", fields: [departmentId], references: [id])
+  Faculty_StaffProfile_facultyIdToFaculty          Faculty?         @relation("StaffProfile_facultyIdToFaculty", fields: [facultyId], references: [id])
+  Position                                         Position         @relation(fields: [positionId], references: [id])
+  Unit_StaffProfile_unitIdToUnit                   Unit?            @relation("StaffProfile_unitIdToUnit", fields: [unitId], references: [id])
+  User                                             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  StudentProfile                                   StudentProfile[]
+  Unit_Unit_headIdToStaffProfile                   Unit?            @relation("Unit_headIdToStaffProfile")
+
+  @@index([departmentId])
+  @@index([facultyId])
+  @@index([isActive])
+  @@index([positionId])
+  @@index([unitId])
+}
+
+model StudentFee {
+  id        String    @id
+  studentId String
+  termId    String?
+  feeType   String
+  amountUSD Float
+  paidUSD   Float     @default(0)
+  status    FeeStatus @default(PENDING)
+  dueDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+}
+
+model StudentProfile {
+  id                String            @id
+  userId            String            @unique
+  studentNo         String            @unique
+  facultyId         String?
+  departmentId      String?
+  programId         String?
+  level             Int?
+  admissionYear     Int?
+  studySession      String?
+  status            StudentStatus     @default(ACTIVE)
+  academicAdvisorId String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime
+  Request           Request[]
+  StaffProfile      StaffProfile?     @relation(fields: [academicAdvisorId], references: [id])
+  Department        Department?       @relation(fields: [departmentId], references: [id])
+  Faculty           Faculty?          @relation(fields: [facultyId], references: [id])
+  Program           Program?          @relation(fields: [programId], references: [id])
+  User              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  TermRecord        TermRecord[]
+  TranscriptIssue   TranscriptIssue[]
+
+  @@index([academicAdvisorId])
+  @@index([departmentId])
+  @@index([facultyId])
+  @@index([programId])
+  @@index([status])
+}
+
+model Submission {
+  id           String                     @id
+  assignmentId String
+  studentId    String
+  fileUrl      String?
+  status       AssignmentSubmissionStatus @default(PENDING)
+  score        Float?
+  feedback     String?
+  submittedAt  DateTime?
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime
+
+  @@unique([assignmentId, studentId])
+  @@index([status])
+  @@index([studentId])
+}
+
+model TermRecord {
+  id               String           @id
+  studentId        String
+  termId           String
+  gpa              Float
+  creditsAttempted Int
+  creditsEarned    Int
+  standing         AcademicStanding @default(GOOD_STANDING)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime
+  StudentProfile   StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  AcademicTerm     AcademicTerm     @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, termId])
+  @@index([studentId])
+  @@index([termId])
+}
+
+model TranscriptIssue {
+  id             String         @id
+  studentId      String
+  requestId      String?        @unique
+  pdfUrl         String
+  cumulative     Float
+  issuedAt       DateTime       @default(now())
+  Request        Request?       @relation(fields: [requestId], references: [id])
+  StudentProfile StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+}
+
+model TutoringRequest {
+  id                String         @id
+  studentId         String
+  courseId          String
+  instructorStaffId String?
+  preferredSchedule String?
+  notes             String?
+  status            TutoringStatus @default(PENDING)
+  feeUSD            Float?
+  isPaid            Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime
+
+  @@index([courseId])
+  @@index([instructorStaffId])
+  @@index([status])
+  @@index([studentId])
+}
+
+model Unit {
+  id                                     String         @id
+  type                                   UnitType
+  nameEn                                 String
+  nameAr                                 String
+  code                                   String         @unique
+  description                            String?
+  headId                                 String?        @unique
+  isActive                               Boolean        @default(true)
+  createdAt                              DateTime       @default(now())
+  updatedAt                              DateTime
+  Request                                Request[]
+  StaffProfile_StaffProfile_unitIdToUnit StaffProfile[] @relation("StaffProfile_unitIdToUnit")
+  StaffProfile_Unit_headIdToStaffProfile StaffProfile?  @relation("Unit_headIdToStaffProfile", fields: [headId], references: [id])
+
+  @@index([isActive])
+  @@index([type])
+}
+
+enum StudentAdmissionStatus {
+  PENDING_PAYMENT
+  PAID
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum BookStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  PUBLISHED
+  DRAFT
+}
+
+enum OrderStatus {
+  ORDER_PLACED
+  PAYMENT_SUBMITTED
+  UNDER_REVIEW
+  PENDING_ADMIN_APPROVAL
+  APPROVED
+  ACTIVATED
+  COMPLETED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum PaymentGateway {
+  STRIPE
+  PAYSTACK
+}
+
+enum AccessStatus {
+  PENDING
+  APPROVED
+  REVOKED
+}
+
+enum AuthorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AdmissionStatus {
+  PENDING
+  PAID
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum Language {
+  EN
+  AR
+}
+
+enum MediaType {
+  VIDEO
+  AUDIO
+}
+
+enum PaymentMethod {
+  MTN_MOBILE_MONEY
+  TELECEL_CASH
+  AIRTEL_TIGO_MONEY
+  VISA
+  MASTERCARD
+  BANK_TRANSFER
+}
+
+enum Role {
+  USER
+  AUTHOR
+  ADMIN
+  SUPER_ADMIN
+  STUDENT
+  INSTRUCTOR
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  QUOTE_GENERATED
+  QUOTE_ACCEPTED
+  IN_PRODUCTION
+  PUBLISHED
+  REJECTED
+}
+
+enum AcademicStanding {
+  GOOD_STANDING
+  DEANS_LIST
+  PROBATION
+  SUSPENDED
+}
+
+enum AdmissionType {
+  PROGRAM
+  PRIVATE_COURSE
+}
+
+enum AnnouncementScope {
+  INSTITUTION
+  FACULTY
+  DEPARTMENT
+  PROGRAM
+  COURSE
+}
+
+enum AssignmentSubmissionStatus {
+  PENDING
+  SUBMITTED
+  LATE
+  GRADED
+}
+
+enum ExamType {
+  QUIZ
+  MIDTERM
+  FINAL
+  MAKEUP
+}
+
+enum FeeStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+enum MessageSender {
+  STUDENT
+  ADVISOR
+}
+
+enum Module {
+  STUDENT_MATTERS
+  ACADEMIC_RECORDS
+  FACULTY_MATTERS
+  DEPARTMENT_MATTERS
+  PROGRAM_MATTERS
+  COURSES_GRADES
+  EXAMINATIONS
+  FINANCE_FEES
+  LIBRARY_OPS
+  ICT_OPS
+  ADMISSIONS
+  QUALITY_ASSURANCE
+  OTHER_ADMIN
+}
+
+enum ProgramLevel {
+  CERTIFICATE
+  DIPLOMA
+  UNDERGRADUATE
+  POSTGRADUATE
+  MASTERS
+  DOCTORATE
+  SHORT_COURSE
+}
+
+enum RequestStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum RequestType {
+  TRANSCRIPT
+  LEAVE_OF_ABSENCE
+  DEFERMENT
+  COURSE_ADD_DROP
+  LETTER_CONFIRMATION
+  GRADE_APPEAL
+  OTHER
+}
+
+enum StudentStatus {
+  APPLICANT
+  ADMITTED
+  ACTIVE
+  SUSPENDED
+  DEFERRED
+  GRADUATED
+  WITHDRAWN
+  DISMISSED
+}
+
+enum TutoringStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum UnitType {
+  RECTORATE
+  REGISTRAR
+  ACADEMIC_ADMINISTRATION
+  REGISTRY_ADMISSIONS
+  EXAMINATIONS_RECORDS
+  STUDENT_AFFAIRS
+  FINANCE
+  LIBRARY
+  QUALITY_ASSURANCE
+  ICT
+  OTHER
+}

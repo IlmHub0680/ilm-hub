@@ -1,0 +1,566 @@
+-- ============================================================
+-- Restore institutional academic structure
+--
+-- Faculty
+--   -> Department
+--       -> Program
+--           -> Course
+--
+-- Staff structure:
+-- User -> StaffProfile -> Position
+--
+-- Admissions:
+-- formal programmes use Program;
+-- private-course admissions use admissionType=PRIVATE_COURSE
+-- and have no programId.
+-- ============================================================
+
+-- ============================================================
+-- 1. ProgramLevel enum
+-- ============================================================
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type
+    WHERE typname = 'ProgramLevel'
+  ) THEN
+    CREATE TYPE "ProgramLevel" AS ENUM (
+      'CERTIFICATE',
+      'DIPLOMA',
+      'UNDERGRADUATE',
+      'POSTGRADUATE',
+      'MASTERS',
+      'DOCTORATE',
+      'SHORT_COURSE'
+    );
+  END IF;
+END
+$$;
+
+-- ============================================================
+-- 2. Position
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS "Position" (
+    "id" TEXT NOT NULL,
+    "nameEn" TEXT NOT NULL,
+    "nameAr" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "isAcademic" BOOLEAN NOT NULL DEFAULT false,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Position_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Position_nameEn_key"
+ON "Position"("nameEn");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Position_code_key"
+ON "Position"("code");
+
+CREATE INDEX IF NOT EXISTS "Position_isAcademic_idx"
+ON "Position"("isAcademic");
+
+CREATE INDEX IF NOT EXISTS "Position_isActive_idx"
+ON "Position"("isActive");
+
+-- ============================================================
+-- 3. Faculty
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS "Faculty" (
+    "id" TEXT NOT NULL,
+    "nameEn" TEXT NOT NULL,
+    "nameAr" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "deanId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Faculty_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Faculty_code_key"
+ON "Faculty"("code");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Faculty_deanId_key"
+ON "Faculty"("deanId");
+
+CREATE INDEX IF NOT EXISTS "Faculty_isActive_idx"
+ON "Faculty"("isActive");
+
+CREATE INDEX IF NOT EXISTS "Faculty_deanId_idx"
+ON "Faculty"("deanId");
+
+-- ============================================================
+-- 4. Department
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS "Department" (
+    "id" TEXT NOT NULL,
+    "facultyId" TEXT NOT NULL,
+    "nameEn" TEXT NOT NULL,
+    "nameAr" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "headId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Department_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Department_code_key"
+ON "Department"("code");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Department_headId_key"
+ON "Department"("headId");
+
+CREATE INDEX IF NOT EXISTS "Department_facultyId_idx"
+ON "Department"("facultyId");
+
+CREATE INDEX IF NOT EXISTS "Department_isActive_idx"
+ON "Department"("isActive");
+
+CREATE INDEX IF NOT EXISTS "Department_headId_idx"
+ON "Department"("headId");
+
+-- ============================================================
+-- 5. Program
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS "Program" (
+    "id" TEXT NOT NULL,
+    "departmentId" TEXT NOT NULL,
+    "facultyId" TEXT NOT NULL,
+    "categoryId" TEXT,
+    "coordinatorId" TEXT,
+    "nameEn" TEXT NOT NULL,
+    "nameAr" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "descriptionEn" TEXT,
+    "descriptionAr" TEXT,
+    "level" "ProgramLevel" NOT NULL,
+    "durationYears" INTEGER,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Program_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Program_code_key"
+ON "Program"("code");
+
+CREATE INDEX IF NOT EXISTS "Program_facultyId_idx"
+ON "Program"("facultyId");
+
+CREATE INDEX IF NOT EXISTS "Program_departmentId_idx"
+ON "Program"("departmentId");
+
+CREATE INDEX IF NOT EXISTS "Program_categoryId_idx"
+ON "Program"("categoryId");
+
+CREATE INDEX IF NOT EXISTS "Program_coordinatorId_idx"
+ON "Program"("coordinatorId");
+
+CREATE INDEX IF NOT EXISTS "Program_level_idx"
+ON "Program"("level");
+
+CREATE INDEX IF NOT EXISTS "Program_isActive_idx"
+ON "Program"("isActive");
+
+-- ============================================================
+-- 6. StaffProfile
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS "StaffProfile" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "facultyId" TEXT,
+    "departmentId" TEXT,
+    "positionId" TEXT NOT NULL,
+    "employeeNo" TEXT NOT NULL,
+    "title" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "joinedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "StaffProfile_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "StaffProfile_userId_key"
+ON "StaffProfile"("userId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "StaffProfile_employeeNo_key"
+ON "StaffProfile"("employeeNo");
+
+CREATE INDEX IF NOT EXISTS "StaffProfile_facultyId_idx"
+ON "StaffProfile"("facultyId");
+
+CREATE INDEX IF NOT EXISTS "StaffProfile_departmentId_idx"
+ON "StaffProfile"("departmentId");
+
+CREATE INDEX IF NOT EXISTS "StaffProfile_positionId_idx"
+ON "StaffProfile"("positionId");
+
+CREATE INDEX IF NOT EXISTS "StaffProfile_isActive_idx"
+ON "StaffProfile"("isActive");
+
+-- ============================================================
+-- 7. Academic hierarchy foreign keys
+-- ============================================================
+
+ALTER TABLE "Department"
+ADD CONSTRAINT "Department_facultyId_fkey"
+FOREIGN KEY ("facultyId")
+REFERENCES "Faculty"("id")
+ON DELETE CASCADE
+ON UPDATE CASCADE;
+
+ALTER TABLE "Program"
+ADD CONSTRAINT "Program_facultyId_fkey"
+FOREIGN KEY ("facultyId")
+REFERENCES "Faculty"("id")
+ON DELETE RESTRICT
+ON UPDATE CASCADE;
+
+ALTER TABLE "Program"
+ADD CONSTRAINT "Program_departmentId_fkey"
+FOREIGN KEY ("departmentId")
+REFERENCES "Department"("id")
+ON DELETE RESTRICT
+ON UPDATE CASCADE;
+
+-- ============================================================
+-- 8. Staff foreign keys
+-- ============================================================
+
+ALTER TABLE "StaffProfile"
+ADD CONSTRAINT "StaffProfile_userId_fkey"
+FOREIGN KEY ("userId")
+REFERENCES "User"("id")
+ON DELETE CASCADE
+ON UPDATE CASCADE;
+
+ALTER TABLE "StaffProfile"
+ADD CONSTRAINT "StaffProfile_positionId_fkey"
+FOREIGN KEY ("positionId")
+REFERENCES "Position"("id")
+ON DELETE RESTRICT
+ON UPDATE CASCADE;
+
+ALTER TABLE "StaffProfile"
+ADD CONSTRAINT "StaffProfile_facultyId_fkey"
+FOREIGN KEY ("facultyId")
+REFERENCES "Faculty"("id")
+ON DELETE SET NULL
+ON UPDATE CASCADE;
+
+ALTER TABLE "StaffProfile"
+ADD CONSTRAINT "StaffProfile_departmentId_fkey"
+FOREIGN KEY ("departmentId")
+REFERENCES "Department"("id")
+ON DELETE SET NULL
+ON UPDATE CASCADE;
+
+-- ============================================================
+-- 10. Program category
+-- ============================================================
+
+ALTER TABLE "Program"
+ADD CONSTRAINT "Program_categoryId_fkey"
+FOREIGN KEY ("categoryId")
+REFERENCES "Category"("id")
+ON DELETE SET NULL
+ON UPDATE CASCADE;
+
+-- ============================================================
+-- 11. Institutional seed structure
+-- ============================================================
+
+INSERT INTO "Faculty" (
+    "id",
+    "nameEn",
+    "nameAr",
+    "code",
+    "description",
+    "isActive",
+    "createdAt",
+    "updatedAt"
+)
+VALUES (
+    'faculty-islamic-studies',
+    'Faculty of Islamic Studies',
+    'كلية الدراسات الإسلامية',
+    'FIS',
+    'Institutional faculty responsible for Islamic studies programmes.',
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+)
+ON CONFLICT ("id") DO NOTHING;
+
+INSERT INTO "Department" (
+    "id",
+    "facultyId",
+    "nameEn",
+    "nameAr",
+    "code",
+    "description",
+    "isActive",
+    "createdAt",
+    "updatedAt"
+)
+VALUES (
+    'dept-islamic-sciences',
+    'faculty-islamic-studies',
+    'Department of Islamic Sciences',
+    'قسم العلوم الإسلامية',
+    'DIS',
+    'Department responsible for the core Islamic sciences programmes.',
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+)
+ON CONFLICT ("id") DO NOTHING;
+
+-- ============================================================
+-- 12. Formal academic programmes
+-- ============================================================
+
+INSERT INTO "Program" (
+    "id",
+    "departmentId",
+    "facultyId",
+    "nameEn",
+    "nameAr",
+    "code",
+    "descriptionEn",
+    "descriptionAr",
+    "level",
+    "durationYears",
+    "isActive",
+    "createdAt",
+    "updatedAt"
+)
+VALUES
+(
+    'prog-01',
+    'dept-islamic-sciences',
+    'faculty-islamic-studies',
+    'Junior Learners Programme',
+    'برنامج المتعلمين الصغار',
+    'JLP',
+    'Foundational Islamic studies and basic literacy for young learners.',
+    'دراسات إسلامية تأسيسية ومهارات القراءة والكتابة الأساسية للمتعلمين الصغار.',
+    'CERTIFICATE',
+    1,
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+),
+(
+    'prog-02',
+    'dept-islamic-sciences',
+    'faculty-islamic-studies',
+    'Foundation Programme',
+    'البرنامج التأسيسي',
+    'FND',
+    'Core introductory Islamic jurisprudence, texts, and Quranic portions.',
+    'برنامج تمهيدي في الفقه والنصوص وأجزاء من القرآن الكريم.',
+    'CERTIFICATE',
+    1,
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+),
+(
+    'prog-03',
+    'dept-islamic-sciences',
+    'faculty-islamic-studies',
+    'Intermediate Programme',
+    'البرنامج المتوسط',
+    'INT',
+    'Intermediate Islamic studies covering Quran, Hadith, Fiqh and Aqidah.',
+    'دراسات إسلامية متوسطة تشمل القرآن والحديث والفقه والعقيدة.',
+    'CERTIFICATE',
+    1,
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+),
+(
+    'prog-04',
+    'dept-islamic-sciences',
+    'faculty-islamic-studies',
+    'Certificate Programme (Specialised Studies)',
+    'برنامج الشهادة للدراسات المتخصصة',
+    'CRT',
+    'Specialised certificate studies.',
+    'دراسات متخصصة للحصول على شهادة.',
+    'CERTIFICATE',
+    1,
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+),
+(
+    'prog-05',
+    'dept-islamic-sciences',
+    'faculty-islamic-studies',
+    'Diploma in Islamic Sciences',
+    'دبلوم العلوم الإسلامية',
+    'DIP',
+    'Comprehensive multi-year diploma in Islamic sciences.',
+    'دبلوم شامل في العلوم الإسلامية.',
+    'DIPLOMA',
+    2,
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+)
+ON CONFLICT ("id") DO UPDATE SET
+    "departmentId" = EXCLUDED."departmentId",
+    "facultyId" = EXCLUDED."facultyId",
+    "nameEn" = EXCLUDED."nameEn",
+    "nameAr" = EXCLUDED."nameAr",
+    "code" = EXCLUDED."code",
+    "descriptionEn" = EXCLUDED."descriptionEn",
+    "descriptionAr" = EXCLUDED."descriptionAr",
+    "level" = EXCLUDED."level",
+    "durationYears" = EXCLUDED."durationYears",
+    "isActive" = EXCLUDED."isActive",
+    "updatedAt" = CURRENT_TIMESTAMP;
+
+-- ============================================================
+-- 13. Admission -> Program relationship
+-- ============================================================
+
+ALTER TABLE "AdmissionApplication"
+ADD CONSTRAINT "AdmissionApplication_programId_fkey"
+FOREIGN KEY ("programId")
+REFERENCES "Program"("id")
+ON DELETE RESTRICT
+ON UPDATE CASCADE;
+
+-- ============================================================
+-- 14. Validate formal programme admissions
+--
+-- Private-course admissions may have NULL programId.
+-- Every PROGRAM admission must have a valid programme.
+-- ============================================================
+
+DO $$
+DECLARE
+    invalid_count INTEGER;
+BEGIN
+    SELECT COUNT(*)
+    INTO invalid_count
+    FROM "AdmissionApplication"
+    WHERE "admissionType" = 'PROGRAM'
+      AND "programId" IS NULL;
+
+    IF invalid_count > 0 THEN
+        RAISE EXCEPTION
+            'Migration aborted: % PROGRAM admissions have no programId.',
+            invalid_count;
+    END IF;
+END
+$$;
+
+-- ============================================================
+-- 15. Seed basic institutional positions
+-- ============================================================
+
+INSERT INTO "Position" (
+    "id",
+    "nameEn",
+    "nameAr",
+    "code",
+    "description",
+    "isAcademic",
+    "isActive",
+    "createdAt",
+    "updatedAt"
+)
+VALUES
+(
+    'position-dean',
+    'Dean',
+    'عميد',
+    'DEAN',
+    'Faculty dean.',
+    true,
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+),
+(
+    'position-head-department',
+    'Head of Department',
+    'رئيس القسم',
+    'HOD',
+    'Academic department head.',
+    true,
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+),
+(
+    'position-program-coordinator',
+    'Programme Coordinator',
+    'منسق البرنامج',
+    'PC',
+    'Academic programme coordinator.',
+    true,
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+),
+(
+    'position-instructor',
+    'Instructor',
+    'مدرس',
+    'INST',
+    'Academic instructor.',
+    true,
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+)
+ON CONFLICT ("id") DO NOTHING;
+
+-- ============================================================
+-- 17. Staff leadership/coordinator relationships
+-- ============================================================
+
+ALTER TABLE "Faculty"
+ADD CONSTRAINT "Faculty_deanId_fkey"
+FOREIGN KEY ("deanId")
+REFERENCES "StaffProfile"("id")
+ON DELETE SET NULL
+ON UPDATE CASCADE;
+
+ALTER TABLE "Department"
+ADD CONSTRAINT "Department_headId_fkey"
+FOREIGN KEY ("headId")
+REFERENCES "StaffProfile"("id")
+ON DELETE SET NULL
+ON UPDATE CASCADE;
+
+ALTER TABLE "Program"
+ADD CONSTRAINT "Program_coordinatorId_fkey"
+FOREIGN KEY ("coordinatorId")
+REFERENCES "StaffProfile"("id")
+ON DELETE SET NULL
+ON UPDATE CASCADE;

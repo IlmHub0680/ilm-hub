@@ -811,7 +811,7 @@ if (
         <div style={header}>
           <div>
             <div style={eyebrow}>
-              ILM-HUB BOOKSTORE
+              ULUL AZM BOOKSTORE
             </div>
 
             <h1 style={heading}>
@@ -1293,7 +1293,7 @@ if (
                     processed securely
                     by the selected
                     payment provider.
-                    Ilm-Hub does not
+                    Ulul Azm does not
                     store your card
                     details.
                   </p>
@@ -1348,7 +1348,7 @@ if (
               >
                 After payment, your order
                 will be reviewed by the
-                Ilm-Hub administrator.
+                Ulul Azm administrator.
                 Your book becomes
                 downloadable after approval.
               </p>

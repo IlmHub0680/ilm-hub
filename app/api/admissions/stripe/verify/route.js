@@ -124,7 +124,7 @@ export async function POST(request) {
         {
           success: false,
           error:
-            'Payment currency does not match the admission fee.',
+            'Payment currency does not match the application fee.',
         },
         409
       );
@@ -141,7 +141,7 @@ export async function POST(request) {
         {
           success: false,
           error:
-            'Payment amount does not match the admission fee.',
+            'Payment amount does not match the application fee.',
         },
         409
       );

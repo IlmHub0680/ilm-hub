@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 
 export default function NewsletterManager() {
@@ -35,12 +36,16 @@ export default function NewsletterManager() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
+      <Link href="/admin" className="inline-block mb-5 text-sm font-medium text-emerald-700 hover:text-emerald-900">
+        ← Back to Admin
+      </Link>
+
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Newsletter & Broadcast Manager</h1>
         <p className="text-gray-600">Create and dispatch email announcements to your audience.</p>
       </div>
 
-      <form onSubmit={handleSendCampaign} className="bg-white p-8 border border-gray-200 rounded-xl shadow-sm space-y-6">
+      <form onSubmit={handleSendCampaign} className="bg-white p-8 border border-gray-200 rounded-xl shadow-lg space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Campaign Subject</label>
           <input
@@ -82,7 +87,7 @@ export default function NewsletterManager() {
         <button
           type="submit"
           disabled={sending}
-          className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-md hover:bg-indigo-500 transition-colors disabled:opacity-50"
+          className="w-full bg-emerald-600 text-white font-semibold py-3 rounded-md hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-sm"
         >
           {sending ? 'Dispatching Broadcast...' : 'Send Campaign Broadcast'}
         </button>

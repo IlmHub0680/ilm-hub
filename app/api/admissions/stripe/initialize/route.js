@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
-import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
-import { getAcademicProgrammeById } from '@/lib/academic-programmes';
+import { generateApplicationNumber } from '@/lib/applicationNumber';
+import { getAdmissibleProgram } from '@/lib/academicProgram';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -97,7 +97,7 @@ async function calculateInternationalFee(dob, countryOfResidence) {
 
   if (!settings) {
     throw new Error(
-      'Admission fee settings are not configured by the administrator.'
+      'Application fee settings are not configured by the administrator.'
     );
   }
 
@@ -122,7 +122,7 @@ async function calculateInternationalFee(dob, countryOfResidence) {
 
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error(
-      'Invalid international admission fee configuration.'
+      'Invalid international application fee configuration.'
     );
   }
 
@@ -192,7 +192,7 @@ export async function POST(request) {
     }
 
     const programme =
-      getAcademicProgrammeById(programId);
+      await getAdmissibleProgram(programId);
 
     if (!programme) {
       return json(
@@ -225,93 +225,171 @@ export async function POST(request) {
         countryOfResidence
       );
 
-    const applicationNumber =
-      `ILM-${Date.now()}-${crypto
-        .randomBytes(3)
-        .toString('hex')
-        .toUpperCase()}`;
+    const existingPendingApplication =
+      await prisma.admissionApplication.findFirst({
+        where: {
+          email,
+          programId: programme.id,
+          status: 'PENDING_PAYMENT',
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
 
     /*
      * Create the admission application first.
      * The application remains PENDING_PAYMENT
      * until Stripe confirms payment.
      */
-    const application =
-      await prisma.admissionApplication.create({
-        data: {
-          applicationNumber,
-          email,
-          fullName,
-          dateOfBirth: new Date(dob),
+    const SELF_RATED_LEVELS = ['NONE', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'PROFICIENT'];
 
-          gender: body.gender || '',
-          nationality,
-          countryOfResidence,
+function normalizeSelfLevel(value) {
+  return typeof value === 'string' && SELF_RATED_LEVELS.includes(value) ? value : null;
+}
 
-          phoneNumber:
-            body.phoneNumber || '',
+    const applicationFieldsData = {
+      email,
+      fullName,
+      dateOfBirth: new Date(dob),
 
-          idNumber:
-            body.idNumber || '',
+      gender: body.gender || '',
+      nationality,
+      countryOfResidence,
 
-          residentialAddress:
-            body.residentialAddress || '',
+      phoneNumber:
+        body.phoneNumber || '',
 
-          applicantCategory:
-            body.applicantCategory ||
-            fee.learnerCategory,
+      idNumber:
+        body.idNumber || '',
 
-          guardianName:
-            body.guardianName || '',
+      residentialAddress:
+        body.residentialAddress || '',
 
-          guardianPhone:
-            body.guardianPhone || '',
+      applicantCategory:
+        body.applicantCategory ||
+        fee.learnerCategory,
 
-          guardianRelationship:
-            body.guardianRelationship || '',
+      guardianName:
+        body.guardianName || '',
 
-          emergencyName:
-            body.emergencyName || '',
+      guardianPhone:
+        body.guardianPhone || '',
 
-          emergencyPhone:
-            body.emergencyPhone || '',
+      guardianRelationship:
+        body.guardianRelationship || '',
 
-          emergencyRelationship:
-            body.emergencyRelationship || '',
+      emergencyName:
+        body.emergencyName || '',
 
-          highestEducation:
-            body.highestEducation || '',
+      emergencyPhone:
+        body.emergencyPhone || '',
 
-          institutionName:
-            body.institutionName || '',
+      emergencyRelationship:
+        body.emergencyRelationship || '',
 
-          programId:
-            programme.id,
+      highestEducation:
+        body.highestEducation || '',
 
-          programName:
-            programme.name,
+      institutionName:
+        body.institutionName || '',
 
-          programLevel:
-            programme.level,
+      programId:
+        programme.id,
 
-          studySession,
+      programName:
+        programme.name,
 
-          identityDocType:
-            body.identityDocType || '',
+      programLevel:
+        programme.level,
 
-          admissionFee:
-            fee.amount,
+      studySession,
 
-          currencyCode:
-            'USD',
+      identityDocType:
+        body.identityDocType || '',
 
-          feeBasis:
-            fee.feeBasis,
+      preferredName:
+        body.preferredName || null,
 
-          status:
-            'PENDING_PAYMENT',
-        },
-      });
+      pathwayPreference:
+        body.pathwayPreference || null,
+
+      preferredDepartmentId:
+        body.preferredDepartmentId || null,
+
+      specialization:
+        body.specialization || null,
+
+      studyMode:
+        body.studyMode === 'FULL_TIME' || body.studyMode === 'PART_TIME'
+          ? body.studyMode
+          : null,
+
+      islamicStudiesBackground:
+        body.islamicStudiesBackground || null,
+
+      quranReadingSelf: normalizeSelfLevel(body.quranReadingSelf),
+      quranTajweedSelf: normalizeSelfLevel(body.quranTajweedSelf),
+      quranHifzSelf: normalizeSelfLevel(body.quranHifzSelf),
+      quranRecitationSelf: normalizeSelfLevel(body.quranRecitationSelf),
+      arabicReadingSelf: normalizeSelfLevel(body.arabicReadingSelf),
+      arabicWritingSelf: normalizeSelfLevel(body.arabicWritingSelf),
+      arabicGrammarSelf: normalizeSelfLevel(body.arabicGrammarSelf),
+      arabicVocabularySelf: normalizeSelfLevel(body.arabicVocabularySelf),
+      arabicConversationSelf: normalizeSelfLevel(body.arabicConversationSelf),
+      quranicArabicSelf: normalizeSelfLevel(body.quranicArabicSelf),
+
+      learningGoals:
+        body.learningGoals || null,
+
+      supportNeeds:
+        body.supportNeeds || null,
+
+      declarationAccepted: Boolean(body.declarationAccepted),
+      declarationAcceptedAt: body.declarationAccepted ? new Date() : null,
+
+      admissionFee:
+        fee.amount,
+
+      currencyCode:
+        'USD',
+
+      feeBasis:
+        fee.feeBasis,
+    };
+
+    let application;
+    let applicationNumber;
+
+    if (existingPendingApplication) {
+      /*
+       * The same applicant already started (but never paid for) an
+       * application for this same programme. Reuse that row instead
+       * of creating a duplicate one on retry / double submit /
+       * back-button resubmission.
+       */
+      applicationNumber = existingPendingApplication.applicationNumber;
+
+      application =
+        await prisma.admissionApplication.update({
+          where: {
+            id: existingPendingApplication.id,
+          },
+          data: applicationFieldsData,
+        });
+    } else {
+      applicationNumber = await generateApplicationNumber();
+
+      application =
+        await prisma.admissionApplication.create({
+          data: {
+            applicationNumber,
+            ...applicationFieldsData,
+            status:
+              'PENDING_PAYMENT',
+          },
+        });
+    }
 
     const stripe =
       getStripe();
@@ -332,7 +410,7 @@ export async function POST(request) {
 
               product_data: {
                 name:
-                  'ILM Hub Admission Fee',
+                  'Ulul Azm Application Fee',
 
                 description:
                   `${programme.name} - ${fee.learnerCategory}`,
@@ -395,8 +473,11 @@ export async function POST(request) {
       );
     }
 
-    await prisma.admissionPayment.create({
-      data: {
+    await prisma.admissionPayment.upsert({
+      where: {
+        applicationId: application.id,
+      },
+      create: {
         applicationId:
           application.id,
 
@@ -425,6 +506,42 @@ export async function POST(request) {
 
         authorizationUrl:
           session.url,
+      },
+      update: {
+        gateway:
+          'STRIPE',
+
+        method:
+          'VISA',
+
+        /*
+         * A fresh Stripe session was just created for this
+         * (possibly reused) application, so any previous payment
+         * attempt is superseded. Reset it to PENDING regardless of
+         * its prior state.
+         */
+        status:
+          'PENDING',
+
+        amount:
+          fee.amount,
+
+        currencyCode:
+          'USD',
+
+        gatewayReference:
+          session.payment_intent
+            ? String(session.payment_intent)
+            : null,
+
+        checkoutReference:
+          session.id,
+
+        authorizationUrl:
+          session.url,
+
+        transactionId: null,
+        paidAt: null,
       },
     });
 

@@ -48,6 +48,8 @@ export async function POST(request) {
     if (
       application.status === "PAID" ||
       application.status === "UNDER_REVIEW" ||
+      application.status === "INITIAL_ACCEPTANCE" ||
+      application.status === "PENDING_FINAL_APPROVAL" ||
       application.status === "APPROVED"
     ) {
       return response({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { deleteRecordWithR2Cleanup } from "@/lib/r2FileLifecycle";
 
 export const dynamic = "force-dynamic";
 
@@ -414,6 +415,7 @@ export async function DELETE(
       select: {
         id: true,
         titleEn: true,
+        r2FileKey: true,
       },
     });
 
@@ -424,13 +426,30 @@ export async function DELETE(
       );
     }
 
-    await prisma.book.delete({
-      where: { id },
+    // Security/data-integrity fix -- deleting a Book previously left
+    // its r2FileKey's object behind in the bucket forever (a database
+    // mutation with no corresponding cloud cleanup). The database
+    // delete still runs first and is the source of truth for whether
+    // the book is gone; the R2 object is only ever addressed after
+    // that succeeds, and a cleanup failure is logged + surfaced rather
+    // than silently swallowed or used to roll back the (already
+    // committed) database delete -- see deleteRecordWithR2Cleanup's own
+    // comment in lib/r2FileLifecycle.ts for why a real DB/bucket
+    // transaction isn't possible here.
+    const { r2CleanupSucceeded } = await deleteRecordWithR2Cleanup({
+      r2Key: existing.r2FileKey,
+      deleteRecord: () => prisma.book.delete({ where: { id } }),
     });
 
     return NextResponse.json({
       success: true,
       message: `"${existing.titleEn}" was deleted successfully.`,
+      ...(r2CleanupSucceeded
+        ? {}
+        : {
+            warning:
+              "The book record was deleted, but its stored file could not be removed from cloud storage. It will be caught and cleaned up by the next orphan file scan.",
+          }),
     });
   } catch (error) {
     if (

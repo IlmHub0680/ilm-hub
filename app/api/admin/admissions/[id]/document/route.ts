@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmissionsView } from "@/lib/permissions";
 import { getR2PresignedUrl } from "@/lib/r2";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireAdmissionsView();
 
     const { id } = await params;
 
@@ -105,7 +105,7 @@ export async function GET(
         return NextResponse.json(
           {
             success: false,
-            error: "Administrator access required.",
+            error: "Admissions access required.",
           },
           { status: 403 }
         );
