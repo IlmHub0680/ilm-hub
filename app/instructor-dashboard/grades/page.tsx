@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { FeedbackBanner, fieldStyle, STATUS_TONE_CLASS } from '../_shared';
 
@@ -51,7 +51,7 @@ type Term = {
     name: string;
 };
 
-export default function GradesPage() {
+function GradesPageInner() {
     const searchParams = useSearchParams();
     const [courses, setCourses] = useState<Course[]>([]);
     const [selectedCourseId, setSelectedCourseId] = useState<string>("");
@@ -361,4 +361,13 @@ export default function GradesPage() {
             )}
         </div>
     );
+}
+
+
+export default function GradesPage() {
+  return (
+    <Suspense fallback={null}>
+      <GradesPageInner />
+    </Suspense>
+  );
 }

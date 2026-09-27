@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fieldStyle } from '../_shared';
 
@@ -36,7 +36,7 @@ const STATUS_TONE: Record<string, string> = {
 
 const ALL_COURSES = 'ALL';
 
-export default function StudentEnrolleesPage() {
+function StudentEnrolleesPageInner() {
     const searchParams = useSearchParams();
     const initialCourseId = searchParams.get('courseId') || ALL_COURSES;
     const [courses, setCourses] = useState<Course[]>([]);
@@ -219,4 +219,13 @@ export default function StudentEnrolleesPage() {
             )}
         </div>
     );
+}
+
+
+export default function StudentEnrolleesPage() {
+  return (
+    <Suspense fallback={null}>
+      <StudentEnrolleesPageInner />
+    </Suspense>
+  );
 }

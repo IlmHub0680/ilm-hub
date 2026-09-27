@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { LIBRARY_CATEGORIES, categoryLabel } from '@/lib/library';
 import { useSectionBanner } from '@/components/SectionBannerProvider';
 
-export default function LibraryPage() {
+function LibraryPageInner() {
   const searchParams = useSearchParams();
   const [items, setItems] = useState([]);
   const [availableCategories, setAvailableCategories] = useState([]);
@@ -344,3 +344,12 @@ const cardTitle = {
 };
 
 const cardAuthor = { fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 4 };
+
+
+export default function LibraryPage() {
+  return (
+    <Suspense fallback={null}>
+      <LibraryPageInner />
+    </Suspense>
+  );
+}

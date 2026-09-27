@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from './LanguageContext';
@@ -20,7 +20,7 @@ function programmeDisplayName(name) {
   return PROGRAMME_DISPLAY_NAMES[name] || name;
 }
 
-export default function AdmissionPage() {
+function AdmissionPageInner() {
   const { t } = useLanguage();
   const searchParams = useSearchParams();
   const [currentStage, setCurrentStage] = useState(1);
@@ -2873,5 +2873,14 @@ export default function AdmissionPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+
+export default function AdmissionPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdmissionPageInner />
+    </Suspense>
   );
 }

@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { MEDIA_CATEGORIES, categoryLabel, formatDuration } from '@/lib/media';
 import { useSectionBanner } from '@/components/SectionBannerProvider';
 
-export default function MediaPage() {
+function MediaPageInner() {
   const searchParams = useSearchParams();
   const [items, setItems] = useState([]);
   const [availableCategories, setAvailableCategories] = useState([]);
@@ -567,3 +567,12 @@ const planButton = {
   fontSize: 14,
   cursor: 'pointer',
 };
+
+
+export default function MediaPage() {
+  return (
+    <Suspense fallback={null}>
+      <MediaPageInner />
+    </Suspense>
+  );
+}
