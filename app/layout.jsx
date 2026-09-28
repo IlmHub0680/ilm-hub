@@ -33,20 +33,55 @@ async function getBranding() {
   }
 }
 
-// A plain `metadata` export again (not generateMetadata()) -- the
-// app/icon.js removal below is what actually fixed the "Duplicate
-// export 'GET'" crash; the dynamic favicon (icons.icon pointed at the
-// DB-backed logoUrl) turned out to be a second, separable change and
-// is reverted here while that's isolated from a reported "images
-// missing site-wide" regression. Next's App Router used to
-// auto-generate a GET handler for `app/icon.js` and collided with
-// this project's own hand-written one there -- that file is deleted
-// (see the removed app/icon.js), which alone resolves the crash. The
-// site simply has no favicon again for now, same as before app/icon.js
-// was ever added -- never a build-breaking state.
-export const metadata = {
-  title: SITE_TITLE,
-  description: SITE_DESCRIPTION,
+// app/icon.js was previously removed to fix a "Duplicate export
+// 'GET'" crash (Next's App Router auto-generates its own GET handler
+// for that reserved filename, which collided with a hand-written one
+// here) -- the site has had no favicon since. A plain `metadata`
+// export was used for a while instead of generateMetadata() to rule
+// out a separate reported "images missing site-wide" regression,
+// which later turned out to be an unrelated database-connection
+// issue (see lib/prisma.js) -- now resolved, so it's safe to go back
+// to generateMetadata() here for real Open Graph/Twitter Card tags
+// (site had none at all: shared links showed a bare URL with no
+// title, description or image). SITE_URL falls back to the
+// production domain rather than throwing if NEXT_PUBLIC_APP_URL is
+// ever unset, since broken social previews are much less disruptive
+// than a site-wide crash.
+const SITE_URL =
+  process.env.NEXT_PUBLIC_APP_URL || 'https://ulul-azm-institute-psi.vercel.app';
+
+export async function generateMetadata() {
+  const { heroImageUrl } = await getBranding();
+
+  // Open Graph/Twitter images must be absolute URLs -- heroImageUrl
+  // is already an absolute /api/assets/public/... URL once branding
+  // is uploaded (see getBranding() above), but falls back to '' when
+  // nothing has been uploaded yet, so build the absolute form only
+  // when there's actually an image to point at.
+  const ogImage = heroImageUrl
+    ? (heroImageUrl.startsWith('http') ? heroImageUrl : `${SITE_URL}${heroImageUrl}`)
+    : undefined;
+
+  return {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    metadataBase: new URL(SITE_URL),
+    openGraph: {
+      title: SITE_TITLE,
+      description: SITE_DESCRIPTION,
+      url: SITE_URL,
+      siteName: 'Ulul Azm Institute',
+      images: ogImage ? [{ url: ogImage, width: 1200, height: 630 }] : undefined,
+      locale: 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      card: ogImage ? 'summary_large_image' : 'summary',
+      title: SITE_TITLE,
+      description: SITE_DESCRIPTION,
+      images: ogImage ? [ogImage] : undefined,
+    },
+  }
 }
 
 export default async function RootLayout({ children }) {
