@@ -1,6 +1,8 @@
-'use client';
-
 import PublicLegalPageClient from '@/components/PublicLegalPageClient';
+
+export const metadata = {
+  title: 'Academy Pathways | Ulul Azm Institute',
+};
 
 export default function AcademyPathwaysPage() {
   return (

@@ -1191,6 +1191,42 @@ model AdmissionPayment {
   @@index([transactionId])
 }
 
+// A one-off or recurring gift from a visitor, made through the public
+// /donate page. Unlike AdmissionApplication/AdmissionPayment, there is
+// no separate "parent" record to split from -- a donation has no
+// application, account, or approval step behind it, so donor details
+// and payment/gateway fields live together on one row, matching how
+// the public form actually collects them in a single step. Donor
+// identity is optional (donorName nullable, donorEmail used only to
+// send a receipt / for the donor's own reference, never required to
+// give). Reuses the same PaymentGateway/PaymentStatus/PaymentMethod
+// enums as AdmissionPayment/Payment rather than inventing new ones.
+model Donation {
+  id                String         @id @default(cuid())
+  donorName         String?
+  donorEmail        String?
+  isRecurring       Boolean        @default(false)
+  purpose           String
+  amount            Decimal        @db.Decimal(10, 2)
+  currencyCode      String
+  gateway           PaymentGateway
+  method            PaymentMethod?
+  status            PaymentStatus  @default(PENDING)
+  gatewayReference  String?
+  checkoutReference String?
+  transactionId     String?
+  authorizationUrl  String?
+  paidAt            DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([gateway])
+  @@index([status])
+  @@index([gatewayReference])
+  @@index([transactionId])
+  @@index([createdAt])
+}
+
 enum NoteVisibility {
   // Staff-only. Never returned by any applicant-facing route.
   INTERNAL

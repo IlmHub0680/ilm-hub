@@ -6,10 +6,8 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { getHeaderDestination } from '@/lib/permissions'
 
-export const metadata = {
-  title: 'Ulul Azm Institute - Islamic Educational Platform',
-  description: 'Access Islamic knowledge, books, courses, and lectures',
-}
+const SITE_TITLE = 'Ulul Azm Institute - Islamic Educational Platform';
+const SITE_DESCRIPTION = 'Access Islamic knowledge, books, courses, and lectures';
 
 // Fetched once, server-side, on every request -- this is what lets
 // SiteBrandingProvider hand the logo and hero banner image to
@@ -33,6 +31,22 @@ async function getBranding() {
     console.error('Root layout branding lookup failed:', error);
     return { logoUrl: '', heroImageUrl: '', logoSize: 100 };
   }
+}
+
+// A plain `metadata` export again (not generateMetadata()) -- the
+// app/icon.js removal below is what actually fixed the "Duplicate
+// export 'GET'" crash; the dynamic favicon (icons.icon pointed at the
+// DB-backed logoUrl) turned out to be a second, separable change and
+// is reverted here while that's isolated from a reported "images
+// missing site-wide" regression. Next's App Router used to
+// auto-generate a GET handler for `app/icon.js` and collided with
+// this project's own hand-written one there -- that file is deleted
+// (see the removed app/icon.js), which alone resolves the crash. The
+// site simply has no favicon again for now, same as before app/icon.js
+// was ever added -- never a build-breaking state.
+export const metadata = {
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
 }
 
 export default async function RootLayout({ children }) {

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
 import { SectionBannerProvider } from '@/components/SectionBannerProvider';
 
 /*
@@ -29,6 +30,7 @@ export default async function LibraryLayout({ children }) {
     <SectionBannerProvider bannerUrl={bannerUrl}>
       <SiteHeader sectionMode="library" />
       {children}
+      <SiteFooter />
     </SectionBannerProvider>
   );
 }

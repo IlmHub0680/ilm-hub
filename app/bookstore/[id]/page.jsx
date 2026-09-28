@@ -2,6 +2,8 @@
 import { notFound } from 'next/navigation';
 
 import { prisma } from '@/lib/prisma';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
 import './book-detail.css';
 
 export const dynamic = 'force-dynamic';
@@ -39,8 +41,6 @@ function formatBook(book) {
     image:
       book.coverImageUrl ||
       'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=900&q=85',
-    rating: 5,
-    reviews: 0,
     category:
       book.category?.nameEn ||
       'Islamic Studies',
@@ -99,7 +99,10 @@ export default async function BookPage({
   ).format(book.price);
 
   return (
-    <main className="book-detail">
+    <>
+      <SiteHeader sectionMode="bookstore" showSearch={false} />
+
+      <main className="book-detail">
       <div className="detail-container">
 
         <Link
@@ -144,30 +147,6 @@ export default async function BookPage({
               {book.author}
             </p>
 
-            {book.rating > 0 && (
-              <div className="rating">
-                {'★'.repeat(
-                  Math.min(
-                    5,
-                    Math.round(book.rating)
-                  )
-                )}
-
-                {'☆'.repeat(
-                  Math.max(
-                    0,
-                    5 - Math.round(book.rating)
-                  )
-                )}
-
-                {book.reviews > 0 && (
-                  <span>
-                    {book.reviews} reviews
-                  </span>
-                )}
-              </div>
-            )}
-
             <div className="detail-price">
               {formattedPrice}
             </div>
@@ -199,7 +178,10 @@ export default async function BookPage({
         </div>
 
       </div>
-    </main>
+      </main>
+
+      <SiteFooter />
+    </>
   );
 }
 

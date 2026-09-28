@@ -351,6 +351,7 @@ export default function SiteFooter() {
               <FooterLink href="/bookstore">Bookstore</FooterLink>
               <FooterLink href="/media">Media</FooterLink>
               <FooterLink href="/library">Library</FooterLink>
+              <FooterLink href="/donate">Donate</FooterLink>
               <FooterLink href="/faq">Frequently Asked Questions</FooterLink>
             </FooterColumn>
 
@@ -491,6 +492,22 @@ export default function SiteFooter() {
            and visually bleed into the *next* footer column. */
         .footer-links-dense :global(a) {
           margin-bottom: 6px !important;
+        }
+
+        @media (max-width: 1024px) {
+
+          /* Between the full multi-column grid (up to ~8 tracks:
+             About + up to 6 CMS link groups + Follow Us) and the
+             700px single-column collapse below, each track's
+             minmax(100px,1fr) floor left columns cramped and
+             link text wrapping into neighboring columns on tablet
+             widths. A 3-column wrap gives every column enough room
+             to breathe before the full collapse. */
+          .footer-grid {
+            grid-template-columns: repeat(3, minmax(150px, 1fr)) !important;
+            gap: 28px !important;
+          }
+
         }
 
         @media (max-width: 700px) {
@@ -935,7 +952,11 @@ const appBadgeName = {
   display: 'block',
   fontSize: '13px',
   fontWeight: '700',
-  color: 'var(--on-dark-strong, #fff)',
+  // Was var(--on-dark-strong, #fff) -- globals.css never defines
+  // --on-dark-strong (only --on-dark-soft / --on-dark-border exist),
+  // so this always silently fell through to the fallback. Written
+  // directly since that's the only value it ever resolved to.
+  color: '#fff',
 };
 
 const modalOverlay = {

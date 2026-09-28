@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
 
 export default function SponsoredContentPage() {
   const [sponsors, setSponsors] = useState([]);
@@ -34,12 +35,10 @@ export default function SponsoredContentPage() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--paper)', padding: '40px 20px', fontFamily: 'var(--font-body)' }}>
+    <>
+      <SiteHeader />
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--paper)', padding: '40px 20px', fontFamily: 'var(--font-body)' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <Link href="/" style={{ color: 'var(--brand)', fontWeight: '600', textDecoration: 'none', display: 'inline-block', marginBottom: '20px' }}>
-          ← Back to Home
-        </Link>
-
         <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--ink)', marginBottom: '10px' }}>Our Sponsors & Partners</h1>
         <p style={{ color: 'var(--ink-soft)', marginBottom: '30px', maxWidth: 640, lineHeight: 1.6 }}>
           Ulul Azm is grateful to the organizations and individuals who support our
@@ -116,6 +115,8 @@ export default function SponsoredContentPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+      <SiteFooter />
+    </>
   );
 }

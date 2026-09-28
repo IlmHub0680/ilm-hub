@@ -362,11 +362,9 @@ function HomeContent() {
      MOBILE MENU
   ========================================================= */
 
-
   /* =========================================================
      FOOTER MODALS
   ========================================================= */
-
 
   /* =========================================================
      FOOTER CONTENT
@@ -563,7 +561,7 @@ function HomeContent() {
             {t(welcome.badge)}
           </span>
 
-          <h2 style={sectionTitle} className="uai-welcome-title">
+          <h2 style={sectionTitle}>
             {t(welcome.title)}
           </h2>
 
@@ -829,11 +827,11 @@ function HomeContent() {
             {t(approachSection.badge)}
           </span>
 
-          <h2 style={sectionTitle} className="uai-approach-title">
+          <h2 style={sectionTitle}>
             {t(approachSection.title)}
           </h2>
 
-          <p style={sectionDescription} className="uai-approach-subtitle">
+          <p style={sectionDescription}>
             {t(approachSection.subtitle)}
           </p>
 
@@ -949,18 +947,6 @@ function HomeContent() {
           padding: 0 24px 15px;
         }
 
-        .uai-approach-title {
-          white-space: nowrap;
-        }
-
-        .uai-welcome-title {
-          white-space: nowrap;
-        }
-
-        .uai-approach-subtitle {
-          white-space: nowrap;
-        }
-
         .hero-slide-arrow {
           left: 18px;
         }
@@ -1032,18 +1018,6 @@ function HomeContent() {
 
           .uai-approach-step .uai-approach-connector {
             display: none;
-          }
-
-          .uai-approach-title {
-            white-space: normal !important;
-          }
-
-          .uai-welcome-title {
-            white-space: normal !important;
-          }
-
-          .uai-approach-subtitle {
-            white-space: normal !important;
           }
 
         }
@@ -1702,22 +1676,6 @@ function FeatureCard({ icon, title, text }) {
   );
 }
 
-function MiniFeature({ icon, text }) {
-  return (
-    <div style={miniFeature} className="uai-lift-card-dark">
-
-      <span style={miniFeatureIconWrap}>
-        {icon}
-      </span>
-
-      <strong style={{ fontSize: '14px', lineHeight: 1.4 }}>
-        {text}
-      </strong>
-
-    </div>
-  );
-}
-
 // Real Department entities on the homepage's Academy section --
 // links straight to /departments/[id], the same destination the
 // standalone /departments directory page already uses. Kept visually
@@ -1746,26 +1704,6 @@ function DepartmentMiniCard({ department }) {
   );
 }
 
-function InfoBox({ number, title, text }) {
-  return (
-    <div style={infoBox} className="uai-lift-card">
-
-      <div style={infoNumber}>
-        {number}
-      </div>
-
-      <h3 style={infoTitle}>
-        {title}
-      </h3>
-
-      <p style={infoText}>
-        {text}
-      </p>
-
-    </div>
-  );
-}
-
 // Used only by the OUR APPROACH section -- a sequence step, not a
 // generic card: a large numeral over a short connecting line into the
 // next step (hidden on the last one and stacked to a single column on
@@ -1784,109 +1722,6 @@ function ApproachStep({ number, title, text, isLast }) {
       <p style={approachStepText}>{text}</p>
 
     </div>
-  );
-}
-
-function ResourceCard({
-  icon,
-  title,
-  text,
-  link,
-  action,
-}) {
-  return (
-    <div style={resourceCard}>
-
-      <div style={{ fontSize: '28px' }}>
-        {icon}
-      </div>
-
-      <h4
-        style={{
-          color: 'var(--brand)',
-          marginBottom: '8px',
-        }}
-      >
-        {title}
-      </h4>
-
-      <p
-        style={{
-          color: 'var(--ink-soft)',
-          lineHeight: 1.6,
-        }}
-      >
-        {text}
-      </p>
-
-      {link && (
-        <Link
-          href={link}
-          style={resourceLink}
-        >
-          Open →</Link>
-      )}
-
-      {action && (
-        <button
-          onClick={action}
-          style={resourceAction}
-          type="button"
-        >
-          Contact Institute →</button>
-      )}
-
-    </div>
-  );
-}
-
-function ContactItem({ icon, title, text }) {
-  return (
-    <div style={contactItem}>
-
-      <div style={contactIcon}>
-        {icon}
-      </div>
-
-      <div>
-
-        <strong
-          style={{
-            color: 'var(--brand)',
-          }}
-        >
-          {title}
-        </strong>
-
-        <div
-          style={{
-            color: 'var(--ink-soft)',
-            fontSize: '13px',
-            marginTop: '4px',
-          }}
-        >
-          {text}
-        </div>
-
-      </div>
-
-    </div>
-  );
-}
-
-function Faq({ question, answer }) {
-  return (
-    <details style={faqBox}>
-
-      <summary style={faqQuestion}>
-        {question}
-      </summary>
-
-      <p style={faqAnswer}>
-        {answer}
-      </p>
-
-    </details>
   );
 }
 
@@ -2263,10 +2098,13 @@ const headingContainerWide = {
 
 /* Welcome section's own heading container -- wide enough that its
    longer subtitle ("Ulul Azm Institute brings together structured
-   academic learning...") wraps to two lines instead of three, while
-   the title above it ("A place to seek knowledge with sincerity")
-   is additionally kept to one line by the .uai-welcome-title class
-   (see the <style jsx> block) rather than by width alone. */
+   academic learning...") wraps to two lines instead of three, and
+   that the title above it ("A place to seek knowledge with
+   sincerity") comfortably stays on one line at this width via
+   sectionTitle's textWrap:'balance' -- no forced white-space:nowrap
+   here anymore, since that broke on longer admin-edited or Arabic
+   copy at 800-1400px widths; textWrap:'balance' degrades gracefully
+   instead of clipping/overflowing. */
 const headingContainerWelcome = {
   ...headingContainer,
   maxWidth: '1000px',
@@ -2366,6 +2204,14 @@ const miniCardTitle = {
   fontWeight: 600,
   color: 'var(--ink)',
   lineHeight: 1.35,
+  // A CMS-entered event/news title has no length limit -- clamp to
+  // 2 lines so a long one can't push the card taller than its
+  // siblings in the 3-up grid, matching miniCardDesc's own clamp
+  // just below.
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
 };
 
 const miniCardDesc = {
@@ -2437,7 +2283,6 @@ const utilityStripTitle = {
   fontSize: 'clamp(20px,2.6vw,26px)',
   margin: '8px 0 0',
 };
-
 
 const announcementsGrid = {
   display: 'grid',
@@ -3017,41 +2862,6 @@ const mediaLibraryCardLink = {
   marginTop: 'auto',
 };
 
-const infoGrid = {
-  display: 'grid',
-  gridTemplateColumns:
-    'repeat(auto-fit,minmax(260px,1fr))',
-  gap: '20px',
-};
-
-const infoBox = {
-  padding: '30px',
-  borderRadius: '15px',
-  border: '1px solid var(--border)',
-  background: 'var(--surface)',
-  transition: 'transform .22s ease, box-shadow .22s ease, border-color .22s ease',
-};
-
-const infoNumber = {
-  color: 'var(--gold)',
-  fontWeight: '900',
-  fontSize: '12px',
-  letterSpacing: '1px',
-};
-
-const infoTitle = {
-  color: 'var(--brand)',
-  margin: '10px 0',
-  fontSize: '19px',
-  fontWeight: '800',
-};
-
-const infoText = {
-  color: 'var(--ink-soft)',
-  lineHeight: 1.7,
-  margin: 0,
-};
-
 // OUR APPROACH -- connected step sequence styling. Falls back to a
 // stacked single column with no connector on narrow screens; see the
 // .uai-approach-step / .uai-approach-connector responsive rules in
@@ -3350,91 +3160,4 @@ const quoteBox = {
   color: 'var(--brand)',
   lineHeight: 1.8,
 };
-
-const resourceGridStyle = {
-  display: 'grid',
-  gridTemplateColumns:
-    'repeat(auto-fit,minmax(210px,1fr))',
-  gap: '14px',
-};
-
-const resourceCard = {
-  background: 'var(--paper)',
-  border: '1px solid var(--border)',
-  borderRadius: '12px',
-  padding: '20px',
-};
-
-const resourceLink = {
-  color: 'var(--brand)',
-  fontWeight: '800',
-  textDecoration: 'none',
-};
-
-const resourceAction = {
-  border: 'none',
-  background: 'none',
-  color: 'var(--brand)',
-  fontWeight: '800',
-  padding: 0,
-  cursor: 'pointer',
-};
-
-const contactGridStyle = {
-  display: 'grid',
-  gridTemplateColumns:
-    'repeat(auto-fit,minmax(230px,1fr))',
-  gap: '12px',
-};
-
-const contactItem = {
-  display: 'flex',
-  gap: '12px',
-  padding: '17px',
-  background: 'var(--paper)',
-  border: '1px solid var(--border)',
-  borderRadius: '11px',
-};
-
-const contactIcon = {
-  fontSize: '22px',
-};
-
-const faqBox = {
-  border: '1px solid var(--border)',
-  borderRadius: '10px',
-  marginBottom: '10px',
-  padding: '15px 17px',
-  background: 'var(--paper)',
-};
-
-const faqQuestion = {
-  cursor: 'pointer',
-  color: 'var(--brand)',
-  fontWeight: '800',
-};
-
-const faqAnswer = {
-  color: 'var(--ink-soft)',
-  lineHeight: 1.7,
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -16,6 +16,101 @@ function verifySignature(body, signature, secret) {
   );
 }
 
+// Paystack's dashboard only accepts a single account-wide webhook URL, so
+// this admissions endpoint is the one registered with Paystack. If a
+// successful charge's reference doesn't match an admission payment, we
+// fall through and check whether it belongs to a donation instead, rather
+// than requiring a second webhook URL Paystack has no way to call.
+async function tryProcessDonation(transaction, reference) {
+  const donation = await prisma.donation.findFirst({
+    where: {
+      gateway: 'PAYSTACK',
+      gatewayReference: reference,
+    },
+  });
+
+  if (!donation) {
+    return null;
+  }
+
+  if (donation.status === 'PAID') {
+    return Response.json({
+      received: true,
+      success: true,
+      alreadyProcessed: true,
+      donationId: donation.id,
+    });
+  }
+
+  const receivedAmount = Number(transaction.amount || 0) / 100;
+  const expectedAmount = Number(donation.amount);
+  const receivedCurrency = String(transaction.currency || '').toUpperCase();
+  const expectedCurrency = String(donation.currencyCode || '').toUpperCase();
+
+  const amountsMatch =
+    Number.isFinite(receivedAmount) && Math.abs(receivedAmount - expectedAmount) < 0.01;
+  const currenciesMatch = receivedCurrency === expectedCurrency;
+
+  if (!amountsMatch || !currenciesMatch) {
+    console.error('Paystack donation payment mismatch:', {
+      reference,
+      donationId: donation.id,
+      expectedAmount,
+      receivedAmount,
+      expectedCurrency,
+      receivedCurrency,
+    });
+
+    await prisma.donation.update({
+      where: { id: donation.id },
+      data: {
+        status: 'FAILED',
+        transactionId: transaction.id ? String(transaction.id) : reference,
+      },
+    });
+
+    return Response.json(
+      {
+        success: false,
+        error: 'Payment amount or currency does not match the donation.',
+      },
+      { status: 409 }
+    );
+  }
+
+  const paidAt = transaction.paid_at ? new Date(transaction.paid_at) : new Date();
+
+  await prisma.$transaction(async (tx) => {
+    const current = await tx.donation.findUnique({ where: { id: donation.id } });
+
+    if (!current) {
+      throw new Error('Donation no longer exists.');
+    }
+
+    if (current.status === 'PAID') {
+      return;
+    }
+
+    await tx.donation.update({
+      where: { id: current.id },
+      data: {
+        status: 'PAID',
+        gatewayReference: reference,
+        transactionId: transaction.id ? String(transaction.id) : reference,
+        paidAt,
+      },
+    });
+  });
+
+  return Response.json({
+    received: true,
+    success: true,
+    donationId: donation.id,
+    reference,
+    status: 'PAID',
+  });
+}
+
 export async function POST(request) {
   try {
     const secretKey = process.env.PAYSTACK_SECRET_KEY;
@@ -87,7 +182,7 @@ export async function POST(request) {
     }
 
     /*
-     * We only need successful admission payments.
+     * We only need successful payments (admissions or donations).
      */
     if (event.event !== 'charge.success') {
       return Response.json({
@@ -143,19 +238,28 @@ export async function POST(request) {
       });
 
     if (!payment) {
+      // Not an admission payment -- this single URL also receives
+      // donation charges, since Paystack only allows one webhook URL
+      // per account. Check donations before giving up.
+      const donationResult = await tryProcessDonation(transaction, reference);
+
+      if (donationResult) {
+        return donationResult;
+      }
+
       console.error(
-        'Paystack admission payment not found:',
+        'Paystack payment not found for admission or donation:',
         reference
       );
 
       /*
        * Return 200 so Paystack does not endlessly retry
-       * a transaction that does not belong to an admission.
+       * a transaction that does not belong to either.
        */
       return Response.json({
         received: true,
         ignored: true,
-        reason: 'Admission payment not found.',
+        reason: 'No matching admission payment or donation.',
       });
     }
 

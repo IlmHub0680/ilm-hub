@@ -1,56 +1,67 @@
-﻿'use client';
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+'use client';
 
+import Link from 'next/link';
+
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
+
+// This page used to show a fake "Sell Your Books Portal" -- a form
+// collecting a book title, author, price, and the submitter's
+// contact email or phone, whose "Publish Listing" button only set a
+// local success flag. Nothing was ever saved, sent, or reviewed, and
+// the contact info entered was silently discarded, while the person
+// was told "Your book has been submitted for review and will appear
+// in the bookstore catalogue shortly." Replaced with an honest
+// holding page until a real book-selling submission flow exists.
 export default function SellBooksPage() {
-    const router = useRouter();
-    const [title, setTitle] = useState('');
-    const [author, setAuthor] = useState('');
-    const [price, setPrice] = useState('');
-    const [contact, setContact] = useState('');
-    const [submitted, setSubmitted] = useState(false);
+  return (
+    <>
+      <SiteHeader />
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setSubmitted(true);
-    };
+      <div style={{ minHeight: '60vh', backgroundColor: 'var(--paper)', padding: '48px 20px 80px' }}>
+        <div style={{ maxWidth: 640, margin: '0 auto' }}>
+          <div
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 16,
+              padding: '40px 34px',
+              boxShadow: '0 4px 20px rgba(27,36,31,.06)',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: 34, marginBottom: 14 }} aria-hidden="true">📚</div>
 
-    return (
-        <div style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', minHeight: '100vh', backgroundColor: 'var(--paper)', padding: '40px 20px' }}>
-            <div style={{ maxWidth: '600px', margin: '0 auto', background: 'var(--surface)', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
-                <h1 style={{ color: 'var(--brand)', marginTop: 0, fontSize: '24px' }}>Sell Your Books Portal</h1>
-                <p style={{ color: 'var(--ink-soft)', fontSize: '14px', marginBottom: '30px' }}>List your academic or Islamic texts for sale to students and instructors across the institute.</p>
+            <h1 style={{ margin: '0 0 12px', fontSize: 28, fontWeight: 800, color: 'var(--ink)' }}>
+              Sell Your Books
+            </h1>
 
-                {submitted ? (
-                    <div style={{ backgroundColor: 'var(--brand-tint)', color: 'var(--success)', padding: '20px', borderRadius: '8px', border: '1px solid var(--success-tint)', textAlign: 'center' }}>
-                        <h3 style={{ margin: '0 0 10px 0' }}>Listing Submitted Successfully!</h3>
-                        <p style={{ margin: 0, fontSize: '14px' }}>Your book has been submitted for review and will appear in the bookstore catalogue shortly.</p>
-                        <button onClick={() => { setSubmitted(false); setTitle(''); setAuthor(''); setPrice(''); setContact(''); }} style={{ marginTop: '20px', padding: '8px 16px', background: 'var(--brand)', color: 'var(--on-accent)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Submit Another Book</button>
-                    </div>
-                ) : (
-                    <form onSubmit={handleSubmit}>
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--ink-soft)' }}>Book Title</label>
-                            <input type="text" placeholder="e.g., Al-Ajrumiyyah in Arabic Grammar" value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border)', boxSizing: 'border-box' }} required />
-                        </div>
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--ink-soft)' }}>Author / Scholar</label>
-                            <input type="text" placeholder="e.g., Ibn Ajurrum" value={author} onChange={(e) => setAuthor(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border)', boxSizing: 'border-box' }} required />
-                        </div>
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--ink-soft)' }}>Asking Price ($)</label>
-                            <input type="number" placeholder="25.00" value={price} onChange={(e) => setPrice(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border)', boxSizing: 'border-box' }} required />
-                        </div>
-                        <div style={{ marginBottom: '24px' }}>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '6px', color: 'var(--ink-soft)' }}>Contact Email or Phone</label>
-                            <input type="text" placeholder="student@example.com" value={contact} onChange={(e) => setContact(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border)', boxSizing: 'border-box' }} required />
-                        </div>
-                        <button type="submit" style={{ width: '100%', padding: '12px', background: 'var(--brand)', color: 'var(--on-accent)', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px' }}>Publish Listing</button>
-                    </form>
-                )}
+            <p style={{ color: 'var(--ink-soft)', lineHeight: 1.7, fontSize: 15.5, marginBottom: 28 }}>
+              We don't have a book-selling submission portal open yet. If you'd like to offer academic
+              or Islamic texts for the bookstore catalogue, please reach out to the institute directly
+              and we'll be happy to discuss it.
+            </p>
 
-                <button onClick={() => router.push('/')} style={{ width: '100%', marginTop: '20px', background: 'transparent', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer', fontSize: '13px', textAlign: 'center' }}>← Return to Home Page</button>
-            </div>
+            <Link
+              href="/contact"
+              style={{
+                display: 'inline-block',
+                background: 'var(--brand)',
+                color: 'var(--on-accent)',
+                padding: '13px 28px',
+                borderRadius: 9,
+                fontWeight: 700,
+                textDecoration: 'none',
+                fontSize: 15,
+              }}
+            >
+              Contact the Institute →
+            </Link>
+          </div>
         </div>
-    );
+      </div>
+
+      <SiteFooter />
+    </>
+  );
 }

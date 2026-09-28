@@ -2,46 +2,68 @@
 
 import Link from 'next/link';
 
-export default function PoliciesHub() {
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
+
+// This page used to be a public "Institute Policies & Transparency"
+// hub making specific factual claims -- that Ulul Azm runs affiliate
+// links and earns commissions, and that it manages advertising slots
+// (Homepage Banners, Sidebar, In-Content ads) with a "Sponsored" badge
+// system. Neither an affiliate system nor an ad-slot system exists
+// anywhere in this app (confirmed by searching the whole codebase),
+// so those claims were false. Replaced with an honest holding page
+// until there are real policies here to describe. The one system this
+// page referenced that DOES exist -- sponsor management -- is
+// covered by the real /sponsored page instead, so it doesn't need to
+// be re-described here.
+export default function PoliciesPage() {
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--paper)', padding: '40px 20px', fontFamily: 'sans-serif' }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <Link href="/" style={{ color: 'var(--brand)', fontWeight: '600', textDecoration: 'none', display: 'inline-block', marginBottom: '20px' }}>
-          ? Back to Home
-        </Link>
+    <>
+      <SiteHeader />
 
-        <div style={{ backgroundColor: 'var(--surface)', padding: '30px', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '30px' }}>
-          <div>
-            <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--ink)', marginBottom: '15px' }}>Institute Policies & Transparency</h1>
-            <p style={{ color: 'var(--ink-soft)', lineHeight: '1.6' }}>
-              Ulul Azm maintains absolute integrity and transparency regarding ads, sponsorships, and affiliate partnerships. Below are our official governing guidelines.
+      <div style={{ minHeight: '60vh', backgroundColor: 'var(--paper)', padding: '48px 20px 80px' }}>
+        <div style={{ maxWidth: 640, margin: '0 auto' }}>
+          <div
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 16,
+              padding: '40px 34px',
+              boxShadow: '0 4px 20px rgba(27,36,31,.06)',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: 34, marginBottom: 14 }} aria-hidden="true">📄</div>
+
+            <h1 style={{ margin: '0 0 12px', fontSize: 28, fontWeight: 800, color: 'var(--ink)' }}>
+              Institute Policies
+            </h1>
+
+            <p style={{ color: 'var(--ink-soft)', lineHeight: 1.7, fontSize: 15.5, marginBottom: 28 }}>
+              This page isn't ready yet. For our terms, privacy, and other published policies, see the
+              links in the site footer, or get in touch with the institute directly.
             </p>
+
+            <Link
+              href="/contact"
+              style={{
+                display: 'inline-block',
+                background: 'var(--brand)',
+                color: 'var(--on-accent)',
+                padding: '13px 28px',
+                borderRadius: 9,
+                fontWeight: 700,
+                textDecoration: 'none',
+                fontSize: 15,
+              }}
+            >
+              Contact the Institute →
+            </Link>
           </div>
-
-          <hr style={{ border: 'none', borderTop: '1px solid var(--border)' }} />
-
-          <section id="affiliate-disclosure">
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--brand)', marginBottom: '10px' }}>Affiliate Disclosure</h2>
-            <p style={{ color: 'var(--ink-soft)', lineHeight: '1.6' }}>
-              In compliance with ethical standards, please assume that any links leading to products or services on external partner websites are affiliate links. Ulul Azm receives a small commission from purchases made through these links at no additional cost to you. We only recommend products aligned with Islamic educational values.
-            </p>
-          </section>
-
-          <section id="sponsorship-policy">
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--brand)', marginBottom: '10px' }}>Sponsorship Policy</h2>
-            <p style={{ color: 'var(--ink-soft)', lineHeight: '1.6' }}>
-              All sponsored articles, banners, courses, and book promotions hosted on Ulul Azm are strictly vetted for ethical and religious compliance. Sponsored content is clearly marked with a visible <strong>SPONSORED</strong> badge, along with fixed start and end dates managed by our Sponsor Managers.
-            </p>
-          </section>
-
-          <section id="ads-policy">
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--brand)', marginBottom: '10px' }}>Ads Management Policy</h2>
-            <p style={{ color: 'var(--ink-soft)', lineHeight: '1.6' }}>
-              Ad slots including Homepage Banners, Sidebar slots, and In-Content ads are regulated to maintain a distraction-free learning environment. Advertisements containing inappropriate material, misleading claims, or conflicting values are strictly prohibited. The administration retains full activation and deactivation control over all slots.
-            </p>
-          </section>
         </div>
       </div>
-    </div>
+
+      <SiteFooter />
+    </>
   );
 }

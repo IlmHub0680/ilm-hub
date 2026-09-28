@@ -299,6 +299,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           {(!sectionMode || sectionMode === 'library') && (
             <NavDropdown label="Library" href="/library" items={LIBRARY_DROPDOWN_ITEMS} />
           )}
+          {!sectionMode && <NavLink href="/donate">Donate</NavLink>}
         </nav>
 
         {/* HEADER ACTIONS */}
@@ -659,6 +660,11 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           )}
           </>
           )}
+          {!sectionMode && (
+            <Link href="/donate" style={mobileNavLink} onClick={() => setMobileMenuOpen(false)}>
+              Donate
+            </Link>
+          )}
           {portalHref && (
             <Link
               href={portalHref}
@@ -780,13 +786,30 @@ function NavDropdown({ label, href, items, groups }) {
     };
   }, []);
 
+  // Hover alone can't open this on a touch device -- a tablet
+  // showing the full desktop nav (>=900px) has no hover state, so a
+  // tap on the trigger would navigate straight through `href` and
+  // the dropdown's own items would be unreachable. First tap opens
+  // the panel and stays on this page instead of navigating; the
+  // Link's normal href/onClick behavior (navigate + close) is
+  // untouched for mouse and keyboard users, since this only
+  // intercepts when the dropdown is not already open.
+  function handleTriggerClick(e) {
+    if (!open) {
+      e.preventDefault();
+      openNow();
+      return;
+    }
+    setOpen(false);
+  }
+
   return (
     <div style={navDropdownWrap} onMouseEnter={openNow} onMouseLeave={closeSoon}>
       <Link
         href={href}
         style={navDropdownTrigger}
         className="uai-nav-link"
-        onClick={() => setOpen(false)}
+        onClick={handleTriggerClick}
         onFocus={openNow}
         aria-haspopup="true"
         aria-expanded={open}
@@ -860,7 +883,12 @@ const headerStyle = {
   background: 'rgba(255,255,255,.97)',
   backdropFilter: 'blur(12px)',
   borderBottom: '1px solid var(--border)',
-  boxShadow: '0 4px 20px rgba(15,23,42,.05)',
+  // Was rgba(15,23,42,.05) -- a blue-slate shadow color that doesn't
+  // match --ink (#1b241f, green-tinted) used everywhere else the
+  // site casts a shadow (--shadow-card / --shadow-raised in
+  // globals.css). Matched to that same ink tone here so the header's
+  // shadow reads as part of the same system instead of a stray hue.
+  boxShadow: '0 4px 20px rgba(27,36,31,.07)',
 };
 
 const headerInner = {
