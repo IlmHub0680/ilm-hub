@@ -323,6 +323,7 @@ export default function DonationsPage() {
 
                 {errorMessage && (
                   <div
+                    role="alert"
                     style={{
                       background: 'var(--danger-tint)',
                       color: 'var(--danger)',
@@ -339,8 +340,9 @@ export default function DonationsPage() {
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
                     <div>
-                      <label style={labelStyle}>Amount</label>
+                      <label style={labelStyle} htmlFor="donate-amount">Amount</label>
                       <input
+                        id="donate-amount"
                         type="number"
                         min="1"
                         step="0.01"
@@ -351,8 +353,9 @@ export default function DonationsPage() {
                       />
                     </div>
                     <div>
-                      <label style={labelStyle}>Currency</label>
+                      <label style={labelStyle} htmlFor="donate-currency">Currency</label>
                       <select
+                        id="donate-currency"
                         value={currency}
                         onChange={(e) => setCurrency(e.target.value)}
                         style={inputStyle}
@@ -364,8 +367,9 @@ export default function DonationsPage() {
                   </div>
 
                   <div>
-                    <label style={labelStyle}>Purpose / Fund</label>
+                    <label style={labelStyle} htmlFor="donate-purpose">Purpose / Fund</label>
                     <select
+                      id="donate-purpose"
                       value={purpose}
                       onChange={(e) => setPurpose(e.target.value)}
                       style={inputStyle}
@@ -379,8 +383,9 @@ export default function DonationsPage() {
                   </div>
 
                   <div>
-                    <label style={labelStyle}>Donor Name (Optional)</label>
+                    <label style={labelStyle} htmlFor="donate-donor-name">Donor Name (Optional)</label>
                     <input
+                      id="donate-donor-name"
                       type="text"
                       placeholder="Leave blank for Anonymous"
                       value={donorName}
@@ -390,8 +395,9 @@ export default function DonationsPage() {
                   </div>
 
                   <div>
-                    <label style={labelStyle}>Email (Optional — for your receipt)</label>
+                    <label style={labelStyle} htmlFor="donate-donor-email">Email (Optional — for your receipt)</label>
                     <input
+                      id="donate-donor-email"
                       type="email"
                       placeholder="you@example.com"
                       value={donorEmail}
