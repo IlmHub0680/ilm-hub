@@ -1807,7 +1807,7 @@ function AdmissionPageInner() {
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr', gap: '15px' }}>
                       <input type="text" placeholder={t('Guardian Name')} value={formData.guardianName} onChange={(e) => setFormData({...formData, guardianName: e.target.value})} style={commonInputStyle} />
                       <input type="tel" placeholder={t('Guardian Phone')} value={formData.guardianPhone} onChange={(e) => setFormData({...formData, guardianPhone: e.target.value})} style={commonInputStyle} />
-                      <select value={formData.guardianRelationship} onChange={(e) => setFormData({...formData, guardianRelationship: e.target.value})} style={commonInputStyle}>
+                      <select aria-label={t('Guardian Relationship')} value={formData.guardianRelationship} onChange={(e) => setFormData({...formData, guardianRelationship: e.target.value})} style={commonInputStyle}>
                         <option value="Father">{t('Father')}</option>
                         <option value="Mother">{t('Mother')}</option>
                         <option value="Spouse">{t('Spouse')}</option>
@@ -1823,7 +1823,7 @@ function AdmissionPageInner() {
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr', gap: '15px' }}>
                       <input type="text" placeholder={t('Name *')} required value={formData.emergencyName} onChange={(e) => setFormData({...formData, emergencyName: e.target.value})} style={commonInputStyle} />
                       <input type="tel" placeholder={t('Phone *')} required value={formData.emergencyPhone} onChange={(e) => setFormData({...formData, emergencyPhone: e.target.value})} style={commonInputStyle} />
-                      <select required value={formData.emergencyRelationship} onChange={(e) => setFormData({...formData, emergencyRelationship: e.target.value})} style={commonInputStyle}>
+                      <select aria-label={t('Emergency Contact Relationship')} required value={formData.emergencyRelationship} onChange={(e) => setFormData({...formData, emergencyRelationship: e.target.value})} style={commonInputStyle}>
                         <option value="Father">{t('Father')}</option>
                         <option value="Mother">{t('Mother')}</option>
                         <option value="Spouse">{t('Spouse')}</option>

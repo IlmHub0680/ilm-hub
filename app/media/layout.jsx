@@ -3,6 +3,12 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { SectionBannerProvider } from '@/components/SectionBannerProvider';
 
+export const metadata = {
+  title: 'Sermons, Texts & Lectures | Ulul Azm Institute',
+  description:
+    'Sermons, texts and lecture programmes from Ulul Azm Institute -- stream freely from a preview selection, or subscribe for full access.',
+};
+
 /*
  * Shared layout for the whole Media area (/media and
  * /media/[slug]).

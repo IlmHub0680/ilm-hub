@@ -3,6 +3,12 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { SectionBannerProvider } from '@/components/SectionBannerProvider';
 
+export const metadata = {
+  title: 'Articles, Fatwas & Classical Texts | Ulul Azm Institute',
+  description:
+    'Free-to-read articles, fatwas and classical texts from Ulul Azm Institute -- open to everyone, no subscription required.',
+};
+
 /*
  * Shared layout for the whole Library area (/library and
  * /library/[slug]) — written/reference content, separate from Media.
