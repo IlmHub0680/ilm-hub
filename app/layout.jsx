@@ -47,8 +47,39 @@ async function getBranding() {
 // production domain rather than throwing if NEXT_PUBLIC_APP_URL is
 // ever unset, since broken social previews are much less disruptive
 // than a site-wide crash.
-const SITE_URL =
-  process.env.NEXT_PUBLIC_APP_URL || 'https://ulul-azm-institute-psi.vercel.app';
+const DEFAULT_SITE_URL = 'https://ulul-azm-institute-psi.vercel.app';
+
+// process.env.NEXT_PUBLIC_APP_URL is operator-set in Vercel and has
+// already been entered wrong twice in production (missing the
+// https:// scheme, and pointing at a stale pre-"-psi" domain) --
+// each time crashing every single page at build time with
+// `TypeError: Invalid URL` from new URL() below, since that throws
+// on anything that isn't a fully-qualified URL string. Validate it
+// actually parses before trusting it, so a bad value in Vercel can
+// never take the whole site down again -- it just silently falls
+// back to the known-good default instead.
+function resolveSiteUrl() {
+  const raw = process.env.NEXT_PUBLIC_APP_URL;
+  if (!raw) return DEFAULT_SITE_URL;
+  try {
+    // Reject bare hostnames like "example.vercel.app" -- new URL()
+    // happily "parses" those as relative and throws later when used
+    // as a base, so require an explicit http(s) scheme up front.
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('non-http(s) scheme');
+    }
+    return raw.replace(/\/+$/, '');
+  } catch (error) {
+    console.error(
+      `NEXT_PUBLIC_APP_URL is set to an invalid URL ("${raw}") -- falling back to ${DEFAULT_SITE_URL}. Fix this in Vercel's Environment Variables.`,
+      error
+    );
+    return DEFAULT_SITE_URL;
+  }
+}
+
+const SITE_URL = resolveSiteUrl();
 
 export async function generateMetadata() {
   const { heroImageUrl } = await getBranding();
