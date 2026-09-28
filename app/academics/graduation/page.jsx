@@ -20,6 +20,13 @@ const REQUIRED_DOCUMENTS = [
   'Student Affairs clearance — no outstanding disciplinary or welfare holds',
 ];
 
+const TONE_BADGE_CLASS = {
+  good: 'ih-b-success',
+  warning: 'ih-b-warning',
+  danger: 'ih-b-danger',
+  neutral: 'ih-b-neutral',
+};
+
 export default function GraduationPage() {
   const { data, loading, error } = useAcademics();
 
@@ -116,7 +123,7 @@ export default function GraduationPage() {
 
       {appError && <div style={s.errorBanner}>{appError}</div>}
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h2 style={{ ...s.cardTitle, margin: 0 }}>Your Status</h2>
@@ -127,16 +134,7 @@ export default function GraduationPage() {
             )}
           </div>
 
-          <span
-            style={{
-              padding: '6px 14px',
-              borderRadius: 999,
-              fontSize: 12.5,
-              fontWeight: 800,
-              whiteSpace: 'nowrap',
-              ...(STATUS_TONE[statusMeta.tone] || STATUS_TONE.neutral),
-            }}
-          >
+          <span className={`ih-badge ${TONE_BADGE_CLASS[statusMeta.tone] || 'ih-b-neutral'}`}>
             {statusMeta.label}
           </span>
         </div>
@@ -146,15 +144,7 @@ export default function GraduationPage() {
             {GRADUATION_STEPS.map((step, i) => (
               <div key={step.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: 999,
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    background: i <= stepIndex ? 'var(--brand)' : 'var(--surface)',
-                    color: i <= stepIndex ? 'var(--on-accent)' : 'var(--ink-soft)',
-                    border: '1px solid var(--border)',
-                  }}
+                  className={i <= stepIndex ? 'ih-badge ih-b-info' : 'ih-badge ih-b-neutral'}
                 >
                   {step.label}
                 </span>
@@ -188,7 +178,7 @@ export default function GraduationPage() {
                   in good standing. You may now apply for graduation.
                 </p>
                 {applyError && <div style={{ color: 'var(--danger)', fontSize: 12.5, marginBottom: 10 }}>{applyError}</div>}
-                <button type="button" onClick={submitApplication} disabled={applying} style={primaryButtonStyle}>
+                <button type="button" onClick={submitApplication} disabled={applying} className="ih-btn ih-btn-primary">
                   {applying ? 'Submitting…' : 'Apply for Graduation'}
                 </button>
               </>
@@ -247,7 +237,7 @@ export default function GraduationPage() {
       </div>
 
       {application && (
-        <div style={s.card}>
+        <div className="ih-card" style={{ marginBottom: 20 }}>
           <h2 style={s.cardTitle}>Clearance Checklist</h2>
 
           {application.clearances.length === 0 ? (
@@ -284,16 +274,7 @@ export default function GraduationPage() {
                       )}
                     </div>
 
-                    <span
-                      style={{
-                        padding: '5px 12px',
-                        borderRadius: 999,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        whiteSpace: 'nowrap',
-                        ...(STATUS_TONE[meta.tone] || STATUS_TONE.neutral),
-                      }}
-                    >
+                    <span className={`ih-badge ${TONE_BADGE_CLASS[meta.tone] || 'ih-b-neutral'}`}>
                       {meta.label}
                     </span>
                   </div>
@@ -305,7 +286,7 @@ export default function GraduationPage() {
       )}
 
       {displayStatus === 'COMPLETED' && (
-        <div style={{ ...s.card, background: 'var(--brand-tint)', border: '1px solid var(--success-tint)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
+        <div className="ih-card" style={{ marginBottom: 20, background: 'var(--brand-tint)', border: '1px solid var(--success-tint)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
           <div>
             <h2 style={{ ...s.cardTitle, color: 'var(--brand-dark)', margin: 0 }}>Graduation Documents</h2>
             <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', margin: '6px 0 0' }}>
@@ -315,14 +296,15 @@ export default function GraduationPage() {
           </div>
           <Link
             href="/academics/graduation-documents"
-            style={{ ...primaryButtonStyle, textDecoration: 'none', display: 'inline-block', whiteSpace: 'nowrap' }}
+            className="ih-btn ih-btn-gold"
+            style={{ textDecoration: 'none', display: 'inline-block', whiteSpace: 'nowrap' }}
           >
             View Graduation Documents
           </Link>
         </div>
       )}
 
-      <div style={s.card}>
+      <div className="ih-card">
         <h2 style={s.cardTitle}>Requirements & Documents</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {REQUIRED_DOCUMENTS.map((item, index) => (
@@ -353,21 +335,3 @@ export default function GraduationPage() {
     </div>
   );
 }
-
-const STATUS_TONE = {
-  good: { background: 'var(--success-tint)', color: 'var(--success)' },
-  warning: { background: 'var(--warning-tint)', color: 'var(--warning)' },
-  danger: { background: 'var(--danger-tint)', color: 'var(--danger)' },
-  neutral: { background: 'var(--brand-tint)', color: 'var(--brand)' },
-};
-
-const primaryButtonStyle = {
-  padding: '10px 20px',
-  borderRadius: 8,
-  border: 'none',
-  background: 'var(--brand)',
-  color: 'var(--on-accent)',
-  fontSize: 13.5,
-  fontWeight: 700,
-  cursor: 'pointer',
-};

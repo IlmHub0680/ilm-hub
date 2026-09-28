@@ -266,16 +266,15 @@ export default function AdmissionApplicationDetailPage({ params }) {
     }
   };
 
-  if (loading) return <main style={page}><div style={container}>Loading…</div></main>;
-  if (error) return <main style={page}><div style={container}><p style={{ color: 'var(--danger)' }}>{error}</p></div></main>;
+  if (loading) return <section>Loading…</section>;
+  if (error) return <section><p style={{ color: 'var(--danger)' }}>{error}</p></section>;
   if (!application) return null;
 
   const a = application;
 
   return (
-    <main style={page}>
-      <div style={container}>
-        <Link href="/admin/admissions" style={backLink}>← Back to Admissions</Link>
+    <section>
+      <Link href="/admin/admissions" style={backLink}>← Back to Admissions</Link>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, margin: '18px 0 20px' }}>
           <div>
@@ -601,13 +600,10 @@ export default function AdmissionApplicationDetailPage({ params }) {
             </div>
           )}
         </section>
-      </div>
-    </main>
+    </section>
   );
 }
 
-const page = { minHeight: '100vh', background: 'var(--paper)', padding: '40px 20px', fontFamily: 'var(--font-body)', color: 'var(--ink)' };
-const container = { maxWidth: 1000, margin: '0 auto' };
 const backLink = { color: 'var(--brand)', textDecoration: 'none', fontWeight: 700, fontSize: 14 };
 const heading = { color: 'var(--ink)', fontFamily: 'var(--font-display)', fontSize: 24, margin: 0 };
 const notFinalNotice = { padding: '8px 12px', borderRadius: 8, background: 'var(--warning-tint, rgba(200,150,20,0.12))', fontSize: 12.5, color: 'var(--ink)' };

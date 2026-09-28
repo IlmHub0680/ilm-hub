@@ -38,16 +38,17 @@ function graduationDocumentTypes(programLevel) {
   ];
 }
 
-const TONE_COLOR = {
-  good: 'var(--success)',
-  warning: 'var(--warning)',
-  danger: 'var(--danger)',
-  neutral: 'var(--brand)',
+const TONE_BADGE_CLASS = {
+  good: 'ih-b-success',
+  warning: 'ih-b-warning',
+  danger: 'ih-b-danger',
+  neutral: 'ih-b-neutral',
 };
 
 function DocumentRow({ label, description, available, unavailableNote, busy, onDownload, actionHref, actionLabel }) {
   return (
     <div
+      className="ih-card"
       style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -55,15 +56,13 @@ function DocumentRow({ label, description, available, unavailableNote, busy, onD
         gap: 12,
         flexWrap: 'wrap',
         padding: '14px 16px',
-        borderRadius: 10,
-        border: '1px solid var(--border)',
-        background: available ? 'var(--surface)' : 'var(--paper)',
+        marginBottom: 0,
       }}
     >
       <div style={{ maxWidth: 440 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <strong style={{ fontSize: 14, color: 'var(--ink)' }}>{label}</strong>
-          <span style={s.badge(available ? TONE_COLOR.good : TONE_COLOR.neutral)}>
+          <span className={`ih-badge ${available ? TONE_BADGE_CLASS.good : TONE_BADGE_CLASS.neutral}`}>
             {available ? 'Available' : 'Not Yet Available'}
           </span>
         </div>
@@ -73,13 +72,13 @@ function DocumentRow({ label, description, available, unavailableNote, busy, onD
       </div>
 
       {available && onDownload && (
-        <button type="button" onClick={onDownload} disabled={busy} style={primaryButtonStyle}>
+        <button type="button" onClick={onDownload} disabled={busy} className="ih-btn ih-btn-primary">
           {busy ? 'Preparing…' : 'Download PDF'}
         </button>
       )}
 
       {!available && actionHref && (
-        <Link href={actionHref} style={{ ...primaryButtonStyle, textDecoration: 'none', display: 'inline-block' }}>
+        <Link href={actionHref} className="ih-btn ih-btn-secondary">
           {actionLabel || 'Request'}
         </Link>
       )}
@@ -154,7 +153,7 @@ export default function GraduationDocumentsPage() {
 
       {appError && <div style={s.errorBanner}>{appError}</div>}
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h2 style={{ ...s.cardTitle, margin: 0 }}>Your Graduation Status</h2>
@@ -164,7 +163,9 @@ export default function GraduationDocumentsPage() {
                 : 'Official graduation documents become available once your graduation application is completed and approved.'}
             </p>
           </div>
-          <span style={s.badge(TONE_COLOR[statusMeta.tone] || TONE_COLOR.neutral)}>{statusMeta.label}</span>
+          <span className={`ih-badge ${TONE_BADGE_CLASS[statusMeta.tone] || TONE_BADGE_CLASS.neutral}`}>
+            {statusMeta.label}
+          </span>
         </div>
 
         {!isCompleted && (
@@ -178,7 +179,7 @@ export default function GraduationDocumentsPage() {
         )}
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <h2 style={s.cardTitle}>Official Graduation Documents</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {graduationDocumentTypes(application?.program?.level).map((doc) => (
@@ -216,28 +217,17 @@ export default function GraduationDocumentsPage() {
         </div>
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 0 }}>
         <h2 style={s.cardTitle}>Other Official Documents</h2>
         <p style={{ fontSize: 13.5, color: 'var(--ink)', margin: '0 0 14px' }}>
           Need another official document — a letter of confirmation, or anything else the
           Registry can issue on request? Submit it from Requests &amp; Documents on your
           Dashboard and track its status there.
         </p>
-        <Link href="/login" style={{ ...primaryButtonStyle, textDecoration: 'none', display: 'inline-block' }}>
+        <Link href="/login" className="ih-btn ih-btn-primary">
           Go to Requests &amp; Documents
         </Link>
       </div>
     </div>
   );
 }
-
-const primaryButtonStyle = {
-  padding: '10px 20px',
-  borderRadius: 8,
-  border: 'none',
-  background: 'var(--brand)',
-  color: 'var(--on-accent)',
-  fontSize: 13.5,
-  fontWeight: 700,
-  cursor: 'pointer',
-};

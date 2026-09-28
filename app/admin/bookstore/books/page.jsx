@@ -192,537 +192,269 @@ export default function BooksPage() {
   }, [books, filter, search]);
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: 'var(--paper)',
-        padding: '32px',
-        fontFamily:
-          'Inter, Arial, sans-serif',
-      }}
-    >
+    <div style={{ padding: 'var(--sp-6, 32px)', maxWidth: 1450, margin: '0 auto' }}>
       <div style={{ marginBottom: 20 }}>
         <BackToAdmin />
       </div>
+
       <div
         style={{
-          maxWidth: '1450px',
-          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+          marginBottom: 22,
         }}
       >
-        <header
-          style={{
-            background:
-              'linear-gradient(135deg, var(--brand-deepest), var(--brand-dark))',
-            color: 'var(--on-accent)',
-            borderRadius: '20px',
-            padding: '30px',
-            boxShadow:
-              '0 10px 30px rgba(30,64,175,.16)',
-          }}
-        >
-          <div
+        <div>
+          <h1 style={{ fontSize: 26, fontWeight: 600, margin: 0 }}>Books</h1>
+          <div style={{ color: 'var(--ink-soft)', fontSize: 13.5, marginTop: 4 }}>
+            Manage the complete bookstore catalogue and publishing lifecycle.
+          </div>
+        </div>
+
+        <Link href="/admin/bookstore/books/new" className="ih-btn ih-btn-primary">
+          + Add Book
+        </Link>
+      </div>
+
+      <div className="ih-stat-grid" style={{ marginBottom: 24 }}>
+        {FILTERS.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => setFilter(item.key)}
+            className={`ih-stat-tile${filter === item.key ? ' accent' : ''}`}
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              gap: 20,
-              flexWrap: 'wrap',
+              cursor: 'pointer',
+              textAlign: 'left',
+              border: filter === item.key ? '1px solid var(--gold)' : undefined,
             }}
           >
-            <div>
-              <div
-                style={{
-                  color: 'var(--info-tint)',
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: '.1em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Bookstore Management
-              </div>
+            <div className="n">{counts[item.key]}</div>
+            <div className="l">{item.label}</div>
+          </button>
+        ))}
+      </div>
 
-              <h1
-                style={{
-                  margin: '7px 0',
-                  fontSize: 32,
-                }}
-              >
-                Books
-              </h1>
+      {error && (
+        <div className="ih-card" style={{ borderColor: 'var(--danger)', color: 'var(--danger)', marginBottom: 20 }}>
+          {error}
+        </div>
+      )}
 
-              <p
-                style={{
-                  margin: 0,
-                  color: 'var(--info-tint)',
-                }}
-              >
-                Manage the complete bookstore
-                catalogue and publishing lifecycle.
-              </p>
-            </div>
-
-            <Link
-              href="/admin/bookstore/books/new"
-              style={{
-                background: 'var(--surface)',
-                color: 'var(--brand-dark)',
-                padding: '12px 18px',
-                borderRadius: 10,
-                textDecoration: 'none',
-                fontWeight: 800,
-              }}
-            >
-              + Add Book
-            </Link>
-          </div>
-        </header>
-
-        <section
-          style={{
-            display: 'grid',
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(150px, 1fr))',
-            gap: 12,
-            marginTop: 20,
-          }}
-        >
-          {FILTERS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() =>
-                setFilter(item.key)
-              }
-              style={{
-                border:
-                  filter === item.key
-                    ? '2px solid var(--brand)'
-                    : '1px solid var(--border)',
-                background:
-                  filter === item.key
-                    ? 'var(--info-tint)'
-                    : 'var(--surface)',
-                borderRadius: 14,
-                padding: '16px',
-                textAlign: 'left',
-                cursor: 'pointer',
-              }}
-            >
-              <div
-                style={{
-                  color: 'var(--ink-soft)',
-                  fontSize: 13,
-                  fontWeight: 700,
-                }}
-              >
-                {item.label}
-              </div>
-
-              <div
-                style={{
-                  marginTop: 5,
-                  color: 'var(--ink)',
-                  fontSize: 25,
-                  fontWeight: 800,
-                }}
-              >
-                {counts[item.key]}
-              </div>
-            </button>
-          ))}
-        </section>
-
-        {error && (
-          <div
-            style={{
-              marginTop: 20,
-              padding: 15,
-              background: 'var(--danger-tint)',
-              color: 'var(--danger)',
-              borderRadius: 10,
-              border: '1px solid var(--danger-tint)',
-            }}
-          >
-            {error}
-          </div>
-        )}
-
-        <section
-          style={{
-            background: 'var(--surface)',
-            marginTop: 20,
-            borderRadius: 16,
-            padding: 18,
-            boxShadow:
-              '0 4px 18px rgba(15,23,42,.05)',
-          }}
-        >
+      <div className="ih-card" style={{ marginBottom: 20 }}>
+        <div className="ih-field" style={{ gap: 0 }}>
           <input
             value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
+            onChange={(event) => setSearch(event.target.value)}
             placeholder="Search books, authors, categories..."
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              padding: '13px 15px',
-              border:
-                '1px solid var(--border)',
-              borderRadius: 10,
-              fontSize: 15,
-              outline: 'none',
-            }}
           />
-        </section>
+        </div>
+      </div>
 
-        <section
-          style={{
-            background: 'var(--surface)',
-            marginTop: 20,
-            borderRadius: 16,
-            overflow: 'hidden',
-            boxShadow:
-              '0 4px 18px rgba(15,23,42,.05)',
-          }}
-        >
-          {loading ? (
-            <div
+      <div className="ih-card" style={{ padding: 0, overflow: 'hidden' }}>
+        {loading ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>
+            Loading bookstore catalogue...
+          </div>
+        ) : visibleBooks.length === 0 ? (
+          <div style={{ padding: 50, textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>📚</div>
+            <h3>No books found</h3>
+            <p style={{ color: 'var(--ink-soft)' }}>
+              Try another filter or add a new book.
+            </p>
+          </div>
+        ) : (
+          visibleBooks.map((book) => (
+            <article
+              key={book.id}
               style={{
-                padding: 40,
-                textAlign: 'center',
-                color: 'var(--ink-soft)',
-              }}
-            >
-              Loading bookstore catalogue...
-            </div>
-          ) : visibleBooks.length === 0 ? (
-            <div
-              style={{
-                padding: 50,
-                textAlign: 'center',
+                padding: 22,
+                borderBottom: '1px solid var(--border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 24,
+                flexWrap: 'wrap',
               }}
             >
               <div
                 style={{
-                  fontSize: 40,
-                  marginBottom: 10,
-                }}
-              >
-                📚
-              </div>
-
-              <h3>
-                No books found
-              </h3>
-
-              <p
-                style={{
-                  color: 'var(--ink-soft)',
-                }}
-              >
-                Try another filter or add a
-                new book.
-              </p>
-            </div>
-          ) : (
-            visibleBooks.map((book) => (
-              <article
-                key={book.id}
-                style={{
-                  padding: 22,
-                  borderBottom:
-                    '1px solid var(--border)',
                   display: 'flex',
-                  justifyContent:
-                    'space-between',
-                  gap: 24,
-                  flexWrap: 'wrap',
+                  gap: 18,
+                  flex: 1,
+                  minWidth: 280,
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 18,
-                    flex: 1,
-                    minWidth: 280,
-                  }}
-                >
-                  {book.coverImageUrl ? (
-                    <img
-                      src={book.coverImageUrl}
-                      alt=""
-                      style={{
-                        width: 70,
-                        height: 92,
-                        objectFit: 'cover',
-                        borderRadius: 8,
-                        background: 'var(--border)',
-                      }}
-                    />
-                  ) : (
+                {book.coverImageUrl ? (
+                  <img
+                    src={book.coverImageUrl}
+                    alt=""
+                    style={{
+                      width: 70,
+                      height: 92,
+                      objectFit: 'cover',
+                      borderRadius: 8,
+                      background: 'var(--border)',
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 70,
+                      height: 92,
+                      borderRadius: 8,
+                      background: 'var(--border)',
+                      display: 'grid',
+                      placeItems: 'center',
+                      fontSize: 24,
+                    }}
+                  >
+                    📖
+                  </div>
+                )}
+
+                <div>
+                  <h3 style={{ margin: 0, color: 'var(--ink)' }}>
+                    {book.titleEn}
+                  </h3>
+
+                  {book.titleAr && (
                     <div
-                      style={{
-                        width: 70,
-                        height: 92,
-                        borderRadius: 8,
-                        background:
-                          'var(--border)',
-                        display: 'grid',
-                        placeItems: 'center',
-                        fontSize: 24,
-                      }}
+                      dir="rtl"
+                      style={{ marginTop: 4, color: 'var(--ink-soft)' }}
                     >
-                      📖
+                      {book.titleAr}
                     </div>
                   )}
 
-                  <div>
-                    <h3
-                      style={{
-                        margin: 0,
-                        color: 'var(--ink)',
-                      }}
-                    >
-                      {book.titleEn}
-                    </h3>
+                  <div
+                    style={{
+                      marginTop: 9,
+                      display: 'flex',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <StatusBadge status={book.status} />
 
-                    {book.titleAr && (
-                      <div
-                        dir="rtl"
-                        style={{
-                          marginTop: 4,
-                          color: 'var(--ink-soft)',
-                        }}
-                      >
-                        {book.titleAr}
-                      </div>
+                    {book.isFeatured && (
+                      <span className="ih-badge ih-b-neutral">Featured</span>
                     )}
 
-                    <div
-                      style={{
-                        marginTop: 9,
-                        display: 'flex',
-                        gap: 8,
-                        flexWrap: 'wrap',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <StatusBadge
-                        status={book.status}
-                      />
-
-                      {book.isFeatured && (
-                        <Badge>
-                          Featured
-                        </Badge>
-                      )}
-
-                      {book.isNewRelease && (
-                        <Badge>
-                          New Release
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: 10,
-                        color: 'var(--ink-soft)',
-                        fontSize: 14,
-                      }}
-                    >
-                      {book.category?.nameEn ||
-                        'Uncategorized'}
-                      {' · '}
-                      {book.author?.name ||
-                        'No author assigned'}
-                    </div>
+                    {book.isNewRelease && (
+                      <span className="ih-badge ih-b-neutral">New Release</span>
+                    )}
                   </div>
+
+                  <div
+                    style={{
+                      marginTop: 10,
+                      color: 'var(--ink-soft)',
+                      fontSize: 14,
+                    }}
+                  >
+                    {book.category?.nameEn || 'Uncategorized'}
+                    {' · '}
+                    {book.author?.name || 'No author assigned'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ minWidth: 270, textAlign: 'right' }}>
+                <div className="mono" style={{ fontSize: 19, fontWeight: 800, color: 'var(--ink)' }}>
+                  ${Number(book.priceUSD || 0).toFixed(2)}
                 </div>
 
                 <div
                   style={{
-                    minWidth: 270,
-                    textAlign: 'right',
+                    marginTop: 12,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 8,
+                    flexWrap: 'wrap',
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: 19,
-                      fontWeight: 800,
-                      color: 'var(--ink)',
-                    }}
+                  <Link
+                    href={`/admin/bookstore/books/${book.id}`}
+                    className="ih-btn ih-btn-secondary"
+                    style={{ padding: '6px 12px', fontSize: 12.5 }}
                   >
-                    $
-                    {Number(
-                      book.priceUSD || 0
-                    ).toFixed(2)}
-                  </div>
+                    Manage
+                  </Link>
 
-                  <div
-                    style={{
-                      marginTop: 12,
-                      display: 'flex',
-                      justifyContent:
-                        'flex-end',
-                      gap: 8,
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <Link
-                      href={`/admin/bookstore/books/${book.id}`}
-                      style={{
-                        padding:
-                          '8px 12px',
-                        borderRadius: 8,
-                        background:
-                          'var(--info-tint)',
-                        color: 'var(--brand-dark)',
-                        textDecoration:
-                          'none',
-                        fontWeight: 700,
-                        fontSize: 13,
-                      }}
-                    >
-                      Manage
-                    </Link>
-
-                    {book.status !==
-                      'PUBLISHED' && (
-                      <button
-                        type="button"
-                        disabled={
-                          actionId === book.id
-                        }
-                        onClick={() =>
-                          updateBook(
-                            book.id,
-                            {
-                              status:
-                                'PUBLISHED',
-                            },
-                            `Publish "${book.titleEn}" to the public bookstore?`
-                          )
-                        }
-                        style={buttonStyle(
-                          'var(--brand-light)',
-                          'var(--success-tint)'
-                        )}
-                      >
-                        Publish
-                      </button>
-                    )}
-
-                    {book.status ===
-                      'PUBLISHED' && (
-                      <button
-                        type="button"
-                        disabled={
-                          actionId === book.id
-                        }
-                        onClick={() =>
-                          updateBook(
-                            book.id,
-                            {
-                              status:
-                                'DRAFT',
-                            },
-                            `Unpublish "${book.titleEn}"? It will disappear from the public bookstore.`
-                          )
-                        }
-                        style={buttonStyle(
-                          'var(--warning)',
-                          'var(--warning-tint)'
-                        )}
-                      >
-                        Unpublish
-                      </button>
-                    )}
-
+                  {book.status !== 'PUBLISHED' && (
                     <button
                       type="button"
-                      disabled={
-                        actionId === book.id
-                      }
+                      disabled={actionId === book.id}
                       onClick={() =>
-                        deleteBook(book)
+                        updateBook(
+                          book.id,
+                          { status: 'PUBLISHED' },
+                          `Publish "${book.titleEn}" to the public bookstore?`
+                        )
                       }
-                      style={buttonStyle(
-                        'var(--danger)',
-                        'var(--danger-tint)'
-                      )}
+                      className="ih-btn ih-btn-primary"
+                      style={{ padding: '6px 12px', fontSize: 12.5 }}
                     >
-                      Delete
+                      Publish
                     </button>
-                  </div>
+                  )}
+
+                  {book.status === 'PUBLISHED' && (
+                    <button
+                      type="button"
+                      disabled={actionId === book.id}
+                      onClick={() =>
+                        updateBook(
+                          book.id,
+                          { status: 'DRAFT' },
+                          `Unpublish "${book.titleEn}"? It will disappear from the public bookstore.`
+                        )
+                      }
+                      className="ih-btn ih-btn-gold"
+                      style={{ padding: '6px 12px', fontSize: 12.5 }}
+                    >
+                      Unpublish
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={actionId === book.id}
+                    onClick={() => deleteBook(book)}
+                    className="ih-btn ih-btn-danger"
+                    style={{ padding: '6px 12px', fontSize: 12.5 }}
+                  >
+                    Delete
+                  </button>
                 </div>
-              </article>
-            ))
-          )}
-        </section>
+              </div>
+            </article>
+          ))
+        )}
       </div>
-    </main>
+    </div>
   );
 }
 
 function StatusBadge({ status }) {
-  const styles = {
-    PUBLISHED: ['var(--brand-light)', 'var(--success-tint)'],
-    APPROVED: ['var(--brand-dark)', 'var(--info-tint)'],
-    DRAFT: ['var(--ink-soft)', 'var(--border)'],
-    PENDING_REVIEW: ['var(--warning)', 'var(--warning-tint)'],
-    REJECTED: ['var(--danger)', 'var(--danger-tint)'],
+  const tones = {
+    PUBLISHED: 'ih-b-success',
+    APPROVED: 'ih-b-info',
+    DRAFT: 'ih-b-neutral',
+    PENDING_REVIEW: 'ih-b-warning',
+    REJECTED: 'ih-b-danger',
   };
 
-  const [color, background] =
-    styles[status] || styles.DRAFT;
+  const tone = tones[status] || tones.DRAFT;
 
   return (
-    <span
-      style={{
-        display: 'inline-block',
-        padding: '5px 9px',
-        borderRadius: 999,
-        background,
-        color,
-        fontSize: 11,
-        fontWeight: 800,
-      }}
-    >
+    <span className={`ih-badge ${tone}`}>
       {status.replaceAll('_', ' ')}
     </span>
   );
-}
-
-function Badge({ children }) {
-  return (
-    <span
-      style={{
-        padding: '5px 9px',
-        borderRadius: 999,
-        background: 'var(--border-soft)',
-        color: 'var(--ink-soft)',
-        fontSize: 11,
-        fontWeight: 800,
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function buttonStyle(color, background) {
-  return {
-    border: 0,
-    padding: '8px 12px',
-    borderRadius: 8,
-    background,
-    color,
-    fontWeight: 700,
-    fontSize: 13,
-    cursor: 'pointer',
-  };
 }

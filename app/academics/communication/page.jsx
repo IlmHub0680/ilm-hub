@@ -11,6 +11,13 @@ import {
 } from '@/lib/complaints';
 import * as s from '../styles';
 
+const TONE_BADGE_CLASS = {
+  good: 'ih-b-success',
+  warning: 'ih-b-warning',
+  danger: 'ih-b-danger',
+  neutral: 'ih-b-neutral',
+};
+
 export default function CommunicationPage() {
   const { data, loading, error, reload } = useAcademics();
 
@@ -193,12 +200,12 @@ export default function CommunicationPage() {
       </p>
 
       {formSuccess && (
-        <div style={{ ...s.errorBanner, background: 'var(--success-tint)', color: 'var(--success)' }}>
+        <div className="ih-badge ih-b-success" style={{ display: 'block', marginBottom: 16, padding: '10px 14px' }}>
           {formSuccess}
         </div>
       )}
 
-      <div style={s.card}>
+      <div className="ih-card">
         <div
           style={{
             display: 'flex',
@@ -213,11 +220,11 @@ export default function CommunicationPage() {
           </h2>
 
           {step === null ? (
-            <button type="button" onClick={startNewComplaint} style={primaryButtonStyle}>
+            <button type="button" onClick={startNewComplaint} className="ih-btn ih-btn-primary">
               + New Complaint
             </button>
           ) : (
-            <button type="button" onClick={cancelWizard} style={ghostButtonStyle}>
+            <button type="button" onClick={cancelWizard} className="ih-btn ih-btn-ghost">
               Cancel
             </button>
           )}
@@ -251,6 +258,7 @@ export default function CommunicationPage() {
                               key={u.id}
                               type="button"
                               onClick={() => pickRecipient('unit', u.id, u.nameEn)}
+                              className="ih-btn ih-btn-secondary"
                               style={pickerButtonStyle}
                             >
                               {u.nameEn}
@@ -271,6 +279,7 @@ export default function CommunicationPage() {
                           key={d.id}
                           type="button"
                           onClick={() => pickRecipient('department', d.id, d.nameEn)}
+                          className="ih-btn ih-btn-secondary"
                           style={pickerButtonStyle}
                         >
                           {d.nameEn}
@@ -312,13 +321,19 @@ export default function CommunicationPage() {
                   key={t.value}
                   type="button"
                   onClick={() => pickTopic(t.value)}
+                  className="ih-btn ih-btn-secondary"
                   style={pickerButtonStyle}
                 >
                   {t.label}
                 </button>
               ))}
             </div>
-            <button type="button" onClick={() => setStep('recipient')} style={{ ...ghostButtonStyle, marginTop: 14 }}>
+            <button
+              type="button"
+              onClick={() => setStep('recipient')}
+              className="ih-btn ih-btn-ghost"
+              style={{ marginTop: 14 }}
+            >
               ← Back
             </button>
           </div>
@@ -337,7 +352,6 @@ export default function CommunicationPage() {
                   type="text"
                   value={otherTopicText}
                   onChange={(e) => setOtherTopicText(e.target.value)}
-                  style={inputStyle}
                   placeholder="e.g. Lost campus ID card"
                 />
               </FormField>
@@ -348,7 +362,6 @@ export default function CommunicationPage() {
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                style={inputStyle}
                 placeholder="A short summary of your complaint"
                 maxLength={150}
               />
@@ -359,7 +372,7 @@ export default function CommunicationPage() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={5}
-                style={{ ...inputStyle, fontFamily: 'inherit' }}
+                style={{ fontFamily: 'inherit' }}
                 placeholder="Describe your issue in detail..."
               />
             </FormField>
@@ -369,7 +382,7 @@ export default function CommunicationPage() {
                 value={supportingInfo}
                 onChange={(e) => setSupportingInfo(e.target.value)}
                 rows={3}
-                style={{ ...inputStyle, fontFamily: 'inherit' }}
+                style={{ fontFamily: 'inherit' }}
                 placeholder="Any other context that would help..."
               />
             </FormField>
@@ -384,19 +397,19 @@ export default function CommunicationPage() {
             </FormField>
 
             {formError && (
-              <div style={{ color: 'var(--danger)', fontSize: 12.5, marginTop: 4, marginBottom: 8 }}>
+              <div className="ih-badge ih-b-danger" style={{ display: 'block', marginTop: 4, marginBottom: 8 }}>
                 {formError}
               </div>
             )}
 
             <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-              <button type="submit" disabled={submitting} style={primaryButtonStyle}>
+              <button type="submit" disabled={submitting} className="ih-btn ih-btn-primary">
                 {submitting ? 'Sending…' : 'Send'}
               </button>
-              <button type="button" onClick={() => setStep('topic')} style={ghostButtonStyle}>
+              <button type="button" onClick={() => setStep('topic')} className="ih-btn ih-btn-ghost">
                 ← Back
               </button>
-              <button type="button" onClick={cancelWizard} style={ghostButtonStyle}>
+              <button type="button" onClick={cancelWizard} className="ih-btn ih-btn-ghost">
                 Cancel
               </button>
             </div>
@@ -404,7 +417,7 @@ export default function CommunicationPage() {
         )}
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card">
         <h2 style={s.cardTitle}>My Complaints & Enquiries</h2>
 
         {complaints.length === 0 ? (
@@ -418,7 +431,7 @@ export default function CommunicationPage() {
               const expanded = expandedId === c.id;
 
               return (
-                <div key={c.id} style={complaintCardStyle}>
+                <div key={c.id} className="ih-card" style={complaintCardStyle}>
                   <div
                     style={{
                       display: 'flex',
@@ -441,16 +454,8 @@ export default function CommunicationPage() {
                     </div>
 
                     <span
-                      style={{
-                        padding: '5px 12px',
-                        borderRadius: 999,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        whiteSpace: 'nowrap',
-                        height: 'fit-content',
-                        background: tone.background,
-                        color: tone.color,
-                      }}
+                      className={`ih-badge ${TONE_BADGE_CLASS[meta.tone] || 'ih-b-neutral'}`}
+                      style={{ height: 'fit-content' }}
                     >
                       {getComplaintStatusLabel(c.status)}
                     </span>
@@ -466,7 +471,8 @@ export default function CommunicationPage() {
                         <button
                           type="button"
                           onClick={() => viewAttachment(c.id)}
-                          style={{ ...ghostButtonStyle, marginBottom: 12 }}
+                          className="ih-btn ih-btn-ghost"
+                          style={{ marginBottom: 12 }}
                         >
                           📎 View Attachment
                         </button>
@@ -541,15 +547,7 @@ function WizardSteps({ step }) {
       {steps.map((st) => (
         <span
           key={st}
-          style={{
-            padding: '4px 10px',
-            borderRadius: 999,
-            fontSize: 11.5,
-            fontWeight: 700,
-            background: st === step ? 'var(--brand)' : 'var(--surface)',
-            color: st === step ? 'var(--on-accent)' : 'var(--ink-soft)',
-            border: '1px solid var(--border)',
-          }}
+          className={`ih-badge ${st === step ? 'ih-b-info' : 'ih-b-neutral'}`}
         >
           {labels[st]}
         </span>
@@ -560,38 +558,12 @@ function WizardSteps({ step }) {
 
 function FormField({ label, children }) {
   return (
-    <div style={{ marginBottom: 14 }}>
-      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
-        {label}
-      </label>
+    <div className="ih-field" style={{ marginBottom: 14 }}>
+      <label>{label}</label>
       {children}
     </div>
   );
 }
-
-const primaryButtonStyle = {
-  padding: '9px 18px',
-  borderRadius: 8,
-  border: 'none',
-  background: 'var(--brand)',
-  color: 'var(--on-accent)',
-  fontSize: 13,
-  fontWeight: 700,
-  cursor: 'pointer',
-  whiteSpace: 'nowrap',
-};
-
-const ghostButtonStyle = {
-  padding: '9px 16px',
-  borderRadius: 8,
-  border: '1px solid var(--border)',
-  background: 'var(--surface)',
-  color: 'var(--ink)',
-  fontSize: 13,
-  fontWeight: 700,
-  cursor: 'pointer',
-  whiteSpace: 'nowrap',
-};
 
 const stepPrompt = {
   fontSize: 13.5,
@@ -649,15 +621,6 @@ const pickerButtonStyle = {
   fontWeight: 600,
   cursor: 'pointer',
   marginBottom: 6,
-};
-
-const inputStyle = {
-  width: '100%',
-  boxSizing: 'border-box',
-  padding: '9px 11px',
-  borderRadius: 8,
-  border: '1px solid var(--border)',
-  fontSize: 13.5,
 };
 
 const complaintCardStyle = {

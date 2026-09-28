@@ -36,31 +36,31 @@ export default function ExamsPage() {
         you're registered in.
       </p>
 
-      <div style={s.card}>
+      <div className="ih-card">
         {exams.length === 0 ? (
           <div style={s.emptyState}>No final examination timetable has been published yet.</div>
         ) : (
-          <div style={{ overflowX: 'auto' }} id="exam-timetable-print">
-            <table style={s.table}>
+          <div className="ih-tbl-wrap" id="exam-timetable-print">
+            <table className="ih-tbl">
               <thead>
                 <tr>
-                  <th style={s.th}>Date</th>
-                  <th style={s.th}>Day</th>
-                  <th style={s.th}>Time</th>
-                  <th style={s.th}>Course</th>
-                  <th style={s.th}>Venue</th>
+                  <th>Date</th>
+                  <th>Day</th>
+                  <th>Time</th>
+                  <th>Course</th>
+                  <th>Venue</th>
                 </tr>
               </thead>
               <tbody>
                 {exams.map((exam) => (
                   <tr key={exam.key}>
-                    <td style={s.td}>{exam.date}</td>
-                    <td style={s.td}>{exam.day}</td>
-                    <td style={s.td}>{exam.time}</td>
-                    <td style={s.td}>
+                    <td className="mono">{exam.date}</td>
+                    <td>{exam.day}</td>
+                    <td className="mono">{exam.time}</td>
+                    <td>
                       <strong>{exam.course}</strong>
                     </td>
-                    <td style={s.td}>{exam.venue}</td>
+                    <td>{exam.venue}</td>
                   </tr>
                 ))}
               </tbody>
@@ -72,17 +72,8 @@ export default function ExamsPage() {
           <button
             type="button"
             onClick={() => window.print()}
-            style={{
-              marginTop: 16,
-              padding: '10px 20px',
-              borderRadius: 8,
-              border: 'none',
-              background: 'var(--brand)',
-              color: 'var(--on-accent)',
-              fontSize: 13.5,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
+            className="ih-btn ih-btn-secondary"
+            style={{ marginTop: 16 }}
           >
             Print Examination Timetable
           </button>

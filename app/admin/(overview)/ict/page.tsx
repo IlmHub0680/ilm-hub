@@ -1,9 +1,20 @@
 export const dynamic = 'force-dynamic';
 
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import {
+  oversightHeader,
+  oversightHeading,
+  oversightPageBadge,
+  oversightSubtitle,
+  oversightTableCard,
+  overviewStatGrid,
+  overviewStatTileStyle,
+  overviewStatValue,
+  overviewStatLabel,
+} from '../_shared';
+import type { CSSProperties } from 'react';
 
 export default async function AdminICTOversight() {
   const user = await getCurrentUser();
@@ -31,18 +42,36 @@ export default async function AdminICTOversight() {
     : status === 'CLOSED' ? 'ih-b-neutral'
     : 'ih-b-neutral';
 
+  const openCount = tickets.filter((t) => t.status === 'OPEN' || t.status === 'REOPENED').length;
+  const inProgressCount = tickets.filter((t) => t.status === 'IN_PROGRESS').length;
+  const resolvedCount = tickets.filter((t) => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
+
   return (
-    <main style={page}>
-      <div style={container}>
-        <Link href="/admin" style={backLink}>← Back to Admin Overview</Link>
-
-        <h1 style={heading}>IT Support — Oversight View</h1>
-
-        <p style={muted}>
-          Read-only. Ticket handling is managed by ICT staff at their own dashboard.
+    <section>
+      <header style={oversightHeader}>
+        <h1 style={oversightHeading}>IT Support Tickets</h1>
+        <p style={oversightSubtitle}>
+          Ticket handling is managed by ICT staff at their own dashboard.
         </p>
+        <span style={oversightPageBadge}>🔒 Read-only oversight</span>
+      </header>
 
-        <div className="ih-tbl-wrap" style={{ marginTop: 20 }}>
+      <div style={{ ...overviewStatGrid, marginBottom: 28 }}>
+        <div style={(overviewStatTileStyle('gold') as CSSProperties)}>
+          <div style={overviewStatValue}>{openCount}</div>
+          <div style={overviewStatLabel}>Open</div>
+        </div>
+        <div style={(overviewStatTileStyle('brand') as CSSProperties)}>
+          <div style={overviewStatValue}>{inProgressCount}</div>
+          <div style={overviewStatLabel}>In Progress</div>
+        </div>
+        <div style={(overviewStatTileStyle('brand') as CSSProperties)}>
+          <div style={overviewStatValue}>{resolvedCount}</div>
+          <div style={overviewStatLabel}>Resolved / Closed</div>
+        </div>
+      </div>
+
+      <div className="ih-tbl-wrap" style={oversightTableCard}>
           <table className="ih-tbl">
             <thead>
               <tr>
@@ -77,40 +106,6 @@ export default async function AdminICTOversight() {
             </tbody>
           </table>
         </div>
-      </div>
-    </main>
+    </section>
   );
 }
-
-const page = {
-  minHeight: '100vh',
-  background: 'var(--paper)',
-  padding: '40px 20px',
-  fontFamily: 'var(--font-body)',
-  color: 'var(--ink)',
-};
-
-const container = {
-  maxWidth: '1100px',
-  margin: '0 auto',
-};
-
-const backLink = {
-  color: 'var(--brand)',
-  textDecoration: 'none',
-  fontWeight: 700,
-  fontSize: '14px',
-};
-
-const heading = {
-  color: 'var(--ink)',
-  fontFamily: 'var(--font-display)',
-  fontSize: '28px',
-  margin: '20px 0 6px',
-};
-
-const muted = {
-  color: 'var(--ink-soft)',
-  fontSize: '14px',
-  marginBottom: '10px',
-};

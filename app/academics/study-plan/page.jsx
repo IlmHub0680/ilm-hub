@@ -3,19 +3,32 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAcademics } from '../context';
-import { getCoursePlanOverview, getCurrentStudent, STUDENT_PLAN, getRequestStatusMeta, STATUS_TONE_STYLE } from '../deriveAcademics';
+import { getCoursePlanOverview, getCurrentStudent, STUDENT_PLAN, getRequestStatusMeta } from '../deriveAcademics';
 import * as s from '../styles';
-
-const STATUS_COLORS = {
-  current: 'var(--brand-light)',
-  completed: 'var(--info)',
-  remaining: 'var(--danger)',
-};
 
 const STATUS_LABELS = {
   current: 'Currently Taking',
   completed: 'Completed',
   remaining: 'Not Yet Taken',
+};
+
+const STATUS_BADGE_CLASS = {
+  current: 'ih-b-info',
+  completed: 'ih-b-success',
+  remaining: 'ih-b-neutral',
+};
+
+const STATUS_DOT_COLOR = {
+  current: 'var(--info)',
+  completed: 'var(--success)',
+  remaining: 'var(--ink-soft)',
+};
+
+const TONE_BADGE_CLASS = {
+  good: 'ih-b-success',
+  warning: 'ih-b-warning',
+  danger: 'ih-b-danger',
+  neutral: 'ih-b-neutral',
 };
 
 export default function StudyPlanPage() {
@@ -135,7 +148,7 @@ export default function StudyPlanPage() {
         </div>
       )}
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <h2 style={s.cardTitle}>Recommended Study Plan</h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -167,7 +180,7 @@ export default function StudyPlanPage() {
         </div>
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <h2 style={s.cardTitle}>Programme Course Overview</h2>
 
         {coursePlanOverview.length === 0 ? (
@@ -206,7 +219,7 @@ export default function StudyPlanPage() {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={s.badge(STATUS_COLORS[course.status])}>
+                      <span className={`ih-badge ${STATUS_BADGE_CLASS[course.status] || 'ih-b-neutral'}`}>
                         {STATUS_LABELS[course.status]}
                       </span>
 
@@ -214,7 +227,7 @@ export default function StudyPlanPage() {
                         <button
                           type="button"
                           onClick={() => openRequestForm(course, 'ADD')}
-                          style={requestButtonStyle}
+                          className="ih-btn ih-btn-secondary"
                         >
                           Request to Add
                         </button>
@@ -224,7 +237,7 @@ export default function StudyPlanPage() {
                         <button
                           type="button"
                           onClick={() => openRequestForm(course, 'DROP')}
-                          style={requestButtonStyle}
+                          className="ih-btn ih-btn-secondary"
                         >
                           Request to Drop
                         </button>
@@ -243,34 +256,19 @@ export default function StudyPlanPage() {
                         background: 'var(--brand-tint)',
                       }}
                     >
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: 12.5,
-                          fontWeight: 700,
-                          color: 'var(--ink)',
-                          marginBottom: 6,
-                        }}
-                      >
-                        {pendingAction.action === 'ADD' ? 'Why do you want to add this course?' : 'Why do you want to drop this course?'}{' '}
-                        <span style={{ fontWeight: 400, color: 'var(--ink-soft)' }}>(optional)</span>
-                      </label>
+                      <div className="ih-field">
+                        <label>
+                          {pendingAction.action === 'ADD' ? 'Why do you want to add this course?' : 'Why do you want to drop this course?'}{' '}
+                          <span style={{ fontWeight: 400, color: 'var(--ink-soft)' }}>(optional)</span>
+                        </label>
 
-                      <textarea
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                        rows={3}
-                        placeholder="Add any context the Registry should know..."
-                        style={{
-                          width: '100%',
-                          boxSizing: 'border-box',
-                          padding: '9px 11px',
-                          borderRadius: 8,
-                          border: '1px solid var(--border)',
-                          fontSize: 13.5,
-                          fontFamily: 'inherit',
-                        }}
-                      />
+                        <textarea
+                          value={reason}
+                          onChange={(e) => setReason(e.target.value)}
+                          rows={3}
+                          placeholder="Add any context the Registry should know..."
+                        />
+                      </div>
 
                       {formError && (
                         <div style={{ color: 'var(--danger)', fontSize: 12.5, marginTop: 6 }}>
@@ -282,22 +280,14 @@ export default function StudyPlanPage() {
                         <button
                           type="submit"
                           disabled={submitting}
-                          style={{
-                            ...requestButtonStyle,
-                            background: 'var(--brand)',
-                            color: 'var(--on-accent)',
-                            border: 'none',
-                          }}
+                          className="ih-btn ih-btn-primary"
                         >
                           {submitting ? 'Submitting…' : 'Submit Request'}
                         </button>
                         <button
                           type="button"
                           onClick={closeRequestForm}
-                          style={{
-                            ...requestButtonStyle,
-                            background: 'var(--surface)',
-                          }}
+                          className="ih-btn ih-btn-ghost"
                         >
                           Cancel
                         </button>
@@ -319,15 +309,15 @@ export default function StudyPlanPage() {
               }}
             >
               <span>
-                <span style={{ color: STATUS_COLORS.current, fontWeight: 800 }}>●</span>{' '}
+                <span style={{ color: STATUS_DOT_COLOR.current, fontWeight: 800 }}>●</span>{' '}
                 Currently taking
               </span>
               <span>
-                <span style={{ color: STATUS_COLORS.completed, fontWeight: 800 }}>●</span>{' '}
+                <span style={{ color: STATUS_DOT_COLOR.completed, fontWeight: 800 }}>●</span>{' '}
                 Completed
               </span>
               <span>
-                <span style={{ color: STATUS_COLORS.remaining, fontWeight: 800 }}>●</span>{' '}
+                <span style={{ color: STATUS_DOT_COLOR.remaining, fontWeight: 800 }}>●</span>{' '}
                 Not yet taken
               </span>
             </div>
@@ -335,7 +325,7 @@ export default function StudyPlanPage() {
         )}
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card">
         <h2 style={s.cardTitle}>My Course Add / Drop Requests</h2>
 
         {courseRequests.length === 0 ? (
@@ -346,7 +336,6 @@ export default function StudyPlanPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {courseRequests.map((request) => {
               const meta = getRequestStatusMeta(request.status);
-              const tone = STATUS_TONE_STYLE[meta.tone] || {};
 
               return (
                 <div
@@ -375,17 +364,7 @@ export default function StudyPlanPage() {
                     )}
                   </div>
 
-                  <span
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: 999,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      whiteSpace: 'nowrap',
-                      background: tone.background,
-                      color: tone.color,
-                    }}
-                  >
+                  <span className={`ih-badge ${TONE_BADGE_CLASS[meta.tone] || 'ih-b-neutral'}`}>
                     {meta.label}
                   </span>
                 </div>
@@ -397,15 +376,3 @@ export default function StudyPlanPage() {
     </div>
   );
 }
-
-const requestButtonStyle = {
-  padding: '7px 14px',
-  borderRadius: 8,
-  border: '1px solid var(--border)',
-  background: 'var(--surface)',
-  color: 'var(--ink)',
-  fontSize: 12.5,
-  fontWeight: 700,
-  cursor: 'pointer',
-  whiteSpace: 'nowrap',
-};

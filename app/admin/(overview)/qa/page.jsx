@@ -1,9 +1,15 @@
 export const dynamic = 'force-dynamic';
 
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import {
+  oversightHeader,
+  oversightHeading,
+  oversightPageBadge,
+  oversightSubtitle,
+  oversightTableCard,
+} from '../_shared';
 
 export default async function AdminQAOversight() {
   const user = await getCurrentUser();
@@ -41,19 +47,14 @@ export default async function AdminQAOversight() {
     : 'ih-b-neutral';
 
   return (
-    <main style={page}>
-      <div style={container}>
-        <Link href="/admin" style={backLink}>
-          ← Back to Admin Overview
-        </Link>
+    <section>
+      <header style={oversightHeader}>
+        <h1 style={oversightHeading}>Quality Assurance — Oversight View</h1>
+        <p style={oversightSubtitle}>Reviews are scheduled and actioned by Quality Assurance staff at their own dashboard.</p>
+        <span style={oversightPageBadge}>🔒 Read-only oversight</span>
+      </header>
 
-        <h1 style={heading}>Quality Assurance — Oversight View</h1>
-        <p style={muted}>
-          Read-only. Reviews are scheduled and actioned by Quality Assurance
-          staff at their own dashboard.
-        </p>
-
-        <div className="ih-tbl-wrap">
+      <div className="ih-tbl-wrap" style={oversightTableCard}>
           <table className="ih-tbl">
             <thead>
               <tr>
@@ -110,40 +111,6 @@ export default async function AdminQAOversight() {
             </tbody>
           </table>
         </div>
-      </div>
-    </main>
+    </section>
   );
 }
-
-const page = {
-  minHeight: '100vh',
-  background: 'var(--paper)',
-  padding: '40px 20px',
-  fontFamily: 'var(--font-body)',
-  color: 'var(--ink)',
-};
-
-const container = {
-  maxWidth: '1100px',
-  margin: '0 auto',
-};
-
-const backLink = {
-  color: 'var(--brand)',
-  textDecoration: 'none',
-  fontWeight: 700,
-  fontSize: '14px',
-};
-
-const heading = {
-  color: 'var(--ink)',
-  fontFamily: 'var(--font-display)',
-  fontSize: '28px',
-  margin: '20px 0 6px',
-};
-
-const muted = {
-  color: 'var(--ink-soft)',
-  fontSize: '14px',
-  marginBottom: '24px',
-};

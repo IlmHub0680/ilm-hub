@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { oversightHeader, oversightHeading, oversightSubtitle, oversightTableCard } from '../_shared';
 
 const EMPTY_FORM = { nameEn: '', nameAr: '', code: '', description: '' };
 
@@ -149,14 +149,14 @@ export default function AdminFacultiesPage() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--paper)', padding: '40px 20px', fontFamily: 'var(--font-body)', color: 'var(--ink)' }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <Link href="/admin" style={{ color: 'var(--brand)', textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>← Back to Admin Overview</Link>
-        <h1 style={{ color: 'var(--ink)', fontFamily: 'var(--font-display)', fontSize: 28, margin: '20px 0 6px' }}>Faculties</h1>
-        <p style={{ color: 'var(--ink-soft)', fontSize: 14, marginBottom: 24 }}>
+    <section>
+      <header style={oversightHeader}>
+        <h1 style={oversightHeading}>Faculties</h1>
+        <p style={oversightSubtitle}>
           The top of the academic hierarchy (Faculty → Department → Programme → Course). Create and rename
           faculties here; each Dean manages their own faculty's departments from their own dashboard.
         </p>
+      </header>
 
         {message && (
           <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'var(--success-tint)', color: 'var(--success)', fontSize: 13.5, fontWeight: 600 }}>
@@ -199,7 +199,7 @@ export default function AdminFacultiesPage() {
           </button>
         </form>
 
-        <div className="ih-tbl-wrap">
+        <div className="ih-tbl-wrap" style={oversightTableCard}>
           <table className="ih-tbl">
             <thead>
               <tr>
@@ -273,7 +273,6 @@ export default function AdminFacultiesPage() {
             </tbody>
           </table>
         </div>
-      </div>
-    </main>
+    </section>
   );
 }

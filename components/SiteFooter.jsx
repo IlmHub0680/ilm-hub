@@ -236,20 +236,24 @@ export default function SiteFooter() {
 
   // 2026-09: the footer grid's column count must match how many
   // columns actually render (About + each CMS-managed footer link
-  // group + Resources + Technical Support + Mobile App + Address
-  // (conditional on contact.address) + Follow Us) -- a value hardcoded
-  // for exactly two link groups silently strands "Follow Us" alone on
-  // its own row the moment the database carries more (or fewer)
-  // footer link groups than the Academy/Institute defaults, which is
-  // exactly what a leftover or not-yet-migrated group in the live
-  // database can cause. Computed at render instead of hardcoded so it
-  // always matches reality.
+  // group + Resources + Technical Support + Address (conditional on
+  // contact.address) + Follow Us) -- a value hardcoded for exactly
+  // two link groups silently strands "Follow Us" alone on its own row
+  // the moment the database carries more (or fewer) footer link
+  // groups than the Academy/Institute defaults, which is exactly what
+  // a leftover or not-yet-migrated group in the live database can
+  // cause. Computed at render instead of hardcoded so it always
+  // matches reality.
+  //
+  // Mobile App no longer contributes its own column (2026-09) -- its
+  // content now renders stacked below Technical Support's links,
+  // inside that same column (see the Technical Support JSX below), so
+  // it's intentionally left out of this count.
   const footerColumnCount =
     1 /* About */ +
     footerLinkGroups.length +
     1 /* Resources */ +
-    1 /* Technical Support */ +
-    1 /* Mobile App */ +
+    1 /* Technical Support (includes Mobile App content) */ +
     (contact.address ? 1 : 0) /* Address */ +
     1; /* Follow Us */
   // Every column an equal 1fr share left Address (three address lines
@@ -259,14 +263,24 @@ export default function SiteFooter() {
   // some of its own share to make room, so Address's track visibly
   // starts and ends further along the row instead of Follow Us simply
   // being squeezed by an across-the-board size bump.
+  //
+  // 2026-09: Mobile App merging into Technical Support (see its JSX
+  // below) drops the grid from 7 non-About columns to 6, so Follow Us
+  // is no longer competing with as many neighbors for width. Its
+  // track widened from 0.75fr to 0.9fr to match, but that still
+  // wrapped the single-sentence blurb into 8 cramped lines -- 0.9fr
+  // was still narrower than a plain 1fr link-list column even though
+  // the blurb is prose, not short link labels. Widened again to
+  // 1.2fr (now the second-widest track after Address) so the
+  // sentence wraps to roughly 4 lines instead of 8.
   const nonAboutColumnCount = footerColumnCount - 1;
   const addressTrackIndex = contact.address
-    ? footerLinkGroups.length + 1 /* Resources */ + 1 /* Technical Support */ + 1 /* Mobile App */
+    ? footerLinkGroups.length + 1 /* Resources */ + 1 /* Technical Support (includes Mobile App content) */
     : -1;
   const followUsTrackIndex = nonAboutColumnCount - 1; // Follow Us always renders last
   const nonAboutTracks = Array.from({ length: nonAboutColumnCount }, (_, i) => {
     if (i === addressTrackIndex) return 'minmax(170px,1.8fr)';
-    if (i === followUsTrackIndex) return 'minmax(85px,0.75fr)';
+    if (i === followUsTrackIndex) return 'minmax(85px,1.2fr)';
     return 'minmax(100px,1fr)';
   });
   const dynamicFooterGrid = {
@@ -341,39 +355,45 @@ export default function SiteFooter() {
             </FooterColumn>
 
             {/* TECHNICAL SUPPORT -- things a user may need but not on
-                every visit, so it belongs here rather than the top nav. */}
+                every visit, so it belongs here rather than the top nav.
+                Mobile App content (below) now sits stacked underneath
+                these links, inside this same column, instead of being
+                its own standalone grid column (2026-09) -- see
+                mobileAppSection for the seam between the two. */}
             <FooterColumn title="Technical Support">
               <FooterLink href="/contact">Contact Support</FooterLink>
               <FooterLink href="/it-support">Help &amp; FAQ</FooterLink>
               <FooterLink href="/it-department">IT Department</FooterLink>
               <FooterLink href="/safe-usage-policy">Safe Usage Policy</FooterLink>
-            </FooterColumn>
 
-            {/* MOBILE APP -- deliberately its own standalone column, not
-                nested under Technical Support. No app exists yet, so
-                these are honestly-labeled placeholders (structure ready
-                for real store links once an app ships), not live links
-                to a listing that doesn't exist. */}
-            <div>
-              <h3 style={footerHeading}>Mobile App</h3>
-              <p style={footerTextSmall}>Coming soon for iOS and Android.</p>
-              <div style={appBadgeStack}>
-                <span style={appBadge} aria-disabled="true">
-                  <span style={appBadgeIcon}>{'📱'}</span>
-                  <span>
-                    <span style={appBadgeEyebrow}>Coming soon on the</span>
-                    <span style={appBadgeName}>App Store</span>
+              {/* MOBILE APP -- moved here from its own standalone column
+                  (2026-09) so it no longer takes an extra grid track;
+                  it now reads as a sub-section of Technical Support. No
+                  app exists yet, so these are honestly-labeled
+                  placeholders (structure ready for real store links once
+                  an app ships), not live links to a listing that doesn't
+                  exist. */}
+              <div style={mobileAppSection}>
+                <h3 style={footerHeading}>Mobile App</h3>
+                <p style={footerTextSmall}>Coming soon for iOS and Android.</p>
+                <div style={appBadgeStack}>
+                  <span style={appBadge} aria-disabled="true">
+                    <span style={appBadgeIcon}>{'📱'}</span>
+                    <span>
+                      <span style={appBadgeEyebrow}>Coming soon on the</span>
+                      <span style={appBadgeName}>App Store</span>
+                    </span>
                   </span>
-                </span>
-                <span style={appBadge} aria-disabled="true">
-                  <span style={appBadgeIcon}>{'▶'}</span>
-                  <span>
-                    <span style={appBadgeEyebrow}>Coming soon on</span>
-                    <span style={appBadgeName}>Google Play</span>
+                  <span style={appBadge} aria-disabled="true">
+                    <span style={appBadgeIcon}>{'▶'}</span>
+                    <span>
+                      <span style={appBadgeEyebrow}>Coming soon on</span>
+                      <span style={appBadgeName}>Google Play</span>
+                    </span>
                   </span>
-                </span>
+                </div>
               </div>
-            </div>
+            </FooterColumn>
 
             {/* ADDRESS -- moved into the grid next to Follow Us
                 (2026-09). Phone, email and admissions email render
@@ -588,7 +608,7 @@ const footerGrid = {
   // what applies for one paint before state settles and is never
   // relied on afterward; @media (max-width: 700px) below still
   // collapses everything to a single column on small screens.
-  gridTemplateColumns: 'minmax(170px,1.1fr) repeat(7,minmax(100px,1fr))',
+  gridTemplateColumns: 'minmax(170px,1.1fr) repeat(6,minmax(100px,1fr))',
   gap: '20px',
 };
 
@@ -779,13 +799,16 @@ const footerContactValueStacked = {
   wordBreak: 'break-word',
 };
 
-// A visible seam between the Address column and this one -- both
-// columns sit in the same narrow-track grid row, so a little visual
-// separation keeps them from reading as one continuous block.
-const followUsColumn = {
-  paddingInlineStart: '18px',
-  borderInlineStart: '1px solid var(--on-dark-border)',
-};
+// Previously carried a borderInlineStart as a literal divider line
+// against the Address column, but with Follow Us now widened
+// (0.9fr -> 1.2fr) the line rendered full-height next to a much
+// shorter block of content and looked unconstrained/out of place --
+// removed per request. The footer grid's own 20px column gap
+// (footerGrid, 30px on the <=700px mobile breakpoint) already
+// separates every other pair of columns in this row with no border
+// at all, so Address/Follow Us reads consistently with its
+// neighbors without one.
+const followUsColumn = {};
 
 // Same idea as footerContactItem, but the address has multiple
 // lines under its label rather than a single inline value, so it
@@ -860,6 +883,17 @@ const footerCtaDescription = {
   fontSize: '14.5px',
   lineHeight: 1.6,
   margin: 0,
+};
+
+// A seam between Technical Support's own links and the Mobile App
+// content stacked below them in the same column (2026-09, moved out
+// of its own standalone column) -- keeps the two visually distinct
+// as sub-sections of one column rather than reading as one
+// continuous list of links.
+const mobileAppSection = {
+  marginTop: '18px',
+  paddingTop: '18px',
+  borderTop: '1px solid var(--on-dark-border)',
 };
 
 const appBadgeStack = {

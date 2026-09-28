@@ -167,7 +167,7 @@ export default function LoginPage() {
   // '' (no image) automatically if unset, matching this codebase's
   // "branding fetch never throws" convention -- no extra fetch needed
   // here since the provider already sits above this page in the tree.
-  const { heroImageUrl: dashboardBannerUrl } = useSiteBranding();
+  const { heroImageUrl: dashboardBannerUrl, logoUrl } = useSiteBranding();
 
   // Real route pathname, used only to highlight a sidebar item that
   // links to a dedicated /academics/* page (an internal-tab item is
@@ -2216,7 +2216,13 @@ const handleLogout = async () => {
             className={loginSuccess ? 'ih-login-form-exit' : ''}
           >
             <div style={styles.loginLogo}>
-              <div style={styles.logoCircle}>UA</div>
+              <div style={styles.logoCircle}>
+                {logoUrl ? (
+                  <img src={logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }} />
+                ) : (
+                  'UA'
+                )}
+              </div>
             </div>
 
             <div style={styles.loginHeading}>
@@ -3149,7 +3155,13 @@ const handleLogout = async () => {
               <div style={styles.dashboardFooterBand}>
                 <div style={styles.dashboardFooterWedge} aria-hidden="true" />
                 <div style={styles.dashboardFooterAccentLine} aria-hidden="true" />
-                <div style={styles.dashboardFooterLogo} aria-hidden="true">UA</div>
+                <div style={styles.dashboardFooterLogo} aria-hidden="true">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }} />
+                  ) : (
+                    'UA'
+                  )}
+                </div>
                 <div style={styles.dashboardFooterTextBlock}>
                   <div style={styles.dashboardFooterHeadline}>
                     Stay Focused • Achieve Your Goals • Build Your Future
@@ -3756,6 +3768,7 @@ const handleLogout = async () => {
                           <div style={{ marginTop: 8 }}>
                             <span style={styles.mutedText}>Your answer:</span>
                             <div
+                              className="ih-rendered-html"
                               style={{
                                 marginTop: 4,
                                 padding: '10px 12px',

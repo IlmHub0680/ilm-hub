@@ -5,9 +5,9 @@ import { useAcademics } from '../context';
 import * as s from '../styles';
 
 const STATUS_META = {
-  APPROVED: { label: 'Enrolled', background: 'var(--success-tint)', color: 'var(--success)' },
-  PENDING: { label: 'Pending Approval', background: 'var(--warning-tint)', color: 'var(--warning)' },
-  REJECTED: { label: 'Not Approved', background: 'var(--danger-tint)', color: 'var(--danger)' },
+  APPROVED: { label: 'Enrolled', badgeClass: 'ih-b-success' },
+  PENDING: { label: 'Pending Approval', badgeClass: 'ih-b-warning' },
+  REJECTED: { label: 'Not Approved', badgeClass: 'ih-b-danger' },
 };
 
 export default function MyCoursesPage() {
@@ -45,8 +45,7 @@ export default function MyCoursesPage() {
             {courses.map((course) => {
               const meta = STATUS_META[course.status] || {
                 label: course.status,
-                background: 'var(--brand-tint)',
-                color: 'var(--brand)',
+                badgeClass: 'ih-b-neutral',
               };
 
               return (
@@ -76,20 +75,7 @@ export default function MyCoursesPage() {
                       {course.code}
                     </span>
 
-                    <span
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 800,
-                        letterSpacing: 0.3,
-                        textTransform: 'uppercase',
-                        padding: '3px 8px',
-                        borderRadius: 999,
-                        background: meta.background,
-                        color: meta.color,
-                      }}
-                    >
-                      {meta.label}
-                    </span>
+                    <span className={`ih-badge ${meta.badgeClass}`}>{meta.label}</span>
                   </div>
 
                   <h3 style={s.navCardTitle}>{course.title}</h3>

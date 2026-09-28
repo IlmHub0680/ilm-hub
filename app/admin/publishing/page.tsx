@@ -255,26 +255,12 @@ export default function AdminPublishingManager() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "var(--paper)",
-        color: "var(--ink)",
-        fontFamily:
-          "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      }}
-    >
+    <div style={{ minHeight: "100vh", backgroundColor: "var(--paper)", color: "var(--ink)" }}>
       {/* =====================================================
           HEADER
       ====================================================== */}
 
-      <header
-        style={{
-          backgroundColor: "var(--ink)",
-          color: "var(--on-accent)",
-          borderBottom: "1px solid var(--ink)",
-        }}
-      >
+      <header style={{ backgroundColor: "var(--ink)", color: "var(--on-accent)" }}>
         <div
           style={{
             maxWidth: "1400px",
@@ -287,13 +273,7 @@ export default function AdminPublishingManager() {
             gap: "20px",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "14px",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
             <div
               style={{
                 width: "42px",
@@ -311,14 +291,7 @@ export default function AdminPublishingManager() {
             </div>
 
             <div>
-              <div
-                style={{
-                  fontSize: "17px",
-                  fontWeight: "800",
-                }}
-              >
-                Ulul Azm
-              </div>
+              <div style={{ fontSize: "17px", fontWeight: "800" }}>Ulul Azm</div>
 
               <div
                 style={{
@@ -334,18 +307,7 @@ export default function AdminPublishingManager() {
             </div>
           </div>
 
-          <a
-            href="/admin/dashboard"
-            style={{
-              textDecoration: "none",
-              color: "var(--border)",
-              border: "1px solid var(--ink-soft)",
-              padding: "9px 14px",
-              borderRadius: "8px",
-              fontSize: "13px",
-              fontWeight: "700",
-            }}
-          >
+          <a href="/admin/dashboard" className="ih-btn ih-btn-ghost" style={{ color: "var(--border)" }}>
             ← Admin Dashboard
           </a>
         </div>
@@ -414,19 +376,7 @@ export default function AdminPublishingManager() {
             </p>
           </div>
 
-          <button
-            onClick={fetchSubmissions}
-            style={{
-              border: "1px solid var(--border)",
-              backgroundColor: "var(--surface)",
-              color: "var(--ink-soft)",
-              padding: "10px 14px",
-              borderRadius: "8px",
-              fontSize: "12px",
-              fontWeight: "800",
-              cursor: "pointer",
-            }}
-          >
+          <button onClick={fetchSubmissions} className="ih-btn ih-btn-secondary">
             ↻ Refresh Submissions
           </button>
         </div>
@@ -435,15 +385,7 @@ export default function AdminPublishingManager() {
             SUMMARY CARDS
         ====================================================== */}
 
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: "14px",
-            marginBottom: "28px",
-          }}
-        >
+        <section className="ih-stat-grid" style={{ marginBottom: "28px" }}>
           <MetricCard
             label="Total Submissions"
             value={stats.total}
@@ -490,75 +432,28 @@ export default function AdminPublishingManager() {
             FILTER BAR
         ====================================================== */}
 
-        <section
-          style={{
-            backgroundColor: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "12px",
-            padding: "16px",
-            marginBottom: "18px",
-            boxShadow: "0 4px 18px rgba(27,36,31,.08)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div
-              style={{
-                flex: "1 1 320px",
-                position: "relative",
-              }}
-            >
+        <section className="ih-card" style={{ padding: "16px", marginBottom: "18px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            <div className="ih-field" style={{ flex: "1 1 320px" }}>
               <input
                 type="text"
                 value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
+                onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search by title, author, email or genre..."
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  padding: "11px 13px",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                  outline: "none",
-                  fontSize: "13px",
-                  color: "var(--ink)",
-                  backgroundColor: "var(--surface)",
-                }}
               />
             </div>
 
-            <select
-              value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value)
-              }
-              style={{
-                minWidth: "190px",
-                padding: "11px 12px",
-                border: "1px solid var(--border)",
-                borderRadius: "8px",
-                backgroundColor: "var(--surface)",
-                color: "var(--ink-soft)",
-                fontSize: "13px",
-                fontWeight: "600",
-              }}
-            >
-              <option value="ALL">All Statuses</option>
+            <div className="ih-field" style={{ minWidth: "190px" }}>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                <option value="ALL">All Statuses</option>
 
-              {STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {STATUS_LABELS[status]}
-                </option>
-              ))}
-            </select>
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             {(search || statusFilter !== "ALL") && (
               <button
@@ -566,16 +461,7 @@ export default function AdminPublishingManager() {
                   setSearch("");
                   setStatusFilter("ALL");
                 }}
-                style={{
-                  border: "none",
-                  backgroundColor: "var(--border-soft)",
-                  color: "var(--ink-soft)",
-                  padding: "10px 13px",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  fontWeight: "800",
-                  cursor: "pointer",
-                }}
+                className="ih-btn ih-btn-ghost"
               >
                 Clear Filters
               </button>
@@ -615,15 +501,7 @@ export default function AdminPublishingManager() {
                 SUBMISSION LIST
             ================================================== */}
 
-            <section
-              style={{
-                backgroundColor: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: "12px",
-                overflow: "hidden",
-                boxShadow: "0 4px 18px rgba(27,36,31,.08)",
-              }}
-            >
+            <section className="ih-card" style={{ padding: 0, overflow: "hidden" }}>
               <div
                 style={{
                   padding: "19px 20px",
@@ -635,44 +513,18 @@ export default function AdminPublishingManager() {
                 }}
               >
                 <div>
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontSize: "16px",
-                      fontWeight: "800",
-                    }}
-                  >
+                  <h2 style={{ margin: 0, fontSize: "16px", fontWeight: "800" }}>
                     Manuscript Submissions
                   </h2>
 
-                  <p
-                    style={{
-                      margin: "5px 0 0",
-                      color: "var(--ink-soft)",
-                      fontSize: "12px",
-                    }}
-                  >
+                  <p style={{ margin: "5px 0 0", color: "var(--ink-soft)", fontSize: "12px" }}>
                     {filteredSubmissions.length} submission
-                    {filteredSubmissions.length !== 1
-                      ? "s"
-                      : ""}{" "}
+                    {filteredSubmissions.length !== 1 ? "s" : ""}{" "}
                     displayed
                   </p>
                 </div>
 
-                <span
-                  style={{
-                    backgroundColor: "var(--paper)",
-                    border: "1px solid var(--border)",
-                    color: "var(--ink-soft)",
-                    padding: "5px 10px",
-                    borderRadius: "999px",
-                    fontSize: "11px",
-                    fontWeight: "800",
-                  }}
-                >
-                  Publishing Queue
-                </span>
+                <span className="ih-badge ih-b-neutral">Publishing Queue</span>
               </div>
 
               <div
@@ -735,12 +587,10 @@ export default function AdminPublishingManager() {
         ====================================================== */}
 
         <div
+          className="ih-card"
           style={{
             marginTop: "24px",
             padding: "15px 18px",
-            backgroundColor: "var(--paper)",
-            border: "1px solid var(--border)",
-            borderRadius: "9px",
             color: "var(--ink-soft)",
             fontSize: "11px",
             lineHeight: 1.6,
@@ -810,46 +660,16 @@ function MetricCard({
   const current = tones[tone];
 
   return (
-    <div
-      style={{
-        backgroundColor: "var(--surface)",
-        border: `1px solid ${current.border}`,
-        borderRadius: "12px",
-        padding: "18px",
-        boxShadow: "0 4px 18px rgba(27,36,31,.08)",
-      }}
-    >
-      <div
-        style={{
-          color: current.label,
-          fontSize: "10px",
-          fontWeight: "800",
-          textTransform: "uppercase",
-          letterSpacing: "0.7px",
-        }}
-      >
+    <div className={`ih-stat-tile${tone === "default" || tone === "dark" ? "" : " accent"}`}>
+      <div className="l" style={{ color: current.label, textTransform: "uppercase", letterSpacing: "0.7px" }}>
         {label}
       </div>
 
-      <div
-        style={{
-          marginTop: "9px",
-          fontSize: "27px",
-          lineHeight: 1,
-          fontWeight: "800",
-          color: current.value,
-        }}
-      >
+      <div className="n" style={{ color: current.value }}>
         {value}
       </div>
 
-      <div
-        style={{
-          marginTop: "8px",
-          color: "var(--ink-soft)",
-          fontSize: "11px",
-        }}
-      >
+      <div style={{ marginTop: "8px", color: "var(--ink-soft)", fontSize: "11px" }}>
         {description}
       </div>
     </div>
@@ -961,28 +781,12 @@ function SubmissionCard({
       >
         {submission.services?.length ? (
           submission.services.map((service) => (
-            <span
-              key={service}
-              style={{
-                padding: "5px 8px",
-                borderRadius: "6px",
-                backgroundColor: "var(--border-soft)",
-                border: "1px solid var(--border)",
-                color: "var(--ink-soft)",
-                fontSize: "10px",
-                fontWeight: "700",
-              }}
-            >
+            <span key={service} className="ih-badge ih-b-neutral">
               {service}
             </span>
           ))
         ) : (
-          <span
-            style={{
-              color: "var(--ink-soft)",
-              fontSize: "11px",
-            }}
-          >
+          <span style={{ color: "var(--ink-soft)", fontSize: "11px" }}>
             No services specified
           </span>
         )}
@@ -1013,16 +817,8 @@ function SubmissionCard({
             href={submission.manuscriptUrl}
             target="_blank"
             rel="noreferrer"
-            style={{
-              textDecoration: "none",
-              color: "var(--brand)",
-              border: "1px solid var(--success-tint)",
-              backgroundColor: "var(--brand-tint)",
-              padding: "8px 11px",
-              borderRadius: "7px",
-              fontSize: "11px",
-              fontWeight: "800",
-            }}
+            className="ih-btn ih-btn-secondary"
+            style={{ textDecoration: "none" }}
           >
             View Manuscript ↗
           </a>
@@ -1047,52 +843,24 @@ function SubmissionCard({
             alignItems: "center",
           }}
         >
-          <button
-            onClick={onQuote}
-            style={{
-              border: "1px solid #ddd6fe",
-              backgroundColor: "#f5f3ff",
-              color: "#6d28d9",
-              padding: "8px 11px",
-              borderRadius: "7px",
-              fontSize: "11px",
-              fontWeight: "800",
-              cursor: "pointer",
-            }}
-          >
-            {submission.quoteAmount
-              ? "Edit Quote"
-              : "Generate Quote"}
+          <button onClick={onQuote} className="ih-btn ih-btn-gold">
+            {submission.quoteAmount ? "Edit Quote" : "Generate Quote"}
           </button>
 
-          <select
-            value={submission.status}
-            onChange={(event) =>
-              onStatusChange(
-                submission.id,
-                event.target.value
-              )
-            }
-            style={{
-              border: "1px solid var(--border)",
-              backgroundColor: "var(--surface)",
-              color: "var(--ink-soft)",
-              padding: "8px 12px",
-              borderRadius: "8px",
-              fontSize: "12px",
-              fontWeight: "500",
-              cursor: "pointer",
-              outline: "none",
-            }}
-          >
-            <option value="SUBMITTED">Submitted</option>
-            <option value="UNDER_REVIEW">Under Review</option>
-            <option value="QUOTE_GENERATED">Quote Generated</option>
-            <option value="QUOTE_ACCEPTED">Quote Accepted</option>
-            <option value="IN_PRODUCTION">In Production</option>
-            <option value="PUBLISHED">Published</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
+          <div className="ih-field" style={{ margin: 0 }}>
+            <select
+              value={submission.status}
+              onChange={(event) => onStatusChange(submission.id, event.target.value)}
+            >
+              <option value="SUBMITTED">Submitted</option>
+              <option value="UNDER_REVIEW">Under Review</option>
+              <option value="QUOTE_GENERATED">Quote Generated</option>
+              <option value="QUOTE_ACCEPTED">Quote Accepted</option>
+              <option value="IN_PRODUCTION">In Production</option>
+              <option value="PUBLISHED">Published</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -1129,15 +897,7 @@ function QuotePanel({
   formatDate: (date: string) => string;
 }) {
   return (
-    <div
-      style={{
-        backgroundColor: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: "12px",
-        overflow: "hidden",
-        boxShadow: "0 8px 25px rgba(15, 23, 42, 0.06)",
-      }}
-    >
+    <div className="ih-card" style={{ padding: 0, overflow: "hidden" }}>
       {/* Panel heading */}
 
       <div
@@ -1168,32 +928,12 @@ function QuotePanel({
               Publishing Quote
             </div>
 
-            <h2
-              style={{
-                margin: "7px 0 0",
-                fontSize: "17px",
-                lineHeight: 1.35,
-                fontWeight: "800",
-              }}
-            >
+            <h2 style={{ margin: "7px 0 0", fontSize: "17px", lineHeight: 1.35, fontWeight: "800" }}>
               {submission.title}
             </h2>
           </div>
 
-          <button
-            onClick={onClose}
-            type="button"
-            style={{
-              width: "30px",
-              height: "30px",
-              borderRadius: "7px",
-              border: "1px solid var(--border)",
-              backgroundColor: "var(--surface)",
-              color: "var(--ink-soft)",
-              cursor: "pointer",
-              fontSize: "15px",
-            }}
-          >
+          <button onClick={onClose} type="button" className="ih-btn ih-btn-ghost" style={{ padding: "6px 10px" }}>
             ×
           </button>
         </div>
@@ -1268,28 +1008,12 @@ function QuotePanel({
         >
           {submission.services?.length ? (
             submission.services.map((service) => (
-              <span
-                key={service}
-                style={{
-                  backgroundColor: "var(--border-soft)",
-                  border: "1px solid var(--border)",
-                  color: "var(--ink-soft)",
-                  borderRadius: "6px",
-                  padding: "5px 8px",
-                  fontSize: "10px",
-                  fontWeight: "700",
-                }}
-              >
+              <span key={service} className="ih-badge ih-b-neutral">
                 {service}
               </span>
             ))
           ) : (
-            <span
-              style={{
-                color: "var(--ink-soft)",
-                fontSize: "11px",
-              }}
-            >
+            <span style={{ color: "var(--ink-soft)", fontSize: "11px" }}>
               No services specified
             </span>
           )}
@@ -1304,18 +1028,8 @@ function QuotePanel({
           padding: "18px",
         }}
       >
-        <div style={{ marginBottom: "15px" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "7px",
-              color: "var(--ink-soft)",
-              fontSize: "11px",
-              fontWeight: "800",
-            }}
-          >
-            Quote Price (USD)
-          </label>
+        <div className="ih-field" style={{ marginBottom: "15px" }}>
+          <label>Quote Price (USD)</label>
 
           <input
             type="number"
@@ -1323,96 +1037,31 @@ function QuotePanel({
             step="0.01"
             required
             value={quoteAmount}
-            onChange={(event) =>
-              setQuoteAmount(Number(event.target.value))
-            }
+            onChange={(event) => setQuoteAmount(Number(event.target.value))}
             placeholder="e.g. 250.00"
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "11px 12px",
-              border: "1px solid var(--border)",
-              borderRadius: "8px",
-              fontSize: "14px",
-              fontWeight: "700",
-              color: "var(--ink)",
-              outline: "none",
-            }}
+            style={{ fontSize: "14px", fontWeight: "700" }}
           />
         </div>
 
-        <div style={{ marginBottom: "15px" }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: "7px",
-              color: "var(--ink-soft)",
-              fontSize: "11px",
-              fontWeight: "800",
-            }}
-          >
-            Quote Description & Details
-          </label>
+        <div className="ih-field" style={{ marginBottom: "15px" }}>
+          <label>Quote Description &amp; Details</label>
 
           <textarea
             rows={6}
             value={quoteDetails}
-            onChange={(event) =>
-              setQuoteDetails(event.target.value)
-            }
+            onChange={(event) => setQuoteDetails(event.target.value)}
             placeholder="Describe the publishing package, editing scope, formatting, cover work, turnaround times, revisions, and other relevant details..."
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              resize: "vertical",
-              padding: "11px 12px",
-              border: "1px solid var(--border)",
-              borderRadius: "8px",
-              fontSize: "12px",
-              lineHeight: 1.6,
-              color: "var(--ink)",
-              outline: "none",
-            }}
+            style={{ resize: "vertical" }}
           />
         </div>
 
         {submission.quoteAmount ? (
-          <div
-            style={{
-              marginBottom: "14px",
-              padding: "11px 12px",
-              backgroundColor: "#f5f3ff",
-              border: "1px solid #ddd6fe",
-              borderRadius: "8px",
-              color: "#5b21b6",
-              fontSize: "11px",
-              lineHeight: 1.5,
-            }}
-          >
-            <strong>Existing quote:</strong>{" "}
-            {formatCurrency(submission.quoteAmount)}
+          <div className="ih-badge ih-b-info" style={{ marginBottom: "14px", display: "block", width: "fit-content" }}>
+            Existing quote: {formatCurrency(submission.quoteAmount)}
           </div>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={updating}
-          style={{
-            width: "100%",
-            border: "none",
-            backgroundColor: updating
-              ? "var(--ink-soft)"
-              : "var(--brand)",
-            color: "var(--on-accent)",
-            padding: "11px 14px",
-            borderRadius: "8px",
-            fontSize: "12px",
-            fontWeight: "800",
-            cursor: updating
-              ? "not-allowed"
-              : "pointer",
-          }}
-        >
+        <button type="submit" disabled={updating} className="ih-btn ih-btn-primary" style={{ width: "100%" }}>
           {updating
             ? "Saving Quote..."
             : submission.quoteAmount
@@ -1482,73 +1131,20 @@ function StatusBadge({
 }: {
   status: string;
 }) {
-  const config: Record<
-    string,
-    {
-      background: string;
-      border: string;
-      color: string;
-    }
-  > = {
-    SUBMITTED: {
-      background: "var(--warning-tint)",
-      border: "var(--warning-tint)",
-      color: "var(--warning)",
-    },
-    UNDER_REVIEW: {
-      background: "var(--info-tint)",
-      border: "var(--info-tint)",
-      color: "var(--info)",
-    },
-    QUOTE_GENERATED: {
-      background: "#f5f3ff",
-      border: "#ddd6fe",
-      color: "#6d28d9",
-    },
-    QUOTE_ACCEPTED: {
-      background: "var(--brand-tint)",
-      border: "var(--success-tint)",
-      color: "var(--brand-dark)",
-    },
-    IN_PRODUCTION: {
-      background: "var(--brand-tint)",
-      border: "var(--success-tint)",
-      color: "var(--brand-light)",
-    },
-    PUBLISHED: {
-      background: "var(--brand-tint)",
-      border: "var(--success-tint)",
-      color: "var(--brand-dark)",
-    },
-    REJECTED: {
-      background: "var(--danger-tint)",
-      border: "var(--danger-tint)",
-      color: "var(--danger)",
-    },
+  const toneClass: Record<string, string> = {
+    SUBMITTED: "ih-b-warning",
+    UNDER_REVIEW: "ih-b-info",
+    QUOTE_GENERATED: "ih-b-info",
+    QUOTE_ACCEPTED: "ih-b-success",
+    IN_PRODUCTION: "ih-b-success",
+    PUBLISHED: "ih-b-success",
+    REJECTED: "ih-b-danger",
   };
 
-  const style =
-    config[status] || {
-      background: "var(--paper)",
-      border: "var(--border)",
-      color: "var(--ink-soft)",
-    };
+  const tone = toneClass[status] || "ih-b-neutral";
 
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "5px 9px",
-        borderRadius: "999px",
-        backgroundColor: style.background,
-        border: `1px solid ${style.border}`,
-        color: style.color,
-        fontSize: "10px",
-        fontWeight: "800",
-        whiteSpace: "nowrap",
-      }}
-    >
+    <span className={`ih-badge ${tone}`} style={{ whiteSpace: "nowrap" }}>
       {STATUS_LABELS[status] || status}
     </span>
   );
@@ -1560,16 +1156,7 @@ function StatusBadge({
 
 function LoadingState() {
   return (
-    <div
-      style={{
-        backgroundColor: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: "12px",
-        padding: "70px 20px",
-        textAlign: "center",
-        boxShadow: "0 4px 18px rgba(27,36,31,.08)",
-      }}
-    >
+    <div className="ih-card" style={{ padding: "70px 20px", textAlign: "center" }}>
       <div
         style={{
           width: "34px",
@@ -1625,16 +1212,7 @@ function EmptyState({
   clearFilters: () => void;
 }) {
   return (
-    <div
-      style={{
-        backgroundColor: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: "12px",
-        padding: "70px 20px",
-        textAlign: "center",
-        boxShadow: "0 4px 18px rgba(27,36,31,.08)",
-      }}
-    >
+    <div className="ih-card" style={{ padding: "70px 20px", textAlign: "center" }}>
       <div
         style={{
           width: "52px",
@@ -1679,20 +1257,7 @@ function EmptyState({
       </p>
 
       {hasFilters && (
-        <button
-          onClick={clearFilters}
-          style={{
-            marginTop: "16px",
-            border: "1px solid var(--border)",
-            backgroundColor: "var(--surface)",
-            color: "var(--ink-soft)",
-            padding: "9px 13px",
-            borderRadius: "7px",
-            fontSize: "11px",
-            fontWeight: "800",
-            cursor: "pointer",
-          }}
-        >
+        <button onClick={clearFilters} className="ih-btn ih-btn-secondary" style={{ marginTop: "16px" }}>
           Clear Filters
         </button>
       )}

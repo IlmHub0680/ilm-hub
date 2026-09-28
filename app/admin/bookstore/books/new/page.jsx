@@ -78,7 +78,7 @@ export default function NewBookPage() {
       .trim()
       .toLowerCase()
       .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
   }
@@ -193,433 +193,323 @@ export default function NewBookPage() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: 'var(--paper)',
-        padding: '32px',
-        fontFamily:
-          'Inter, Arial, sans-serif',
-      }}
-    >
+    <div style={{ padding: 'var(--sp-6, 32px)', maxWidth: 1100, margin: '0 auto' }}>
       <div style={{ marginBottom: 20 }}>
         <BackToAdmin />
       </div>
-      <div
+
+      <Link
+        href="/admin/bookstore/books"
         style={{
-          maxWidth: 1100,
-          margin: '0 auto',
+          color: 'var(--ink-soft)',
+          textDecoration: 'none',
+          fontWeight: 600,
         }}
       >
-        <Link
-          href="/admin/bookstore/books"
-          style={{
-            color: 'var(--ink-soft)',
-            textDecoration: 'none',
-            fontWeight: 600,
-          }}
-        >
-          ← Back to Books
-        </Link>
+        ← Back to Books
+      </Link>
+
+      <div style={{ marginTop: 20, marginBottom: 22 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 600, margin: 0 }}>Add Book</h1>
+        <div style={{ color: 'var(--ink-soft)', fontSize: 13.5, marginTop: 4 }}>
+          Create and prepare a book for the Ulul Azm bookstore.
+        </div>
+      </div>
+
+      {error && (
+        <div className="ih-card" style={{ borderColor: 'var(--danger)', color: 'var(--danger)', marginBottom: 20 }}>
+          {error}
+        </div>
+      )}
+
+      <div className="ih-card">
+        <h2 style={{ marginTop: 0, color: 'var(--ink)' }}>
+          Book Information
+        </h2>
 
         <div
           style={{
-            marginTop: 20,
-            background:
-              'linear-gradient(135deg,var(--ink),var(--brand-dark))',
-            color: 'var(--on-accent)',
-            borderRadius: 18,
-            padding: 28,
-            boxShadow:
-              '0 12px 30px rgba(15,23,42,.12)',
+            display: 'grid',
+            gridTemplateColumns:
+              'repeat(auto-fit,minmax(280px,1fr))',
+            gap: 20,
           }}
         >
-          <div
-            style={{
-              fontSize: 13,
-              color: 'var(--info)',
-              fontWeight: 700,
-              letterSpacing: '.08em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Bookstore Management
+          <Field
+            label="English Title"
+            value={form.titleEn}
+            onChange={handleTitleChange}
+            required
+          />
+
+          <Field
+            label="Arabic Title"
+            value={form.titleAr}
+            onChange={(v) =>
+              update('titleAr', v)
+            }
+            dir="rtl"
+            required
+          />
+
+          <Field
+            label="Slug"
+            value={form.slug}
+            onChange={(v) =>
+              update('slug', v)
+            }
+            hint="Used for the bookstore URL."
+            required
+          />
+
+          <Field
+            label="Price (USD)"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.priceUSD}
+            onChange={(v) =>
+              update('priceUSD', v)
+            }
+            required
+          />
+
+          <div className="ih-field">
+            <label>
+              Category *
+            </label>
+
+            <select
+              value={form.categoryId}
+              onChange={(e) =>
+                update(
+                  'categoryId',
+                  e.target.value
+                )
+              }
+              disabled={loadingCategories}
+            >
+              <option value="">
+                {loadingCategories
+                  ? 'Loading categories...'
+                  : 'Select category'}
+              </option>
+
+              {categories.map(
+                (category) => (
+                  <option
+                    key={category.id}
+                    value={category.id}
+                  >
+                    {category.nameEn ||
+                      category.name ||
+                      category.slug}
+                  </option>
+                )
+              )}
+            </select>
           </div>
 
-          <h1
-            style={{
-              margin: '7px 0 0',
-              fontSize: 32,
-            }}
-          >
-            Add Book
-          </h1>
+          <Field
+            label="Author ID"
+            value={form.authorId}
+            onChange={(v) =>
+              update('authorId', v)
+            }
+            hint="Optional."
+          />
 
-          <p
-            style={{
-              margin: '8px 0 0',
-              color: 'var(--border)',
-            }}
-          >
-            Create and prepare a book for the
-            Ulul Azm bookstore.
-          </p>
+          <Field
+            label="Cover Image URL"
+            value={form.coverImageUrl}
+            onChange={(v) =>
+              update(
+                'coverImageUrl',
+                v
+              )
+            }
+            hint="Optional until a cover asset is attached."
+          />
+
+          <Field
+            label="Digital File Key"
+            value={form.r2FileKey}
+            onChange={(v) =>
+              update('r2FileKey', v)
+            }
+            hint="Optional. The digital file can be attached later."
+          />
         </div>
 
-        {error && (
-          <div
-            style={{
-              marginTop: 20,
-              padding: 15,
-              borderRadius: 10,
-              background: 'var(--danger-tint)',
-              color: 'var(--danger)',
-              border:
-                '1px solid var(--danger-tint)',
-            }}
-          >
-            {error}
-          </div>
-        )}
+        <div
+          style={{
+            marginTop: 24,
+            display: 'grid',
+            gap: 20,
+          }}
+        >
+          <TextArea
+            label="English Description"
+            value={form.descriptionEn}
+            onChange={(v) =>
+              update(
+                'descriptionEn',
+                v
+              )
+            }
+            required
+          />
+
+          <TextArea
+            label="Arabic Description"
+            value={form.descriptionAr}
+            onChange={(v) =>
+              update(
+                'descriptionAr',
+                v
+              )
+            }
+            dir="rtl"
+            required
+          />
+        </div>
 
         <div
           style={{
-            marginTop: 22,
-            background: 'var(--surface)',
-            borderRadius: 16,
-            padding: 28,
-            boxShadow:
-              '0 5px 20px rgba(15,23,42,.06)',
+            marginTop: 25,
+            paddingTop: 22,
+            borderTop:
+              '1px solid var(--border)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 22,
           }}
         >
-          <h2
+          <label
             style={{
-              marginTop: 0,
+              display: 'flex',
+              gap: 9,
+              alignItems: 'center',
+              fontWeight: 600,
+              color: 'var(--ink-soft)',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={form.isFeatured}
+              onChange={(e) =>
+                update(
+                  'isFeatured',
+                  e.target.checked
+                )
+              }
+            />
+            Featured book
+          </label>
+
+          <label
+            style={{
+              display: 'flex',
+              gap: 9,
+              alignItems: 'center',
+              fontWeight: 600,
+              color: 'var(--ink-soft)',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={form.isNewRelease}
+              onChange={(e) =>
+                update(
+                  'isNewRelease',
+                  e.target.checked
+                )
+              }
+            />
+            New release
+          </label>
+        </div>
+
+        <div
+          style={{
+            marginTop: 30,
+            padding: 18,
+            background: 'var(--paper)',
+            borderRadius: 12,
+            border:
+              '1px solid var(--border)',
+          }}
+        >
+          <strong
+            style={{
               color: 'var(--ink)',
             }}
           >
-            Book Information
-          </h2>
+            Publishing workflow
+          </strong>
 
-          <div
+          <p
             style={{
-              display: 'grid',
-              gridTemplateColumns:
-                'repeat(auto-fit,minmax(280px,1fr))',
-              gap: 20,
+              margin:
+                '7px 0 0',
+              color: 'var(--ink-soft)',
+              lineHeight: 1.6,
             }}
           >
-            <Field
-              label="English Title"
-              value={form.titleEn}
-              onChange={handleTitleChange}
-              required
-            />
+            Save as a draft while preparing
+            the book. Publishing is separate
+            from uploading a digital file.
+            Only books with PUBLISHED status
+            should appear in the public
+            bookstore.
+          </p>
+        </div>
 
-            <Field
-              label="Arabic Title"
-              value={form.titleAr}
-              onChange={(v) =>
-                update('titleAr', v)
-              }
-              dir="rtl"
-              required
-            />
-
-            <Field
-              label="Slug"
-              value={form.slug}
-              onChange={(v) =>
-                update('slug', v)
-              }
-              hint="Used for the bookstore URL."
-              required
-            />
-
-            <Field
-              label="Price (USD)"
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.priceUSD}
-              onChange={(v) =>
-                update('priceUSD', v)
-              }
-              required
-            />
-
-            <div>
-              <label style={labelStyle}>
-                Category *
-              </label>
-
-              <select
-                value={form.categoryId}
-                onChange={(e) =>
-                  update(
-                    'categoryId',
-                    e.target.value
-                  )
-                }
-                disabled={loadingCategories}
-                style={inputStyle}
-              >
-                <option value="">
-                  {loadingCategories
-                    ? 'Loading categories...'
-                    : 'Select category'}
-                </option>
-
-                {categories.map(
-                  (category) => (
-                    <option
-                      key={category.id}
-                      value={category.id}
-                    >
-                      {category.nameEn ||
-                        category.name ||
-                        category.slug}
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-
-            <Field
-              label="Author ID"
-              value={form.authorId}
-              onChange={(v) =>
-                update('authorId', v)
-              }
-              hint="Optional."
-            />
-
-            <Field
-              label="Cover Image URL"
-              value={form.coverImageUrl}
-              onChange={(v) =>
-                update(
-                  'coverImageUrl',
-                  v
-                )
-              }
-              hint="Optional until a cover asset is attached."
-            />
-
-            <Field
-              label="Digital File Key"
-              value={form.r2FileKey}
-              onChange={(v) =>
-                update('r2FileKey', v)
-              }
-              hint="Optional. The digital file can be attached later."
-            />
-          </div>
-
-          <div
-            style={{
-              marginTop: 24,
-              display: 'grid',
-              gap: 20,
-            }}
+        <div
+          style={{
+            marginTop: 25,
+            display: 'flex',
+            justifyContent:
+              'flex-end',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
+          <Link
+            href="/admin/bookstore/books"
+            className="ih-btn ih-btn-ghost"
           >
-            <TextArea
-              label="English Description"
-              value={form.descriptionEn}
-              onChange={(v) =>
-                update(
-                  'descriptionEn',
-                  v
-                )
-              }
-              required
-            />
+            Cancel
+          </Link>
 
-            <TextArea
-              label="Arabic Description"
-              value={form.descriptionAr}
-              onChange={(v) =>
-                update(
-                  'descriptionAr',
-                  v
-                )
-              }
-              dir="rtl"
-              required
-            />
-          </div>
-
-          <div
-            style={{
-              marginTop: 25,
-              paddingTop: 22,
-              borderTop:
-                '1px solid var(--border)',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 22,
-            }}
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() =>
+              saveBook('DRAFT')
+            }
+            className="ih-btn ih-btn-secondary"
           >
-            <label
-              style={{
-                display: 'flex',
-                gap: 9,
-                alignItems: 'center',
-                fontWeight: 600,
-                color: 'var(--ink-soft)',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={form.isFeatured}
-                onChange={(e) =>
-                  update(
-                    'isFeatured',
-                    e.target.checked
-                  )
-                }
-              />
-              Featured book
-            </label>
+            {saving
+              ? 'Saving...'
+              : 'Save Draft'}
+          </button>
 
-            <label
-              style={{
-                display: 'flex',
-                gap: 9,
-                alignItems: 'center',
-                fontWeight: 600,
-                color: 'var(--ink-soft)',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={form.isNewRelease}
-                onChange={(e) =>
-                  update(
-                    'isNewRelease',
-                    e.target.checked
-                  )
-                }
-              />
-              New release
-            </label>
-          </div>
-
-          <div
-            style={{
-              marginTop: 30,
-              padding: 18,
-              background: 'var(--paper)',
-              borderRadius: 12,
-              border:
-                '1px solid var(--border)',
-            }}
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() =>
+              saveBook('PUBLISHED')
+            }
+            className="ih-btn ih-btn-primary"
           >
-            <strong
-              style={{
-                color: 'var(--ink)',
-              }}
-            >
-              Publishing workflow
-            </strong>
-
-            <p
-              style={{
-                margin:
-                  '7px 0 0',
-                color: 'var(--ink-soft)',
-                lineHeight: 1.6,
-              }}
-            >
-              Save as a draft while preparing
-              the book. Publishing is separate
-              from uploading a digital file.
-              Only books with PUBLISHED status
-              should appear in the public
-              bookstore.
-            </p>
-          </div>
-
-          <div
-            style={{
-              marginTop: 25,
-              display: 'flex',
-              justifyContent:
-                'flex-end',
-              gap: 12,
-              flexWrap: 'wrap',
-            }}
-          >
-            <Link
-              href="/admin/bookstore/books"
-              style={{
-                padding:
-                  '12px 20px',
-                borderRadius: 9,
-                border:
-                  '1px solid var(--border)',
-                color: 'var(--ink-soft)',
-                textDecoration:
-                  'none',
-                fontWeight: 700,
-              }}
-            >
-              Cancel
-            </Link>
-
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() =>
-                saveBook('DRAFT')
-              }
-              style={{
-                padding:
-                  '12px 20px',
-                borderRadius: 9,
-                border: 'none',
-                background:
-                  'var(--border)',
-                color: 'var(--ink-soft)',
-                fontWeight: 700,
-                cursor: saving
-                  ? 'not-allowed'
-                  : 'pointer',
-              }}
-            >
-              {saving
-                ? 'Saving...'
-                : 'Save Draft'}
-            </button>
-
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() =>
-                saveBook('PUBLISHED')
-              }
-              style={{
-                padding:
-                  '12px 22px',
-                borderRadius: 9,
-                border: 'none',
-                background:
-                  'var(--brand-light)',
-                color: 'var(--on-accent)',
-                fontWeight: 700,
-                cursor: saving
-                  ? 'not-allowed'
-                  : 'pointer',
-              }}
-            >
-              {saving
-                ? 'Publishing...'
-                : 'Save & Publish'}
-            </button>
-          </div>
+            {saving
+              ? 'Publishing...'
+              : 'Save & Publish'}
+          </button>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -635,8 +525,8 @@ function Field({
   hint,
 }) {
   return (
-    <div>
-      <label style={labelStyle}>
+    <div className="ih-field">
+      <label>
         {label}
         {required && ' *'}
       </label>
@@ -650,7 +540,6 @@ function Field({
         onChange={(e) =>
           onChange(e.target.value)
         }
-        style={inputStyle}
       />
 
       {hint && (
@@ -676,8 +565,8 @@ function TextArea({
   required,
 }) {
   return (
-    <div>
-      <label style={labelStyle}>
+    <div className="ih-field">
+      <label>
         {label}
         {required && ' *'}
       </label>
@@ -690,7 +579,6 @@ function TextArea({
         }
         rows={6}
         style={{
-          ...inputStyle,
           resize: 'vertical',
           minHeight: 140,
         }}
@@ -698,23 +586,3 @@ function TextArea({
     </div>
   );
 }
-
-const labelStyle = {
-  display: 'block',
-  marginBottom: 8,
-  color: 'var(--ink-soft)',
-  fontSize: 14,
-  fontWeight: 700,
-};
-
-const inputStyle = {
-  width: '100%',
-  boxSizing: 'border-box',
-  padding: '12px 13px',
-  border: '1px solid var(--border)',
-  borderRadius: 9,
-  background: 'var(--surface)',
-  color: 'var(--ink)',
-  fontSize: 15,
-  outline: 'none',
-};

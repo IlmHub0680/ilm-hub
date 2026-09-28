@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSiteBranding } from "@/components/SiteBrandingProvider";
 
 /**
  * ULUL AZM AUTHOR PORTAL
@@ -530,6 +531,7 @@ function StatCard({ label, value, description, icon, color }) {
 }
 
 export default function AuthorPortal() {
+ const { logoUrl } = useSiteBranding();
  const [viewMode, setViewMode] = useState("login");
 const [currentUser, setCurrentUser] = useState(null);
 const [loginBackgroundUrl, setLoginBackgroundUrl] = useState("");
@@ -1278,7 +1280,13 @@ const signOut = async () => {
 
           <Card style={{ padding: 34 }}>
             <div style={{ textAlign: "center", marginBottom: 28 }}>
-              <div style={styles.logo}>UA</div>
+              <div style={styles.logo}>
+                {logoUrl ? (
+                  <img src={logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }} />
+                ) : (
+                  'UA'
+                )}
+              </div>
 
               <h1
                 style={{
@@ -1819,7 +1827,13 @@ const signOut = async () => {
         style={styles.sidebar}
       >
         <div style={styles.sidebarLogo}>
-          <div style={styles.sidebarLogoMark}>UA</div>
+          <div style={styles.sidebarLogoMark}>
+            {logoUrl ? (
+              <img src={logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }} />
+            ) : (
+              'UA'
+            )}
+          </div>
 
           <div>
             <div

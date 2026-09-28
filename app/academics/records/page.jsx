@@ -28,7 +28,18 @@ export default function AcademicRecordPage() {
         from Requests & Documents in your student portal.
       </p>
 
-      <div style={s.card}>
+      <div className="ih-stat-grid" style={{ marginBottom: 20 }}>
+        <div className="ih-stat-tile accent">
+          <div className="n">{student.semesterGPA != null ? student.semesterGPA.toFixed(2) : 'N/A'}</div>
+          <div className="l">Semester GPA</div>
+        </div>
+        <div className="ih-stat-tile">
+          <div className="n">{student.cgpa != null ? student.cgpa.toFixed(2) : 'N/A'}</div>
+          <div className="l">CGPA</div>
+        </div>
+      </div>
+
+      <div className="ih-card">
         <h2 style={s.cardTitle}>Term-by-Term History</h2>
 
         {academicSemesters.length === 0 ? (
@@ -36,29 +47,29 @@ export default function AcademicRecordPage() {
             No completed terms are on record yet.
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={s.table}>
+          <div className="ih-tbl-wrap">
+            <table className="ih-tbl">
               <thead>
                 <tr>
-                  <th style={s.th}>Term</th>
-                  <th style={s.th}>GPA</th>
-                  <th style={s.th}>Standing</th>
-                  <th style={s.th}>Credits Attempted</th>
-                  <th style={s.th}>Credits Earned</th>
+                  <th>Term</th>
+                  <th>GPA</th>
+                  <th>Standing</th>
+                  <th>Credits Attempted</th>
+                  <th>Credits Earned</th>
                 </tr>
               </thead>
               <tbody>
                 {academicSemesters.map((semester) => (
                   <tr key={semester.semester}>
-                    <td style={s.td}>{semester.semester}</td>
-                    <td style={s.td}>
+                    <td>{semester.semester}</td>
+                    <td className="mono">
                       {semester.gpa != null ? semester.gpa.toFixed(2) : 'N/A'}
                     </td>
-                    <td style={s.td}>{semester.standing || '—'}</td>
-                    <td style={s.td}>
+                    <td>{semester.standing || '—'}</td>
+                    <td className="mono">
                       {semester.creditsAttempted != null ? semester.creditsAttempted : '—'}
                     </td>
-                    <td style={s.td}>
+                    <td className="mono">
                       {semester.creditsEarned != null ? semester.creditsEarned : '—'}
                     </td>
                   </tr>
@@ -69,7 +80,7 @@ export default function AcademicRecordPage() {
         )}
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card">
         <h2 style={s.cardTitle}>Course Grades</h2>
 
         {student.grades.length === 0 ? (
@@ -77,21 +88,21 @@ export default function AcademicRecordPage() {
             No course grades have been recorded yet.
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={s.table}>
+          <div className="ih-tbl-wrap">
+            <table className="ih-tbl">
               <thead>
                 <tr>
-                  <th style={s.th}>Course</th>
-                  <th style={s.th}>Final Score</th>
-                  <th style={s.th}>Grade</th>
+                  <th>Course</th>
+                  <th>Final Score</th>
+                  <th>Grade</th>
                 </tr>
               </thead>
               <tbody>
                 {student.grades.map((g) => (
                   <tr key={g.course}>
-                    <td style={s.td}>{g.course}</td>
-                    <td style={s.td}>{g.score != null ? `${g.score}%` : '—'}</td>
-                    <td style={s.td}>
+                    <td>{g.course}</td>
+                    <td className="mono">{g.score != null ? `${g.score}%` : '—'}</td>
+                    <td>
                       <strong>{g.grade}</strong>
                     </td>
                   </tr>
@@ -102,7 +113,7 @@ export default function AcademicRecordPage() {
         )}
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card">
         <h2 style={s.cardTitle}>Score Breakdown by Component</h2>
         <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: '0 0 14px' }}>
           How each course's final score was built up from your quiz, assignment, midterm and final exam marks.
@@ -113,27 +124,27 @@ export default function AcademicRecordPage() {
             No recorded scores yet.
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={s.table}>
+          <div className="ih-tbl-wrap">
+            <table className="ih-tbl">
               <thead>
                 <tr>
-                  <th style={s.th}>Course</th>
-                  <th style={s.th}>Quiz 1</th>
-                  <th style={s.th}>Quiz 2</th>
-                  <th style={s.th}>Assignment</th>
-                  <th style={s.th}>Midterm</th>
-                  <th style={s.th}>Final</th>
+                  <th>Course</th>
+                  <th>Quiz 1</th>
+                  <th>Quiz 2</th>
+                  <th>Assignment</th>
+                  <th>Midterm</th>
+                  <th>Final</th>
                 </tr>
               </thead>
               <tbody>
                 {(data.grades || []).map((g) => (
                   <tr key={g.course}>
-                    <td style={s.td}><strong>{g.course}</strong></td>
-                    <td style={s.td}>{g.quiz1 ?? '—'}</td>
-                    <td style={s.td}>{g.quiz2 ?? '—'}</td>
-                    <td style={s.td}>{g.assignment ?? '—'}</td>
-                    <td style={s.td}>{g.midterm ?? '—'}</td>
-                    <td style={s.td}>{g.final ?? '—'}</td>
+                    <td><strong>{g.course}</strong></td>
+                    <td className="mono">{g.quiz1 ?? '—'}</td>
+                    <td className="mono">{g.quiz2 ?? '—'}</td>
+                    <td className="mono">{g.assignment ?? '—'}</td>
+                    <td className="mono">{g.midterm ?? '—'}</td>
+                    <td className="mono">{g.final ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -142,22 +153,14 @@ export default function AcademicRecordPage() {
         )}
       </div>
 
-      <div style={{ ...s.card, background: 'var(--brand-tint)', border: '1px solid var(--success-tint)' }}>
+      <div className="ih-card" style={{ background: 'var(--brand-tint)', border: '1px solid var(--success-tint)' }}>
         <h2 style={{ ...s.cardTitle, color: 'var(--brand-dark)' }}>Need an official transcript?</h2>
         <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', margin: '0 0 12px' }}>
           Request an official, signed transcript PDF through Requests &amp;
           Documents — the Registrar issues it and it appears in your
           request history once ready.
         </p>
-        <Link
-          href="/login"
-          style={{
-            color: 'var(--brand-dark)',
-            fontWeight: 700,
-            fontSize: 13.5,
-            textDecoration: 'none',
-          }}
-        >
+        <Link href="/login" className="ih-btn ih-btn-primary">
           Go to Requests & Documents →
         </Link>
       </div>

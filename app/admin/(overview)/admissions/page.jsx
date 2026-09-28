@@ -4,6 +4,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import {
+  oversightHeader,
+  oversightHeading,
+  oversightSubtitle,
+  oversightTableCard,
+} from '../_shared';
 
 export default async function AdminAdmissionsOversight() {
   const user = await getCurrentUser();
@@ -47,19 +53,16 @@ export default async function AdminAdmissionsOversight() {
   };
 
   return (
-    <main style={page}>
-      <div style={container}>
-        <Link href="/admin" style={backLink}>
-          ← Back to Admin Overview
-        </Link>
-
-        <h1 style={heading}>Admissions — Oversight View</h1>
-        <p style={muted}>
+    <section>
+      <header style={oversightHeader}>
+        <h1 style={oversightHeading}>Admissions</h1>
+        <p style={oversightSubtitle}>
           Open an application to review its full details, documents and
           make an admission decision.
         </p>
+      </header>
 
-        <div className="ih-tbl-wrap">
+      <div className="ih-tbl-wrap" style={oversightTableCard}>
           <table className="ih-tbl">
             <thead>
               <tr>
@@ -108,40 +111,6 @@ export default async function AdminAdmissionsOversight() {
             </tbody>
           </table>
         </div>
-      </div>
-    </main>
+    </section>
   );
 }
-
-const page = {
-  minHeight: '100vh',
-  background: 'var(--paper)',
-  padding: '40px 20px',
-  fontFamily: 'var(--font-body)',
-  color: 'var(--ink)',
-};
-
-const container = {
-  maxWidth: '1100px',
-  margin: '0 auto',
-};
-
-const backLink = {
-  color: 'var(--brand)',
-  textDecoration: 'none',
-  fontWeight: 700,
-  fontSize: '14px',
-};
-
-const heading = {
-  color: 'var(--ink)',
-  fontFamily: 'var(--font-display)',
-  fontSize: '28px',
-  margin: '20px 0 6px',
-};
-
-const muted = {
-  color: 'var(--ink-soft)',
-  fontSize: '14px',
-  marginBottom: '24px',
-};

@@ -17,6 +17,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSiteBranding } from '@/components/SiteBrandingProvider';
 
 // One category shape: { id, label, items: [{ id, href?, label, icon, badge? }] }
 // An item with `href` renders as a real <Link>; one without renders as a
@@ -37,6 +38,7 @@ export default function StudentSidebar({
   mobileOpen = false,
   onCloseMobile,
 }) {
+  const { logoUrl } = useSiteBranding();
   const [collapsedCategories, setCollapsedCategories] = useState({});
 
   const toggleCategory = (categoryId) => {
@@ -68,7 +70,13 @@ export default function StudentSidebar({
         }${isTouchViewport && mobileOpen ? ' ih-sidebar-mobile-open' : ''}`}
       >
         <div className="ih-sb-brand">
-          <div className="ih-sb-brand-mark">UA</div>
+          <div className="ih-sb-brand-mark">
+            {logoUrl ? (
+              <img src={logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }} />
+            ) : (
+              'UA'
+            )}
+          </div>
 
           <div>
             <div className="ih-sb-brand-title">{brandTitle}</div>

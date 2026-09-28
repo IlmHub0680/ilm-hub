@@ -5,41 +5,24 @@ import { getCoursePlanOverview, getAcademicLevelProgress } from '../deriveAcadem
 import * as s from '../styles';
 
 const STATUS_META = {
-  current: { label: 'Currently Taking', background: 'var(--info-tint)', color: 'var(--info)' },
-  completed: { label: 'Completed', background: 'var(--success-tint)', color: 'var(--success)' },
-  remaining: { label: 'Not Yet Taken', background: 'var(--danger-tint)', color: 'var(--danger)' },
+  current: { label: 'Currently Taking', badgeClass: 'ih-b-info' },
+  completed: { label: 'Completed', badgeClass: 'ih-b-success' },
+  remaining: { label: 'Not Yet Taken', badgeClass: 'ih-b-neutral' },
 };
 
 function CourseCard({ course }) {
   const meta = STATUS_META[course.status];
   const showGradeRow = course.status === 'completed' || course.previouslyAttempted;
+  const badgeClass = course.previouslyAttempted ? 'ih-b-warning' : meta.badgeClass;
 
   return (
-    <div
-      style={{
-        border: '1px solid var(--border)',
-        borderRadius: 10,
-        padding: '14px 16px',
-        background: 'var(--paper)',
-      }}
-    >
+    <div className="ih-card" style={{ padding: '14px 16px', marginBottom: 0 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 11.5, color: 'var(--ink-soft)', fontWeight: 700, letterSpacing: 0.3 }}>
           {course.code}
         </span>
 
-        <span
-          style={{
-            fontSize: 10.5,
-            fontWeight: 800,
-            letterSpacing: 0.3,
-            textTransform: 'uppercase',
-            padding: '3px 8px',
-            borderRadius: 999,
-            background: course.previouslyAttempted ? 'var(--warning-tint)' : meta.background,
-            color: course.previouslyAttempted ? 'var(--warning)' : meta.color,
-          }}
-        >
+        <span className={`ih-badge ${badgeClass}`}>
           {course.previouslyAttempted ? 'Not Passed — Retake Required' : meta.label}
         </span>
       </div>
@@ -130,37 +113,37 @@ export default function CoursesAcademicProgressPage() {
       </p>
 
       {coursePlanOverview.length > 0 && (
-        <div style={s.statGrid}>
-          <div style={s.statCard}>
-            <span style={s.statLabel}>Completed</span>
-            <span style={s.statValue}>{completedCourses.length}</span>
+        <div className="ih-stat-grid" style={{ marginBottom: 20 }}>
+          <div className="ih-stat-tile accent">
+            <div className="n">{completedCourses.length}</div>
+            <div className="l">Completed</div>
           </div>
-          <div style={s.statCard}>
-            <span style={s.statLabel}>Currently Taking</span>
-            <span style={s.statValue}>{currentCourses.length}</span>
+          <div className="ih-stat-tile">
+            <div className="n">{currentCourses.length}</div>
+            <div className="l">Currently Taking</div>
           </div>
-          <div style={s.statCard}>
-            <span style={s.statLabel}>Remaining</span>
-            <span style={s.statValue}>{remainingCourses.length}</span>
+          <div className="ih-stat-tile">
+            <div className="n">{remainingCourses.length}</div>
+            <div className="l">Remaining</div>
           </div>
-          <div style={s.statCard}>
-            <span style={s.statLabel}>Credits Earned</span>
-            <span style={s.statValue}>{totalCreditsEarned}</span>
+          <div className="ih-stat-tile">
+            <div className="n">{totalCreditsEarned}</div>
+            <div className="l">Credits Earned</div>
           </div>
           {levelProgress.level != null && (
-            <div style={s.statCard}>
-              <span style={s.statLabel}>Academic Level</span>
-              <span style={s.statValue}>
+            <div className="ih-stat-tile">
+              <div className="n">
                 {levelProgress.durationYears
                   ? `Level ${levelProgress.level} of ${levelProgress.durationYears}`
                   : `Level ${levelProgress.level}`}
-              </span>
+              </div>
+              <div className="l">Academic Level</div>
             </div>
           )}
         </div>
       )}
 
-      <div style={s.card}>
+      <div className="ih-card">
         <h2 style={s.cardTitle}>Currently Taking</h2>
         <CourseGrid
           courses={currentCourses}
@@ -168,7 +151,7 @@ export default function CoursesAcademicProgressPage() {
         />
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card">
         <h2 style={s.cardTitle}>Completed Courses</h2>
         <CourseGrid
           courses={completedCourses}
@@ -176,7 +159,7 @@ export default function CoursesAcademicProgressPage() {
         />
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 0 }}>
         <h2 style={s.cardTitle}>Remaining Courses</h2>
         <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', margin: '-6px 0 14px' }}>
           Courses in your programme's curriculum that you haven't taken or completed yet.

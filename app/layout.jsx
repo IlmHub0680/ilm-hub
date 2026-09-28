@@ -4,7 +4,7 @@ import { SiteBrandingProvider } from '@/components/SiteBrandingProvider'
 import { SiteAuthProvider } from '@/components/SiteAuthProvider'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
-import { getAccountDestination } from '@/lib/permissions'
+import { getHeaderDestination } from '@/lib/permissions'
 
 export const metadata = {
   title: 'Ulul Azm Institute - Islamic Educational Platform',
@@ -54,7 +54,7 @@ export default async function RootLayout({ children }) {
   // student on their portal and a bookstore customer on their account
   // page instead of both going to the same place.
   const destination = user
-    ? await getAccountDestination(user.id).catch((error) => {
+    ? await getHeaderDestination(user.id).catch((error) => {
         // Was previously a silent .catch(() => null): any thrown error
         // here (Prisma hiccup, etc.) fell straight through to
         // SiteHeader's fallback, which is the BOOKSTORE account page --
@@ -63,7 +63,7 @@ export default async function RootLayout({ children }) {
         // the next time this fires, the actual cause is in the server
         // console instead of just another confusing bug report.
         console.error(
-          `getAccountDestination failed for user ${user.id}:`,
+          `getHeaderDestination failed for user ${user.id}:`,
           error
         );
         return null;

@@ -552,6 +552,7 @@ export default function AssignmentsPage() {
 
                                                 {answerOpen && entry.submission.answerText && (
                                                     <div
+                                                        className="ih-rendered-html"
                                                         style={{
                                                             border: '1px solid var(--border)',
                                                             borderRadius: 8,

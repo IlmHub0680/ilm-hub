@@ -6,17 +6,15 @@ import { useParams } from 'next/navigation';
 import { useAcademics } from '../../context';
 import * as s from '../../styles';
 
+const TONE_BADGE_CLASS = {
+  good: 'ih-b-success',
+  warning: 'ih-b-warning',
+  danger: 'ih-b-danger',
+  neutral: 'ih-b-neutral',
+};
+
 function StatusChip({ label, tone }) {
-  const toneStyle = s.badge(
-    tone === 'good'
-      ? 'var(--success, #1a7f4b)'
-      : tone === 'warning'
-      ? 'var(--warning, #a15c00)'
-      : tone === 'danger'
-      ? 'var(--danger, #b3261e)'
-      : 'var(--brand, #2b5fae)'
-  );
-  return <span style={toneStyle}>{label}</span>;
+  return <span className={`ih-badge ${TONE_BADGE_CLASS[tone] || 'ih-b-neutral'}`}>{label}</span>;
 }
 
 export default function CourseHubPage() {
@@ -117,54 +115,52 @@ export default function CourseHubPage() {
         grades, attendance, live classes and discussion.
       </p>
 
-      <div style={s.statGrid}>
-        <div style={s.statCard}>
-          <span style={s.statLabel}>Assignments</span>
-          <span style={s.statValue}>{assignments.length}</span>
+      <div className="ih-stat-grid" style={{ marginBottom: 20 }}>
+        <div className="ih-stat-tile">
+          <div className="l">Assignments</div>
+          <div className="n">{assignments.length}</div>
         </div>
-        <div style={s.statCard}>
-          <span style={s.statLabel}>Quizzes</span>
-          <span style={s.statValue}>{quizzes.length}</span>
+        <div className="ih-stat-tile">
+          <div className="l">Quizzes</div>
+          <div className="n">{quizzes.length}</div>
         </div>
-        <div style={s.statCard}>
-          <span style={s.statLabel}>Attendance</span>
-          <span style={s.statValue}>
-            {attendance ? `${attendance.attendanceRate}%` : '—'}
-          </span>
+        <div className="ih-stat-tile">
+          <div className="l">Attendance</div>
+          <div className="n">{attendance ? `${attendance.attendanceRate}%` : '—'}</div>
         </div>
-        <div style={s.statCard}>
-          <span style={s.statLabel}>Current Grade</span>
-          <span style={s.statValue}>{grade?.letter || '—'}</span>
+        <div className="ih-stat-tile accent">
+          <div className="l">Current Grade</div>
+          <div className="n">{grade?.letter || '—'}</div>
         </div>
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <h2 style={s.cardTitle}>Assignments</h2>
         {assignments.length === 0 ? (
           <div style={s.emptyState}>No assignments posted for this course yet.</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={s.table}>
+          <div className="ih-tbl-wrap">
+            <table className="ih-tbl">
               <thead>
                 <tr>
-                  <th style={s.th}>Title</th>
-                  <th style={s.th}>Due</th>
-                  <th style={s.th}>Status</th>
-                  <th style={s.th}>Score</th>
+                  <th>Title</th>
+                  <th>Due</th>
+                  <th>Status</th>
+                  <th>Score</th>
                 </tr>
               </thead>
               <tbody>
                 {assignments.map((a) => (
                   <tr key={a.id}>
-                    <td style={s.td}>{a.title}</td>
-                    <td style={s.td}>{new Date(a.dueDate).toLocaleDateString()}</td>
-                    <td style={s.td}>
+                    <td>{a.title}</td>
+                    <td className="mono">{new Date(a.dueDate).toLocaleDateString()}</td>
+                    <td>
                       <StatusChip
                         label={a.submission ? a.submission.status : 'Not Submitted'}
                         tone={a.submission ? 'good' : 'warning'}
                       />
                     </td>
-                    <td style={s.td}>
+                    <td className="mono">
                       {a.submission?.score != null ? `${a.submission.score}/${a.maxScore}` : '—'}
                     </td>
                   </tr>
@@ -178,35 +174,35 @@ export default function CourseHubPage() {
         </p>
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <h2 style={s.cardTitle}>Quizzes</h2>
         {subLoading ? (
           <div style={s.loadingState}>Loading quizzes...</div>
         ) : quizzes.length === 0 ? (
           <div style={s.emptyState}>No quizzes posted for this course yet.</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={s.table}>
+          <div className="ih-tbl-wrap">
+            <table className="ih-tbl">
               <thead>
                 <tr>
-                  <th style={s.th}>Title</th>
-                  <th style={s.th}>Attempts</th>
-                  <th style={s.th}>Status</th>
-                  <th style={s.th}>Score</th>
+                  <th>Title</th>
+                  <th>Attempts</th>
+                  <th>Status</th>
+                  <th>Score</th>
                 </tr>
               </thead>
               <tbody>
                 {quizzes.map((q) => (
                   <tr key={q.id}>
-                    <td style={s.td}>{q.title}</td>
-                    <td style={s.td}>{q.attemptsUsed}/{q.maxAttempts}</td>
-                    <td style={s.td}>
+                    <td>{q.title}</td>
+                    <td className="mono">{q.attemptsUsed}/{q.maxAttempts}</td>
+                    <td>
                       <StatusChip
                         label={q.closed ? 'Closed' : q.notYetOpen ? 'Not Yet Open' : q.attempted ? 'Attempted' : 'Open'}
                         tone={q.closed ? 'danger' : q.attempted ? 'good' : 'neutral'}
                       />
                     </td>
-                    <td style={s.td}>{q.bestScore != null ? `${q.bestScore}/${q.maxScore}` : '—'}</td>
+                    <td className="mono">{q.bestScore != null ? `${q.bestScore}/${q.maxScore}` : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -218,33 +214,33 @@ export default function CourseHubPage() {
         </p>
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <h2 style={s.cardTitle}>Grade</h2>
         {grade ? (
-          <div style={s.statGrid}>
-            <div style={s.statCard}>
-              <span style={s.statLabel}>Quiz 1</span>
-              <span style={s.statValue}>{grade.quiz1 ?? '—'}</span>
+          <div className="ih-stat-grid">
+            <div className="ih-stat-tile">
+              <div className="l">Quiz 1</div>
+              <div className="n">{grade.quiz1 ?? '—'}</div>
             </div>
-            <div style={s.statCard}>
-              <span style={s.statLabel}>Quiz 2</span>
-              <span style={s.statValue}>{grade.quiz2 ?? '—'}</span>
+            <div className="ih-stat-tile">
+              <div className="l">Quiz 2</div>
+              <div className="n">{grade.quiz2 ?? '—'}</div>
             </div>
-            <div style={s.statCard}>
-              <span style={s.statLabel}>Assignment</span>
-              <span style={s.statValue}>{grade.assignment ?? '—'}</span>
+            <div className="ih-stat-tile">
+              <div className="l">Assignment</div>
+              <div className="n">{grade.assignment ?? '—'}</div>
             </div>
-            <div style={s.statCard}>
-              <span style={s.statLabel}>Midterm</span>
-              <span style={s.statValue}>{grade.midterm ?? '—'}</span>
+            <div className="ih-stat-tile">
+              <div className="l">Midterm</div>
+              <div className="n">{grade.midterm ?? '—'}</div>
             </div>
-            <div style={s.statCard}>
-              <span style={s.statLabel}>Final</span>
-              <span style={s.statValue}>{grade.final ?? '—'}</span>
+            <div className="ih-stat-tile">
+              <div className="l">Final</div>
+              <div className="n">{grade.final ?? '—'}</div>
             </div>
-            <div style={s.statCard}>
-              <span style={s.statLabel}>Letter Grade</span>
-              <span style={s.statValue}>{grade.letter || '—'}</span>
+            <div className="ih-stat-tile accent">
+              <div className="l">Letter Grade</div>
+              <div className="n">{grade.letter || '—'}</div>
             </div>
           </div>
         ) : (
@@ -252,29 +248,29 @@ export default function CourseHubPage() {
         )}
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <h2 style={s.cardTitle}>Attendance</h2>
         {attendance ? (
-          <div style={s.statGrid}>
-            <div style={s.statCard}>
-              <span style={s.statLabel}>Total Classes</span>
-              <span style={s.statValue}>{attendance.totalClasses}</span>
+          <div className="ih-stat-grid">
+            <div className="ih-stat-tile">
+              <div className="l">Total Classes</div>
+              <div className="n">{attendance.totalClasses}</div>
             </div>
-            <div style={s.statCard}>
-              <span style={s.statLabel}>Attended</span>
-              <span style={s.statValue}>{attendance.attended}</span>
+            <div className="ih-stat-tile">
+              <div className="l">Attended</div>
+              <div className="n">{attendance.attended}</div>
             </div>
-            <div style={s.statCard}>
-              <span style={s.statLabel}>Late</span>
-              <span style={s.statValue}>{attendance.late}</span>
+            <div className="ih-stat-tile">
+              <div className="l">Late</div>
+              <div className="n">{attendance.late}</div>
             </div>
-            <div style={s.statCard}>
-              <span style={s.statLabel}>Absent</span>
-              <span style={s.statValue}>{attendance.absent}</span>
+            <div className="ih-stat-tile">
+              <div className="l">Absent</div>
+              <div className="n">{attendance.absent}</div>
             </div>
-            <div style={s.statCard}>
-              <span style={s.statLabel}>Rate</span>
-              <span style={s.statValue}>{attendance.attendanceRate}%</span>
+            <div className="ih-stat-tile accent">
+              <div className="l">Rate</div>
+              <div className="n">{attendance.attendanceRate}%</div>
             </div>
           </div>
         ) : (
@@ -282,28 +278,28 @@ export default function CourseHubPage() {
         )}
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <h2 style={s.cardTitle}>Upcoming Exams</h2>
         {exams.length === 0 ? (
           <div style={s.emptyState}>No exams scheduled for this course yet.</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={s.table}>
+          <div className="ih-tbl-wrap">
+            <table className="ih-tbl">
               <thead>
                 <tr>
-                  <th style={s.th}>Type</th>
-                  <th style={s.th}>Date</th>
-                  <th style={s.th}>Duration</th>
-                  <th style={s.th}>Venue</th>
+                  <th>Type</th>
+                  <th>Date</th>
+                  <th>Duration</th>
+                  <th>Venue</th>
                 </tr>
               </thead>
               <tbody>
                 {exams.map((e) => (
                   <tr key={e.id}>
-                    <td style={s.td}>{e.examType}</td>
-                    <td style={s.td}>{new Date(e.date).toLocaleString()}</td>
-                    <td style={s.td}>{e.durationMin} min</td>
-                    <td style={s.td}>{e.venue || '—'}</td>
+                    <td>{e.examType}</td>
+                    <td className="mono">{new Date(e.date).toLocaleString()}</td>
+                    <td className="mono">{e.durationMin} min</td>
+                    <td>{e.venue || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -312,30 +308,30 @@ export default function CourseHubPage() {
         )}
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <h2 style={s.cardTitle}>Live Classes</h2>
         {liveClasses.length === 0 ? (
           <div style={s.emptyState}>No live classes scheduled for this course yet.</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={s.table}>
+          <div className="ih-tbl-wrap">
+            <table className="ih-tbl">
               <thead>
                 <tr>
-                  <th style={s.th}>Date</th>
-                  <th style={s.th}>Topic</th>
-                  <th style={s.th}>Instructor</th>
-                  <th style={s.th}>Join</th>
+                  <th>Date</th>
+                  <th>Topic</th>
+                  <th>Instructor</th>
+                  <th>Join</th>
                 </tr>
               </thead>
               <tbody>
                 {liveClasses.map((c) => (
                   <tr key={c.id}>
-                    <td style={s.td}>{new Date(c.scheduledAt).toLocaleString()}</td>
-                    <td style={s.td}>{c.topic}</td>
-                    <td style={s.td}>{c.instructor || 'TBA'}</td>
-                    <td style={s.td}>
+                    <td className="mono">{new Date(c.scheduledAt).toLocaleString()}</td>
+                    <td>{c.topic}</td>
+                    <td>{c.instructor || 'TBA'}</td>
+                    <td>
                       {c.meetingLink ? (
-                        <a href={c.meetingLink} target="_blank" rel="noopener noreferrer">
+                        <a href={c.meetingLink} target="_blank" rel="noopener noreferrer" className="ih-btn ih-btn-secondary">
                           Link
                         </a>
                       ) : (
@@ -350,7 +346,7 @@ export default function CourseHubPage() {
         )}
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <h2 style={s.cardTitle}>Section Discussion</h2>
         {subLoading ? (
           <div style={s.loadingState}>Loading discussions...</div>
@@ -386,7 +382,9 @@ export default function CourseHubPage() {
           </div>
         )}
         <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', margin: '14px 0 0' }}>
-          <Link href="/login?tab=discussion">Open full Section Discussion &rarr;</Link>
+          <Link href="/login?tab=discussion" className="ih-btn ih-btn-secondary" style={{ textDecoration: 'none', display: 'inline-block' }}>
+            Open full Section Discussion &rarr;
+          </Link>
         </p>
       </div>
 
@@ -396,7 +394,7 @@ export default function CourseHubPage() {
           placeholder), and each link goes to that resource's own,
           already access-controlled public page. */}
       {readings.length > 0 && (
-        <div style={s.card}>
+        <div className="ih-card">
           <h2 style={s.cardTitle}>Required Reading</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {readings.map((reading) => {

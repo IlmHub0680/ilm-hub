@@ -74,6 +74,24 @@ export default function PublicLegalPageClient({ slug, fallbackTitle }) {
         .legal-page-body p {
           margin: 0 0 0.9em;
         }
+        /* list-style-type explicitly restated (with !important) --
+           Tailwind's Preflight reset (ol, ul { list-style: none }) is
+           a real, sitewide, unscoped rule; without redeclaring it
+           here, every bulleted/numbered list in saved legal-page and
+           news-article content renders with no markers at all on the
+           actual public page, even though the same content's markers
+           show correctly while editing it (see the matching, more
+           detailed note in components/RichTextEditor.jsx's own style
+           block, where this exact issue was first found and fixed for
+           the editor view -- this is the independent read-side
+           renderer for the same stored HTML and needs its own copy of
+           the fix, since it shares no CSS with the editor). */
+        .legal-page-body ul {
+          list-style-type: disc !important;
+        }
+        .legal-page-body ol {
+          list-style-type: decimal !important;
+        }
         .legal-page-body ul,
         .legal-page-body ol {
           margin: 0 0 0.9em;

@@ -438,6 +438,22 @@ export default function AssistantWidget() {
             }}
           >
             <div>
+              <div
+                style={{
+                  display: 'inline-block',
+                  background: 'var(--gold)',
+                  color: 'var(--on-accent)',
+                  fontSize: '9.5px',
+                  fontWeight: 700,
+                  letterSpacing: '.06em',
+                  textTransform: 'uppercase',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  marginBottom: '4px',
+                }}
+              >
+                {t('Help')}
+              </div>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '15px' }}>
                 {t('Ulul Azm Assistant')}
               </div>
@@ -802,42 +818,68 @@ export default function AssistantWidget() {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => {
-          if (!open) logEvent('open', { zone: effectiveZone });
-          setOpen((o) => !o);
-        }}
-        aria-label={open ? t('Close assistant') : t('Open institute assistant')}
-        style={{
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          background: 'var(--brand)',
-          color: 'var(--on-accent)',
-          border: 'none',
-          boxShadow: 'var(--shadow-raised)',
-          fontSize: '24px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          padding: 0,
-        }}
+      <div
+        dir={dir}
+        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
       >
-        {open ? (
-          '×'
-        ) : logoUrl ? (
-          <img
-            src={logoUrl}
-            alt=""
-            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-          />
-        ) : (
-          '💬'
+        {!open && (
+          <span
+            style={{
+              background: 'var(--surface)',
+              color: 'var(--ink)',
+              border: '1px solid var(--border)',
+              borderRadius: '999px',
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: 700,
+              letterSpacing: '.02em',
+              boxShadow: 'var(--shadow-raised)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t('Help')}
+          </span>
         )}
-      </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (!open) logEvent('open', { zone: effectiveZone });
+            setOpen((o) => !o);
+          }}
+          aria-label={open ? t('Close assistant') : t('Open institute assistant')}
+          title={open ? t('Close assistant') : t('Open institute assistant')}
+          style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: 'var(--brand)',
+            color: 'var(--on-accent)',
+            border: 'none',
+            boxShadow: 'var(--shadow-raised)',
+            fontSize: '24px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            padding: 0,
+            flexShrink: 0,
+          }}
+        >
+          {open ? (
+            '×'
+          ) : logoUrl ? (
+            <img
+              src={logoUrl}
+              alt=""
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+            />
+          ) : (
+            '💬'
+          )}
+        </button>
+      </div>
     </div>
   );
 }

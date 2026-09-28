@@ -4,6 +4,16 @@ import { GRADING_SYSTEM } from '../deriveAcademics';
 import { GRADE_POINTS } from '@/lib/grading';
 import * as s from '../styles';
 
+function gradeBadgeClass(grade) {
+  return ['A+', 'A'].includes(grade)
+    ? 'ih-b-success'
+    : ['B+', 'B', 'C+'].includes(grade)
+    ? 'ih-b-info'
+    : ['C', 'D+', 'D'].includes(grade)
+    ? 'ih-b-warning'
+    : 'ih-b-danger';
+}
+
 export default function GradingPolicyPage() {
   return (
     <div>
@@ -15,26 +25,26 @@ export default function GradingPolicyPage() {
         from your real course grades.
       </p>
 
-      <div style={s.card}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={s.table}>
+      <div className="ih-card">
+        <div className="ih-tbl-wrap">
+          <table className="ih-tbl">
             <thead>
               <tr>
-                <th style={s.th}>Score Range</th>
-                <th style={s.th}>Grade</th>
-                <th style={s.th}>Description</th>
-                <th style={s.th}>Grade Points</th>
+                <th>Score Range</th>
+                <th>Grade</th>
+                <th>Description</th>
+                <th>Grade Points</th>
               </tr>
             </thead>
             <tbody>
               {GRADING_SYSTEM.map(([range, grade, description]) => (
                 <tr key={range}>
-                  <td style={s.td}>{range}</td>
-                  <td style={s.td}>
-                    <strong>{grade}</strong>
+                  <td className="mono">{range}</td>
+                  <td>
+                    <span className={`ih-badge ${gradeBadgeClass(grade)}`}>{grade}</span>
                   </td>
-                  <td style={s.td}>{description}</td>
-                  <td style={s.td}>{GRADE_POINTS[grade].toFixed(2)}</td>
+                  <td>{description}</td>
+                  <td className="mono">{GRADE_POINTS[grade].toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>

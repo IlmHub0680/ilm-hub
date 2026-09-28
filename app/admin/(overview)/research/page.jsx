@@ -1,9 +1,20 @@
 export const dynamic = 'force-dynamic';
 
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import {
+  oversightHeader,
+  oversightHeading,
+  oversightPageBadge,
+  oversightSubtitle,
+  oversightSectionHeading,
+  oversightTableCard,
+  overviewStatGrid,
+  overviewStatTileStyle,
+  overviewStatValue,
+  overviewStatLabel,
+} from '../_shared';
 
 // Read-only oversight -- Research & Scholarly Affairs is a Delegated
 // Operation. Projects, proposals, publications, funding and
@@ -62,35 +73,50 @@ export default async function AdminResearchOversight() {
     : ['UNDER_REVIEW', 'REVISION_REQUESTED', 'SUBMITTED'].includes(status) ? 'ih-b-warning'
     : 'ih-b-neutral';
 
-  return (
-    <main style={page}>
-      <div style={container}>
-        <Link href="/admin" style={backLink}>
-          ← Back to Admin Overview
-        </Link>
+  const STAT_ACCENTS = ['brand', 'gold', 'brand', 'gold', 'brand'];
 
-        <h1 style={heading}>Research & Scholarly Affairs — Oversight View</h1>
-        <p style={muted}>
-          Read-only. Research management, the proposal workflow, scholarly publications, collaboration,
+  return (
+    <section>
+      <header style={oversightHeader}>
+        <h1 style={oversightHeading}>Research & Scholarly Affairs</h1>
+        <p style={oversightSubtitle}>
+          Research management, the proposal workflow, scholarly publications, collaboration,
           supervision and funding are all actioned by the Research & Scholarly Affairs Officer at their own dashboard.
         </p>
+        <span style={oversightPageBadge}>🔒 Read-only oversight</span>
+      </header>
 
-        <div className="ih-stat-grid" style={{ marginBottom: 24 }}>
-          <div className="ih-stat-tile"><div className="n">{projects.length}</div><div className="l">Research Projects</div></div>
-          <div className="ih-stat-tile"><div className="n">{proposals.length}</div><div className="l">Proposals</div></div>
-          <div className="ih-stat-tile"><div className="n">{publications.length}</div><div className="l">Scholarly Outputs</div></div>
-          <div className="ih-stat-tile"><div className="n">{grants.length}</div><div className="l">Grant Records</div></div>
-          <div className="ih-stat-tile"><div className="n">{supervisionCount}</div><div className="l">Supervisions</div></div>
-          {openIntegrityCaseCount > 0 && (
-            <div className="ih-stat-tile" style={{ borderColor: 'var(--danger)' }}>
-              <div className="n" style={{ color: 'var(--danger)' }}>{openIntegrityCaseCount}</div>
-              <div className="l">Open Integrity Cases (confidential)</div>
-            </div>
-          )}
+      <div style={{ ...overviewStatGrid, marginBottom: 28 }}>
+        <div style={overviewStatTileStyle(STAT_ACCENTS[0])}>
+          <div style={overviewStatValue}>{projects.length}</div>
+          <div style={overviewStatLabel}>Research Projects</div>
         </div>
+        <div style={overviewStatTileStyle(STAT_ACCENTS[1])}>
+          <div style={overviewStatValue}>{proposals.length}</div>
+          <div style={overviewStatLabel}>Proposals</div>
+        </div>
+        <div style={overviewStatTileStyle(STAT_ACCENTS[2])}>
+          <div style={overviewStatValue}>{publications.length}</div>
+          <div style={overviewStatLabel}>Scholarly Outputs</div>
+        </div>
+        <div style={overviewStatTileStyle(STAT_ACCENTS[3])}>
+          <div style={overviewStatValue}>{grants.length}</div>
+          <div style={overviewStatLabel}>Grant Records</div>
+        </div>
+        <div style={overviewStatTileStyle(STAT_ACCENTS[4])}>
+          <div style={overviewStatValue}>{supervisionCount}</div>
+          <div style={overviewStatLabel}>Supervisions</div>
+        </div>
+        {openIntegrityCaseCount > 0 && (
+          <div style={{ ...overviewStatTileStyle('gold'), borderTopColor: 'var(--danger)' }}>
+            <div style={{ ...overviewStatValue, color: 'var(--danger)' }}>{openIntegrityCaseCount}</div>
+            <div style={overviewStatLabel}>Open Integrity Cases (confidential)</div>
+          </div>
+        )}
+      </div>
 
-        <h2 style={sectionHeading}>Research Projects</h2>
-        <div className="ih-tbl-wrap" style={{ marginBottom: 28 }}>
+      <h2 style={oversightSectionHeading}>Research Projects</h2>
+      <div className="ih-tbl-wrap" style={{ ...oversightTableCard, marginBottom: 28 }}>
           <table className="ih-tbl">
             <thead>
               <tr>
@@ -117,8 +143,8 @@ export default async function AdminResearchOversight() {
           </table>
         </div>
 
-        <h2 style={sectionHeading}>Proposals</h2>
-        <div className="ih-tbl-wrap" style={{ marginBottom: 28 }}>
+      <h2 style={oversightSectionHeading}>Proposals</h2>
+      <div className="ih-tbl-wrap" style={{ ...oversightTableCard, marginBottom: 28 }}>
           <table className="ih-tbl">
             <thead>
               <tr>
@@ -145,8 +171,8 @@ export default async function AdminResearchOversight() {
           </table>
         </div>
 
-        <h2 style={sectionHeading}>Scholarly Publications</h2>
-        <div className="ih-tbl-wrap" style={{ marginBottom: 28 }}>
+      <h2 style={oversightSectionHeading}>Scholarly Publications</h2>
+      <div className="ih-tbl-wrap" style={{ ...oversightTableCard, marginBottom: 28 }}>
           <table className="ih-tbl">
             <thead>
               <tr>
@@ -173,8 +199,8 @@ export default async function AdminResearchOversight() {
           </table>
         </div>
 
-        <h2 style={sectionHeading}>Research Funding</h2>
-        <div className="ih-tbl-wrap">
+      <h2 style={oversightSectionHeading}>Research Funding</h2>
+      <div className="ih-tbl-wrap" style={oversightTableCard}>
           <table className="ih-tbl">
             <thead>
               <tr>
@@ -202,47 +228,6 @@ export default async function AdminResearchOversight() {
             </tbody>
           </table>
         </div>
-      </div>
-    </main>
+    </section>
   );
 }
-
-const page = {
-  minHeight: '100vh',
-  background: 'var(--paper)',
-  padding: '40px 20px',
-  fontFamily: 'var(--font-body)',
-  color: 'var(--ink)',
-};
-
-const container = {
-  maxWidth: '1100px',
-  margin: '0 auto',
-};
-
-const backLink = {
-  color: 'var(--brand)',
-  textDecoration: 'none',
-  fontWeight: 700,
-  fontSize: '14px',
-};
-
-const heading = {
-  color: 'var(--ink)',
-  fontFamily: 'var(--font-display)',
-  fontSize: '28px',
-  margin: '20px 0 6px',
-};
-
-const muted = {
-  color: 'var(--ink-soft)',
-  fontSize: '14px',
-  marginBottom: '24px',
-};
-
-const sectionHeading = {
-  fontSize: '16px',
-  fontWeight: 700,
-  color: 'var(--brand-dark)',
-  margin: '0 0 12px',
-};

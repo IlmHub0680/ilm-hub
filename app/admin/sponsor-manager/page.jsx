@@ -199,84 +199,78 @@ export default function SponsorManagerDashboard() {
           </div>
         )}
 
-        <section style={{ backgroundColor: 'var(--surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '30px', boxShadow: '0 4px 18px rgba(27,36,31,.08)' }}>
+        <section className="ih-card" style={{ marginBottom: '30px' }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink)', margin: '0 0 16px' }}>
             {editingId ? 'Edit sponsor' : 'Add a new sponsor'}
           </h2>
 
           <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <label style={fieldLabel}>
-              Sponsor name
+            <div className="ih-field">
+              <label>Sponsor name</label>
               <input
-                style={fieldInput}
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="e.g. Al-Noor Foundation"
               />
-            </label>
+            </div>
 
-            <label style={fieldLabel}>
-              Website URL — optional
+            <div className="ih-field">
+              <label>Website URL — optional</label>
               <input
-                style={fieldInput}
                 value={form.websiteUrl}
                 onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })}
                 placeholder="https://..."
               />
-            </label>
+            </div>
 
-            <label style={fieldLabel}>
-              Logo URL — optional
+            <div className="ih-field">
+              <label>Logo URL — optional</label>
               <input
-                style={fieldInput}
                 value={form.logoUrl}
                 onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
                 placeholder="https://..."
               />
-            </label>
+            </div>
 
-            <label style={fieldLabel}>
-              Sponsorship amount (USD) — optional
+            <div className="ih-field">
+              <label>Sponsorship amount (USD) — optional</label>
               <input
-                style={fieldInput}
                 type="number"
                 min="0"
                 step="0.01"
                 value={form.amountUSD}
                 onChange={(e) => setForm({ ...form, amountUSD: e.target.value })}
               />
-            </label>
+            </div>
 
-            <label style={fieldLabel}>
-              Start date — optional
+            <div className="ih-field">
+              <label>Start date — optional</label>
               <input
                 type="date"
-                style={fieldInput}
                 value={form.startDate}
                 onChange={(e) => setForm({ ...form, startDate: e.target.value })}
               />
-            </label>
+            </div>
 
-            <label style={fieldLabel}>
-              End date — optional
+            <div className="ih-field">
+              <label>End date — optional</label>
               <input
                 type="date"
-                style={fieldInput}
                 value={form.endDate}
                 onChange={(e) => setForm({ ...form, endDate: e.target.value })}
               />
-            </label>
+            </div>
 
-            <label style={{ ...fieldLabel, gridColumn: '1 / -1' }}>
-              Description — optional
+            <div className="ih-field" style={{ gridColumn: '1 / -1' }}>
+              <label>Description — optional</label>
               <textarea
-                style={{ ...fieldInput, minHeight: 80, resize: 'vertical' }}
+                style={{ minHeight: 80, resize: 'vertical' }}
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
-            </label>
+            </div>
 
-            <label style={{ ...fieldLabel, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <label style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 700, color: 'var(--ink-soft)' }}>
               <input
                 type="checkbox"
                 checked={form.isPublic}
@@ -286,11 +280,11 @@ export default function SponsorManagerDashboard() {
             </label>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-              <button type="submit" disabled={saving} style={primaryButton}>
+              <button type="submit" disabled={saving} className="ih-btn ih-btn-primary">
                 {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Sponsor'}
               </button>
               {editingId && (
-                <button type="button" onClick={resetForm} style={secondaryButton}>
+                <button type="button" onClick={resetForm} className="ih-btn ih-btn-secondary">
                   Cancel
                 </button>
               )}
@@ -298,7 +292,7 @@ export default function SponsorManagerDashboard() {
           </form>
         </section>
 
-        <section style={{ backgroundColor: 'var(--surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 4px 18px rgba(27,36,31,.08)' }}>
+        <section className="ih-card">
           <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink)', margin: '0 0 16px' }}>Sponsors</h2>
 
           {loading ? (
@@ -318,10 +312,10 @@ export default function SponsorManagerDashboard() {
                   <div style={{ flex: 1, minWidth: 200 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <strong style={{ color: 'var(--ink)', fontSize: 15 }}>{sponsor.name}</strong>
-                      <span style={pill(sponsor.status === 'ACTIVE' ? 'var(--brand-light)' : 'var(--danger)')}>
+                      <span className={`ih-badge ${sponsor.status === 'ACTIVE' ? 'ih-b-success' : 'ih-b-danger'}`}>
                         {sponsor.status === 'ACTIVE' ? 'Active' : 'Inactive'}
                       </span>
-                      <span style={pill(sponsor.isPublic ? 'var(--gold-dark)' : 'var(--ink-soft)')}>
+                      <span className={`ih-badge ${sponsor.isPublic ? 'ih-b-warning' : 'ih-b-neutral'}`}>
                         {sponsor.isPublic ? 'Public' : 'Hidden'}
                       </span>
                     </div>
@@ -336,9 +330,9 @@ export default function SponsorManagerDashboard() {
                           {sponsor.websiteUrl}
                         </a>
                       )}
-                      {sponsor.amountUSD !== null && <span>${Number(sponsor.amountUSD).toFixed(2)}</span>}
+                      {sponsor.amountUSD !== null && <span className="mono">${Number(sponsor.amountUSD).toFixed(2)}</span>}
                       {(sponsor.startDate || sponsor.endDate) && (
-                        <span>
+                        <span className="mono">
                           {sponsor.startDate ? new Date(sponsor.startDate).toLocaleDateString() : '—'}
                           {' – '}
                           {sponsor.endDate ? new Date(sponsor.endDate).toLocaleDateString() : '—'}
@@ -349,16 +343,16 @@ export default function SponsorManagerDashboard() {
                   </div>
 
                   <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
-                    <button onClick={() => startEdit(sponsor)} style={secondaryButton}>
+                    <button onClick={() => startEdit(sponsor)} className="ih-btn ih-btn-secondary">
                       Edit
                     </button>
-                    <button onClick={() => toggleStatus(sponsor)} disabled={busyId === sponsor.id} style={secondaryButton}>
+                    <button onClick={() => toggleStatus(sponsor)} disabled={busyId === sponsor.id} className="ih-btn ih-btn-secondary">
                       {sponsor.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                     </button>
-                    <button onClick={() => togglePublic(sponsor)} disabled={busyId === sponsor.id} style={secondaryButton}>
+                    <button onClick={() => togglePublic(sponsor)} disabled={busyId === sponsor.id} className="ih-btn ih-btn-secondary">
                       {sponsor.isPublic ? 'Hide' : 'Publish'}
                     </button>
-                    <button onClick={() => remove(sponsor)} disabled={busyId === sponsor.id} style={dangerButton}>
+                    <button onClick={() => remove(sponsor)} disabled={busyId === sponsor.id} className="ih-btn ih-btn-danger">
                       Remove
                     </button>
                   </div>
@@ -371,18 +365,3 @@ export default function SponsorManagerDashboard() {
     </div>
   );
 }
-
-const fieldLabel = { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5, fontWeight: 700, color: 'var(--ink-soft)' };
-const fieldInput = { padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'inherit', background: 'var(--paper)', color: 'var(--ink)' };
-const primaryButton = { background: 'var(--brand)', color: 'var(--on-accent)', border: 'none', borderRadius: 9, padding: '11px 20px', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' };
-const secondaryButton = { background: 'var(--border-soft)', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' };
-const dangerButton = { background: 'var(--danger-tint)', color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: 8, padding: '8px 14px', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' };
-const pill = (color) => ({
-  display: 'inline-flex',
-  padding: '2px 9px',
-  borderRadius: 999,
-  fontSize: 10.5,
-  fontWeight: 800,
-  color,
-  border: `1px solid ${color}`,
-});

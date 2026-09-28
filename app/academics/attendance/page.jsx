@@ -15,6 +15,13 @@ const TONE_COLOR = {
   neutral: 'var(--ink-soft)',
 };
 
+const TONE_BADGE_CLASS = {
+  success: 'ih-b-success',
+  warning: 'ih-b-warning',
+  danger: 'ih-b-danger',
+  neutral: 'ih-b-neutral',
+};
+
 export default function AttendancePage() {
   const { data, loading, error } = useAcademics();
 
@@ -38,9 +45,11 @@ export default function AttendancePage() {
 
       <div
         style={{
-          ...s.card,
           background: 'var(--danger-tint)',
           border: '1px solid var(--danger)',
+          borderRadius: 'var(--radius-l)',
+          padding: 'var(--sp-5)',
+          marginBottom: 20,
         }}
       >
         <strong style={{ color: 'var(--danger)', fontSize: 14 }}>Important Attendance Rule</strong>
@@ -52,21 +61,21 @@ export default function AttendancePage() {
         </p>
       </div>
 
-      <div style={s.card}>
+      <div className="ih-card">
         {records.length === 0 ? (
           <div style={s.emptyState}>No attendance records are available yet.</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={s.table}>
+          <div className="ih-tbl-wrap">
+            <table className="ih-tbl">
               <thead>
                 <tr>
-                  <th style={s.th}>Course</th>
-                  <th style={s.th}>Classes</th>
-                  <th style={s.th}>Attended</th>
-                  <th style={s.th}>Late</th>
-                  <th style={s.th}>Absent</th>
-                  <th style={s.th}>Absence %</th>
-                  <th style={s.th}>Status</th>
+                  <th>Course</th>
+                  <th>Classes</th>
+                  <th>Attended</th>
+                  <th>Late</th>
+                  <th>Absent</th>
+                  <th>Absence %</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -80,20 +89,20 @@ export default function AttendancePage() {
                   const tone = ATTENDANCE_STATUS_TONE[status] || 'neutral';
                   return (
                     <tr key={record.course}>
-                      <td style={s.td}>
+                      <td>
                         <strong>{record.course}</strong>
                       </td>
-                      <td style={s.td}>{record.totalClasses}</td>
-                      <td style={s.td}>{record.attended}</td>
-                      <td style={s.td}>{record.late ?? 0}</td>
-                      <td style={s.td}>{record.absent}</td>
-                      <td style={s.td}>
+                      <td className="mono">{record.totalClasses}</td>
+                      <td className="mono">{record.attended}</td>
+                      <td className="mono">{record.late ?? 0}</td>
+                      <td className="mono">{record.absent}</td>
+                      <td className="mono">
                         <strong style={{ color: TONE_COLOR[tone] }}>
                           {absenceRate === null ? '—' : `${absenceRate}%`}
                         </strong>
                       </td>
-                      <td style={s.td}>
-                        <span style={s.badge(TONE_COLOR[tone])}>{status}</span>
+                      <td>
+                        <span className={`ih-badge ${TONE_BADGE_CLASS[tone] || 'ih-b-neutral'}`}>{status}</span>
                       </td>
                     </tr>
                   );

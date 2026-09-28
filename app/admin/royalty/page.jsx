@@ -14,25 +14,16 @@ function money(value) {
   return `$${Number(value || 0).toFixed(2)}`;
 }
 
-const STATUS_TONE = {
-  PENDING: { background: 'var(--warning-tint)', color: 'var(--warning)' },
-  APPROVED: { background: 'var(--brand-tint)', color: 'var(--brand)' },
-  PAID: { background: 'var(--success-tint)', color: 'var(--success)' },
-  REJECTED: { background: 'var(--danger-tint)', color: 'var(--danger)' },
+const STATUS_BADGE_TONE = {
+  PENDING: 'ih-b-warning',
+  APPROVED: 'ih-b-info',
+  PAID: 'ih-b-success',
+  REJECTED: 'ih-b-danger',
 };
 
 function StatusBadge({ status }) {
   return (
-    <span
-      style={{
-        padding: '4px 11px',
-        borderRadius: 999,
-        fontSize: 11.5,
-        fontWeight: 800,
-        whiteSpace: 'nowrap',
-        ...(STATUS_TONE[status] || STATUS_TONE.PENDING),
-      }}
-    >
+    <span className={`ih-badge ${STATUS_BADGE_TONE[status] || 'ih-b-neutral'}`}>
       {status}
     </span>
   );
@@ -217,44 +208,10 @@ export default function AdminRoyaltyPage() {
     }
   }
 
-  const inputStyle = {
-    width: '100%',
-    boxSizing: 'border-box',
-    padding: '10px 12px',
-    border: '1px solid var(--border)',
-    borderRadius: '8px',
-    fontSize: '14px',
-    color: 'var(--ink)',
-    backgroundColor: 'var(--surface)',
-  };
-
-  const labelStyle = { display: 'block', marginBottom: '6px', fontWeight: 700, fontSize: 13.5 };
-
-  const sectionStyle = {
-    background: 'var(--surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 14,
-    padding: 28,
-    marginBottom: 24,
-    boxShadow: '0 4px 18px rgba(27,36,31,.08)',
-  };
-
-  const buttonStyle = (variant = 'primary') => ({
-    padding: '9px 16px',
-    borderRadius: 8,
-    border: variant === 'primary' ? 'none' : '1px solid var(--border)',
-    background: variant === 'primary' ? 'var(--brand)' : 'var(--surface)',
-    color: variant === 'primary' ? 'var(--on-accent)' : 'var(--ink)',
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-  });
-
   if (loading) {
     return (
       <main style={{ minHeight: '100vh', background: 'var(--paper)', padding: 40, color: 'var(--ink)' }}>
-        Loading royalty & payout data...
+        Loading royalty &amp; payout data...
       </main>
     );
   }
@@ -289,15 +246,15 @@ export default function AdminRoyaltyPage() {
         )}
 
         <form onSubmit={handleSaveSettings}>
-          <section style={sectionStyle}>
+          <section className="ih-card" style={{ marginBottom: 24 }}>
             <h2 style={{ margin: '0 0 8px', fontSize: 20, color: 'var(--brand)' }}>Institution-wide Default Rate</h2>
             <p style={{ margin: '0 0 22px', color: 'var(--ink-soft)', fontSize: 14 }}>
               Applies to every author sale unless a specific book or author has its own rate configured below.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
-              <label>
-                <span style={labelStyle}>Default Royalty Rate (%)</span>
+              <div className="ih-field">
+                <label>Default Royalty Rate (%)</label>
                 <input
                   type="number"
                   min="0"
@@ -306,19 +263,17 @@ export default function AdminRoyaltyPage() {
                   required
                   value={settings.defaultRatePct}
                   onChange={(e) => setSettings((p) => ({ ...p, defaultRatePct: e.target.value }))}
-                  style={inputStyle}
                 />
-              </label>
+              </div>
 
-              <label>
-                <span style={labelStyle}>Effective Date</span>
+              <div className="ih-field">
+                <label>Effective Date</label>
                 <input
                   type="date"
                   value={settings.effectiveDate}
                   onChange={(e) => setSettings((p) => ({ ...p, effectiveDate: e.target.value }))}
-                  style={inputStyle}
                 />
-              </label>
+              </div>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 26 }}>
                 <input
@@ -330,25 +285,25 @@ export default function AdminRoyaltyPage() {
               </label>
             </div>
 
-            <label style={{ display: 'block', marginTop: 20 }}>
-              <span style={labelStyle}>Notes (optional, internal)</span>
+            <div className="ih-field" style={{ marginTop: 20 }}>
+              <label>Notes (optional, internal)</label>
               <textarea
                 rows={2}
                 value={settings.description}
                 onChange={(e) => setSettings((p) => ({ ...p, description: e.target.value }))}
-                style={{ ...inputStyle, resize: 'vertical' }}
+                style={{ resize: 'vertical' }}
               />
-            </label>
+            </div>
 
             <div style={{ marginTop: 20 }}>
-              <button type="submit" disabled={savingSettings} style={buttonStyle('primary')}>
+              <button type="submit" disabled={savingSettings} className="ih-btn ih-btn-primary">
                 {savingSettings ? 'Saving…' : 'Save Default Rate'}
               </button>
             </div>
           </section>
         </form>
 
-        <section style={sectionStyle}>
+        <section className="ih-card" style={{ marginBottom: 24 }}>
           <h2 style={{ margin: '0 0 8px', fontSize: 20, color: 'var(--brand)' }}>Authors &amp; Balances</h2>
           <p style={{ margin: '0 0 20px', color: 'var(--ink-soft)', fontSize: 14 }}>
             Real, live figures computed from actual book sales — never estimated. Set a
@@ -396,8 +351,8 @@ export default function AdminRoyaltyPage() {
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                    <label>
-                      <span style={{ ...labelStyle, fontSize: 12 }}>Rate override (%) — blank uses default</span>
+                    <div className="ih-field">
+                      <label style={{ fontSize: 12 }}>Rate override (%) — blank uses default</label>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <input
                           type="number"
@@ -409,21 +364,20 @@ export default function AdminRoyaltyPage() {
                           onChange={(e) =>
                             setOverrideDrafts((p) => ({ ...p, [author.id]: e.target.value }))
                           }
-                          style={{ ...inputStyle, padding: '8px 10px' }}
                         />
                         <button
                           type="button"
                           disabled={busyAuthorId === author.id}
                           onClick={() => handleSaveOverride(author.id)}
-                          style={buttonStyle('secondary')}
+                          className="ih-btn ih-btn-secondary"
                         >
                           Save
                         </button>
                       </div>
-                    </label>
+                    </div>
 
-                    <label>
-                      <span style={{ ...labelStyle, fontSize: 12 }}>Payout amount — blank pays full available balance</span>
+                    <div className="ih-field">
+                      <label style={{ fontSize: 12 }}>Payout amount — blank pays full available balance</label>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <input
                           type="number"
@@ -434,7 +388,6 @@ export default function AdminRoyaltyPage() {
                           onChange={(e) =>
                             setPayoutAmountDrafts((p) => ({ ...p, [author.id]: e.target.value }))
                           }
-                          style={{ ...inputStyle, padding: '8px 10px' }}
                         />
                         <input
                           type="text"
@@ -443,18 +396,17 @@ export default function AdminRoyaltyPage() {
                           onChange={(e) =>
                             setPayoutMethodDrafts((p) => ({ ...p, [author.id]: e.target.value }))
                           }
-                          style={{ ...inputStyle, padding: '8px 10px' }}
                         />
                         <button
                           type="button"
                           disabled={busyAuthorId === author.id || author.availableBalanceUSD <= 0}
                           onClick={() => handleCreatePayout(author.id)}
-                          style={buttonStyle('primary')}
+                          className="ih-btn ih-btn-primary"
                         >
                           Queue Payout
                         </button>
                       </div>
-                    </label>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -462,7 +414,7 @@ export default function AdminRoyaltyPage() {
           )}
         </section>
 
-        <section style={sectionStyle}>
+        <section className="ih-card">
           <h2 style={{ margin: '0 0 8px', fontSize: 20, color: 'var(--brand)' }}>Payout History</h2>
           <p style={{ margin: '0 0 20px', color: 'var(--ink-soft)', fontSize: 14 }}>
             Every payout ever queued, approved, paid or rejected — the institution's full
@@ -474,55 +426,56 @@ export default function AdminRoyaltyPage() {
               No payouts have been recorded yet.
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <div className="ih-tbl-wrap">
+              <table className="ih-tbl">
                 <thead>
-                  <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ padding: '8px 10px' }}>Author</th>
-                    <th style={{ padding: '8px 10px' }}>Amount</th>
-                    <th style={{ padding: '8px 10px' }}>Method</th>
-                    <th style={{ padding: '8px 10px' }}>Reference</th>
-                    <th style={{ padding: '8px 10px' }}>Status</th>
-                    <th style={{ padding: '8px 10px' }}>Requested</th>
-                    <th style={{ padding: '8px 10px' }}>Actions</th>
+                  <tr>
+                    <th>Author</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Reference</th>
+                    <th>Status</th>
+                    <th>Requested</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {payouts.map((p) => (
-                    <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px' }}>
+                    <tr key={p.id}>
+                      <td>
                         <div style={{ fontWeight: 700 }}>{p.authorName}</div>
                         <div style={{ color: 'var(--ink-soft)', fontSize: 11.5 }}>{p.authorEmail}</div>
                       </td>
-                      <td style={{ padding: '10px', fontWeight: 700 }}>{money(p.amountUSD)}</td>
-                      <td style={{ padding: '10px' }}>{p.method || '—'}</td>
-                      <td style={{ padding: '10px' }}>
+                      <td className="mono" style={{ fontWeight: 700 }}>{money(p.amountUSD)}</td>
+                      <td>{p.method || '—'}</td>
+                      <td>
                         {p.status === 'PENDING' || p.status === 'APPROVED' ? (
                           <input
                             type="text"
                             placeholder="Enter reference to mark paid"
                             value={referenceDrafts[p.id] ?? ''}
                             onChange={(e) => setReferenceDrafts((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                            style={{ ...inputStyle, padding: '6px 8px', fontSize: 12, minWidth: 160 }}
+                            style={{ padding: '6px 8px', fontSize: 12, minWidth: 160 }}
                           />
                         ) : (
                           p.reference || '—'
                         )}
                       </td>
-                      <td style={{ padding: '10px' }}>
+                      <td>
                         <StatusBadge status={p.status} />
                       </td>
-                      <td style={{ padding: '10px', color: 'var(--ink-soft)' }}>
+                      <td className="mono">
                         {new Date(p.requestedAt).toLocaleDateString()}
                       </td>
-                      <td style={{ padding: '10px' }}>
+                      <td>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {p.status === 'PENDING' && (
                             <button
                               type="button"
                               disabled={busyPayoutId === p.id}
                               onClick={() => handlePayoutAction(p.id, 'approve')}
-                              style={buttonStyle('secondary')}
+                              className="ih-btn ih-btn-secondary"
+                              style={{ padding: '6px 12px', fontSize: 12.5 }}
                             >
                               Approve
                             </button>
@@ -533,7 +486,8 @@ export default function AdminRoyaltyPage() {
                                 type="button"
                                 disabled={busyPayoutId === p.id}
                                 onClick={() => handlePayoutAction(p.id, 'mark-paid')}
-                                style={buttonStyle('primary')}
+                                className="ih-btn ih-btn-primary"
+                                style={{ padding: '6px 12px', fontSize: 12.5 }}
                               >
                                 Mark Paid
                               </button>
@@ -541,7 +495,8 @@ export default function AdminRoyaltyPage() {
                                 type="button"
                                 disabled={busyPayoutId === p.id}
                                 onClick={() => handlePayoutAction(p.id, 'reject')}
-                                style={buttonStyle('secondary')}
+                                className="ih-btn ih-btn-danger"
+                                style={{ padding: '6px 12px', fontSize: 12.5 }}
                               >
                                 Reject
                               </button>

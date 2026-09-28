@@ -1,6 +1,15 @@
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+// Shared label for the public site-header "Dashboard" link when it
+// resolves to a staff-role destination (getAccountDestination() below).
+// A single source of truth here -- this label was previously a
+// hardcoded string literal duplicated across two separate return
+// statements in getAccountDestination(), and a past fix that only
+// updated one of the two literals is why the old wording kept
+// silently reappearing depending on which branch a given account hit.
+export const STAFF_PORTAL_LABEL = "Staff Portal";
+
 export type Module =
   | "STUDENT_MATTERS"
   | "ACADEMIC_RECORDS"
@@ -375,7 +384,7 @@ export async function getAccountDestination(
     staffDestination === "/admin" && user?.role === "ADMIN";
 
   if (staffDestination && !isBareAdminFallback) {
-    return { href: staffDestination, label: "Staff Dashboard" };
+    return { href: staffDestination, label: STAFF_PORTAL_LABEL };
   }
 
   const student = await prisma.studentProfile.findUnique({
@@ -388,7 +397,7 @@ export async function getAccountDestination(
   }
 
   if (staffDestination) {
-    return { href: staffDestination, label: "Staff Dashboard" };
+    return { href: staffDestination, label: STAFF_PORTAL_LABEL };
   }
 
   // An AUTHOR-role account is its own distinct account type -- never
@@ -411,6 +420,52 @@ export async function getAccountDestination(
   }
 
   return { href: "/account/dashboard", label: "My Account" };
+}
+
+/**
+ * Where the public site-header "Dashboard"/"Student Portal" link
+ * specifically should send a logged-in user.
+ *
+ * This link is documented as STUDENT-ONLY -- always. That is a
+ * stricter rule than "student identity wins when both are present on
+ * the same account" (the first fix here): the header must never
+ * resolve to a staff/admin destination, full stop, no matter which
+ * account is CURRENTLY signed in to this browser session.
+ *
+ * Why that distinction matters: getCurrentUser() in app/layout.jsx
+ * reflects whichever account is active in this browser session right
+ * now, not a fixed identity. A student can legitimately sign out of
+ * nothing and instead follow the separate Staff & Admin Portal link
+ * in the footer to sign in to a staff/admin account in the SAME
+ * browser -- at that point the session's current user genuinely has
+ * no StudentProfile (it's the staff account), so falling through to
+ * getAccountDestination() correctly-per-session but WRONGLY resolves
+ * the header link to the staff destination/label. That's a trap: a
+ * student (or an instructor who stepped away mid-session) would have
+ * no way back to their own student portal from the header, since
+ * clicking it would just re-open the staff/admin account that's
+ * currently signed in.
+ *
+ * The fix: the header link always sends to /login (the student
+ * sign-in page), for ANY currently-signed-in account -- never a
+ * staff/admin destination. That means a student always has a way back
+ * to signing in as themselves from the header, regardless of what
+ * other account (staff, admin, bookstore, author) is currently signed
+ * in on this browser.
+ *
+ * getAccountDestination()'s staff-first / bookstore / author routing
+ * remains exactly as before for its real consumer, the post-login
+ * redirect in app/api/auth/account-destination/route.js -- this
+ * function does not call it at all, on purpose.
+ */
+export async function getHeaderDestination(
+  userId: string
+): Promise<{ href: string; label: string }> {
+  // userId is kept as a parameter (unused) so this function's
+  // signature and its call site in app/layout.jsx don't need to
+  // change if a future student-specific header treatment needs it.
+  void userId;
+  return { href: "/login", label: "Student Portal" };
 }
 
 /**

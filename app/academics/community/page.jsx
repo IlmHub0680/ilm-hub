@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import * as s from '../styles';
 
-const CATEGORY_COLORS = {
-  GENERAL: 'var(--ink-soft)',
-  ACADEMIC: 'var(--info)',
-  EVENTS: 'var(--gold-dark)',
-  ANNOUNCEMENTS: 'var(--brand)',
+const CATEGORY_BADGE_CLASS = {
+  GENERAL: 'ih-b-neutral',
+  ACADEMIC: 'ih-b-info',
+  EVENTS: 'ih-b-warning',
+  ANNOUNCEMENTS: 'ih-b-success',
 };
 
 const CATEGORY_LABELS = {
@@ -379,7 +379,7 @@ export default function CommunityPage() {
     return (
       <div>
         <h1 style={s.pageHeading}>Ulul Azm Community</h1>
-        <div style={s.card}>
+        <div className="ih-card">
           <h2 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 800, color: 'var(--ink)' }}>
             {guidelinesStatus.title || 'Ulul Azm Community Guidelines'}
           </h2>
@@ -389,6 +389,7 @@ export default function CommunityPage() {
             later updated.
           </p>
           <div
+            className="ih-rendered-html"
             style={{
               maxHeight: 360,
               overflowY: 'auto',
@@ -417,11 +418,7 @@ export default function CommunityPage() {
             type="button"
             onClick={acceptGuidelines}
             disabled={!guidelinesChecked || guidelinesAccepting}
-            style={{
-              ...primaryButtonStyle,
-              opacity: !guidelinesChecked || guidelinesAccepting ? 0.55 : 1,
-              cursor: !guidelinesChecked || guidelinesAccepting ? 'not-allowed' : 'pointer',
-            }}
+            className="ih-btn ih-btn-primary"
           >
             {guidelinesAccepting ? 'Saving…' : 'Agree & Continue'}
           </button>
@@ -436,10 +433,10 @@ export default function CommunityPage() {
         <h1 style={s.pageHeading}>Ulul Azm Community</h1>
         {canPost && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" onClick={loadProfile} style={ghostButtonStyle}>
+            <button type="button" onClick={loadProfile} className="ih-btn ih-btn-ghost">
               My Profile
             </button>
-            <button type="button" onClick={loadBlockedList} style={ghostButtonStyle}>
+            <button type="button" onClick={loadBlockedList} className="ih-btn ih-btn-ghost">
               Blocked Members
             </button>
           </div>
@@ -459,49 +456,55 @@ export default function CommunityPage() {
 
       {error && <div style={s.errorBanner}>{error}</div>}
       {notice && (
-        <div style={{ ...s.card, background: 'var(--brand-tint, #eaf1ec)', border: '1px solid var(--brand)', color: 'var(--ink)', padding: '10px 14px', fontSize: 13, marginBottom: 12 }}>
+        <div className="ih-badge ih-b-success" style={{ display: 'block', padding: '10px 14px', fontSize: 13, marginBottom: 12 }}>
           {notice}
         </div>
       )}
 
       {canPost && (
-        <div style={s.card}>
+        <div className="ih-card">
           {!composing ? (
-            <button type="button" onClick={() => setComposing(true)} style={primaryButtonStyle}>
+            <button type="button" onClick={() => setComposing(true)} className="ih-btn ih-btn-primary">
               + New Post
             </button>
           ) : (
             <form onSubmit={submitPost}>
-              <div style={{ marginBottom: 10 }}>
-                <select value={category} onChange={(e) => setCategory(e.target.value)} style={inputStyle}>
+              <div className="ih-field" style={{ marginBottom: 10 }}>
+                <label>Category</label>
+                <select value={category} onChange={(e) => setCategory(e.target.value)}>
                   <option value="GENERAL">General</option>
                   <option value="ACADEMIC">Academic</option>
                   <option value="EVENTS">Events</option>
                   <option value="ANNOUNCEMENTS">Announcements</option>
                 </select>
               </div>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Title"
-                style={{ ...inputStyle, marginBottom: 10 }}
-                maxLength={150}
-              />
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder="What would you like to share?"
-                rows={4}
-                style={{ ...inputStyle, resize: 'vertical', marginBottom: 10 }}
-                maxLength={5000}
-              />
+              <div className="ih-field" style={{ marginBottom: 10 }}>
+                <label>Title</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Title"
+                  maxLength={150}
+                />
+              </div>
+              <div className="ih-field" style={{ marginBottom: 10 }}>
+                <label>Message</label>
+                <textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="What would you like to share?"
+                  rows={4}
+                  style={{ resize: 'vertical' }}
+                  maxLength={5000}
+                />
+              </div>
               {composeError && <div style={{ ...s.errorBanner, marginBottom: 10 }}>{composeError}</div>}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button type="submit" disabled={posting} style={primaryButtonStyle}>
+                <button type="submit" disabled={posting} className="ih-btn ih-btn-primary">
                   {posting ? 'Posting…' : 'Post'}
                 </button>
-                <button type="button" onClick={() => setComposing(false)} style={ghostButtonStyle}>
+                <button type="button" onClick={() => setComposing(false)} className="ih-btn ih-btn-ghost">
                   Cancel
                 </button>
               </div>
@@ -518,12 +521,12 @@ export default function CommunityPage() {
       {posts && posts.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {posts.map((post) => (
-            <div key={post.id} style={{ ...s.card, marginBottom: 0, opacity: post.isHidden ? 0.55 : 1 }}>
+            <div key={post.id} className="ih-card" style={{ marginBottom: 0, opacity: post.isHidden ? 0.55 : 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   {post.isPinned && <span aria-hidden="true">📌</span>}
-                  <span style={s.badge(CATEGORY_COLORS[post.category])}>{CATEGORY_LABELS[post.category]}</span>
-                  {post.isHidden && <span style={s.badge('var(--danger)')}>Hidden</span>}
+                  <span className={`ih-badge ${CATEGORY_BADGE_CLASS[post.category] || 'ih-b-neutral'}`}>{CATEGORY_LABELS[post.category]}</span>
+                  {post.isHidden && <span className="ih-badge ih-b-danger">Hidden</span>}
                 </div>
                 <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{timeAgo(post.createdAt)}</span>
               </div>
@@ -535,25 +538,25 @@ export default function CommunityPage() {
               <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginBottom: 10 }}>— {post.authorName}</div>
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button type="button" onClick={() => toggleExpand(post.id)} style={ghostButtonStyle}>
+                <button type="button" onClick={() => toggleExpand(post.id)} className="ih-btn ih-btn-ghost">
                   💬 {post.commentCount} {post.commentCount === 1 ? 'Comment' : 'Comments'}
                 </button>
                 {canPost && (
-                  <button type="button" onClick={() => openReport('post', post.id)} style={ghostButtonStyle}>
+                  <button type="button" onClick={() => openReport('post', post.id)} className="ih-btn ih-btn-ghost">
                     🚩 Report
                   </button>
                 )}
                 {canPost && post.authorId && (
-                  <button type="button" onClick={() => blockAuthor(post.authorId, post.authorName)} style={ghostButtonStyle}>
+                  <button type="button" onClick={() => blockAuthor(post.authorId, post.authorName)} className="ih-btn ih-btn-ghost">
                     🚫 Block
                   </button>
                 )}
                 {isModerator && (
                   <>
-                    <button type="button" onClick={() => moderate(post.id, { isPinned: !post.isPinned })} style={ghostButtonStyle}>
+                    <button type="button" onClick={() => moderate(post.id, { isPinned: !post.isPinned })} className="ih-btn ih-btn-ghost">
                       {post.isPinned ? 'Unpin' : 'Pin'}
                     </button>
-                    <button type="button" onClick={() => moderate(post.id, { isHidden: !post.isHidden })} style={ghostButtonStyle}>
+                    <button type="button" onClick={() => moderate(post.id, { isHidden: !post.isHidden })} className="ih-btn ih-btn-ghost">
                       {post.isHidden ? 'Unhide' : 'Hide'}
                     </button>
                   </>
@@ -571,7 +574,8 @@ export default function CommunityPage() {
                           <button
                             type="button"
                             onClick={() => openReport('comment', c.id)}
-                            style={{ ...ghostButtonStyle, padding: '2px 8px', fontSize: 11 }}
+                            className="ih-btn ih-btn-ghost"
+                            style={{ padding: '2px 8px', fontSize: 11 }}
                           >
                             Report
                           </button>
@@ -584,20 +588,21 @@ export default function CommunityPage() {
                   )}
 
                   {canPost && (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                      <input
-                        type="text"
-                        value={commentDraft}
-                        onChange={(e) => setCommentDraft(e.target.value)}
-                        placeholder="Add a comment…"
-                        style={{ ...inputStyle, flex: 1 }}
-                        maxLength={2000}
-                      />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'flex-start' }}>
+                      <div className="ih-field" style={{ flex: 1, margin: 0 }}>
+                        <input
+                          type="text"
+                          value={commentDraft}
+                          onChange={(e) => setCommentDraft(e.target.value)}
+                          placeholder="Add a comment…"
+                          maxLength={2000}
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={() => submitComment(post.id)}
                         disabled={commentSubmitting}
-                        style={primaryButtonStyle}
+                        className="ih-btn ih-btn-secondary"
                       >
                         Send
                       </button>
@@ -612,38 +617,34 @@ export default function CommunityPage() {
 
       {reportTarget && (
         <div style={modalOverlayStyle} onClick={() => setReportTarget(null)}>
-          <div style={modalCardStyle} onClick={(e) => e.stopPropagation()}>
+          <div className="ih-card" style={modalCardStyle} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>
               Report {reportTarget.targetType === 'post' ? 'Post' : 'Comment'}
             </h3>
-            <div style={{ marginBottom: 10 }}>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 6, color: 'var(--ink)' }}>
-                Reason
-              </label>
-              <select value={reportReason} onChange={(e) => setReportReason(e.target.value)} style={inputStyle}>
+            <div className="ih-field" style={{ marginBottom: 10 }}>
+              <label>Reason</label>
+              <select value={reportReason} onChange={(e) => setReportReason(e.target.value)}>
                 {REPORT_REASONS.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
               </select>
             </div>
-            <div style={{ marginBottom: 10 }}>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 6, color: 'var(--ink)' }}>
-                Additional details (optional)
-              </label>
+            <div className="ih-field" style={{ marginBottom: 10 }}>
+              <label>Additional details (optional)</label>
               <textarea
                 value={reportDetails}
                 onChange={(e) => setReportDetails(e.target.value)}
                 rows={3}
                 maxLength={1000}
-                style={{ ...inputStyle, resize: 'vertical' }}
+                style={{ resize: 'vertical' }}
               />
             </div>
             {reportError && <div style={{ ...s.errorBanner, marginBottom: 10 }}>{reportError}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" onClick={submitReport} disabled={reportSubmitting} style={primaryButtonStyle}>
+              <button type="button" onClick={submitReport} disabled={reportSubmitting} className="ih-btn ih-btn-danger">
                 {reportSubmitting ? 'Sending…' : 'Submit Report'}
               </button>
-              <button type="button" onClick={() => setReportTarget(null)} style={ghostButtonStyle}>
+              <button type="button" onClick={() => setReportTarget(null)} className="ih-btn ih-btn-ghost">
                 Cancel
               </button>
             </div>
@@ -653,7 +654,7 @@ export default function CommunityPage() {
 
       {showBlocked && (
         <div style={modalOverlayStyle} onClick={() => setShowBlocked(false)}>
-          <div style={modalCardStyle} onClick={(e) => e.stopPropagation()}>
+          <div className="ih-card" style={modalCardStyle} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>
               Blocked Members
             </h3>
@@ -666,7 +667,7 @@ export default function CommunityPage() {
                 {blockedList.map((b) => (
                   <div key={b.userId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5 }}>
                     <span>{b.name || 'Member'}</span>
-                    <button type="button" onClick={() => unblock(b.userId)} style={{ ...ghostButtonStyle, padding: '6px 12px' }}>
+                    <button type="button" onClick={() => unblock(b.userId)} className="ih-btn ih-btn-ghost" style={{ padding: '6px 12px' }}>
                       Unblock
                     </button>
                   </div>
@@ -674,7 +675,7 @@ export default function CommunityPage() {
               </div>
             )}
             <div style={{ marginTop: 14 }}>
-              <button type="button" onClick={() => setShowBlocked(false)} style={ghostButtonStyle}>
+              <button type="button" onClick={() => setShowBlocked(false)} className="ih-btn ih-btn-ghost">
                 Close
               </button>
             </div>
@@ -684,7 +685,7 @@ export default function CommunityPage() {
 
       {showProfile && (
         <div style={modalOverlayStyle} onClick={() => setShowProfile(false)}>
-          <div style={modalCardStyle} onClick={(e) => e.stopPropagation()}>
+          <div className="ih-card" style={modalCardStyle} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>
               My Community Profile
             </h3>
@@ -697,28 +698,23 @@ export default function CommunityPage() {
                   {profile.program ? ` · ${profile.program}` : ''}
                   {profile.isAlumni ? ' · Alumni' : ''}
                 </div>
-                <div style={{ marginBottom: 10 }}>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 6, color: 'var(--ink)' }}>
-                    Bio
-                  </label>
+                <div className="ih-field" style={{ marginBottom: 10 }}>
+                  <label>Bio</label>
                   <textarea
                     value={profileBio}
                     onChange={(e) => setProfileBio(e.target.value)}
                     rows={3}
                     maxLength={500}
-                    style={{ ...inputStyle, resize: 'vertical' }}
+                    style={{ resize: 'vertical' }}
                   />
                 </div>
-                <div style={{ marginBottom: 10 }}>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 6, color: 'var(--ink)' }}>
-                    Interests
-                  </label>
+                <div className="ih-field" style={{ marginBottom: 10 }}>
+                  <label>Interests</label>
                   <input
                     type="text"
                     value={profileInterests}
                     onChange={(e) => setProfileInterests(e.target.value)}
                     maxLength={300}
-                    style={inputStyle}
                   />
                 </div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 12, color: 'var(--ink)' }}>
@@ -731,10 +727,10 @@ export default function CommunityPage() {
                 </label>
                 {profileError && <div style={{ ...s.errorBanner, marginBottom: 10 }}>{profileError}</div>}
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={saveProfile} disabled={profileSaving} style={primaryButtonStyle}>
+                  <button type="button" onClick={saveProfile} disabled={profileSaving} className="ih-btn ih-btn-primary">
                     {profileSaving ? 'Saving…' : 'Save'}
                   </button>
-                  <button type="button" onClick={() => setShowProfile(false)} style={ghostButtonStyle}>
+                  <button type="button" onClick={() => setShowProfile(false)} className="ih-btn ih-btn-ghost">
                     Cancel
                   </button>
                 </div>
@@ -746,40 +742,6 @@ export default function CommunityPage() {
     </div>
   );
 }
-
-const primaryButtonStyle = {
-  padding: '9px 18px',
-  borderRadius: 8,
-  border: 'none',
-  background: 'var(--brand)',
-  color: 'var(--on-accent)',
-  fontSize: 13,
-  fontWeight: 700,
-  cursor: 'pointer',
-  whiteSpace: 'nowrap',
-};
-
-const ghostButtonStyle = {
-  padding: '8px 14px',
-  borderRadius: 8,
-  border: '1px solid var(--border)',
-  background: 'var(--surface)',
-  color: 'var(--ink)',
-  fontSize: 12.5,
-  fontWeight: 700,
-  cursor: 'pointer',
-  whiteSpace: 'nowrap',
-};
-
-const inputStyle = {
-  width: '100%',
-  boxSizing: 'border-box',
-  padding: '9px 11px',
-  borderRadius: 8,
-  border: '1px solid var(--border)',
-  fontSize: 13.5,
-  fontFamily: 'inherit',
-};
 
 const modalOverlayStyle = {
   position: 'fixed',

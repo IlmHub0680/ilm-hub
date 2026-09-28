@@ -48,48 +48,53 @@ export default function LiveClassesPage() {
         instructors, drawn straight from your instructors' own schedules.
       </p>
 
-      <div style={s.card}>
+      <div className="ih-card" style={{ marginBottom: 20 }}>
         <h2 style={s.cardTitle}>Upcoming</h2>
 
         {upcoming.length === 0 ? (
           <div style={s.emptyState}>No live classes are scheduled yet.</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={s.table}>
+          <div className="ih-tbl-wrap">
+            <table className="ih-tbl">
               <thead>
                 <tr>
-                  <th style={s.th}>Date</th>
-                  <th style={s.th}>Day</th>
-                  <th style={s.th}>Time</th>
-                  <th style={s.th}>Course</th>
-                  <th style={s.th}>Topic</th>
-                  <th style={s.th}>Instructor</th>
-                  <th style={s.th}>Join</th>
+                  <th>Date</th>
+                  <th>Day</th>
+                  <th>Time</th>
+                  <th>Course</th>
+                  <th>Topic</th>
+                  <th>Instructor</th>
+                  <th>Join</th>
                 </tr>
               </thead>
               <tbody>
                 {upcoming.map((cls) => (
                   <tr key={cls.key}>
-                    <td style={s.td}>{cls.date}</td>
-                    <td style={s.td}>{cls.day}</td>
-                    <td style={s.td}>{cls.time}</td>
-                    <td style={s.td}>
+                    <td className="mono">{cls.date}</td>
+                    <td>{cls.day}</td>
+                    <td className="mono">{cls.time}</td>
+                    <td>
                       <strong>{cls.courseTitle}</strong>
                     </td>
-                    <td style={s.td}>{cls.topic}</td>
-                    <td style={s.td}>{cls.instructor}</td>
-                    <td style={s.td}>
+                    <td>{cls.topic}</td>
+                    <td>{cls.instructor}</td>
+                    <td>
                       {cls.isLive ? (
                         <a
                           href={cls.meetingLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={s.badge('var(--success, #1a7f4b)')}
+                          className="ih-badge ih-b-success"
                         >
                           Join now
                         </a>
                       ) : (
-                        <a href={cls.meetingLink} target="_blank" rel="noopener noreferrer">
+                        <a
+                          href={cls.meetingLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ih-btn ih-btn-primary"
+                        >
                           Link
                         </a>
                       )}
@@ -103,27 +108,27 @@ export default function LiveClassesPage() {
       </div>
 
       {past.length > 0 && (
-        <div style={s.card}>
+        <div className="ih-card">
           <h2 style={s.cardTitle}>Past Sessions</h2>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={s.table}>
+          <div className="ih-tbl-wrap">
+            <table className="ih-tbl">
               <thead>
                 <tr>
-                  <th style={s.th}>Date</th>
-                  <th style={s.th}>Course</th>
-                  <th style={s.th}>Topic</th>
-                  <th style={s.th}>Instructor</th>
-                  <th style={s.th}>Notes</th>
+                  <th>Date</th>
+                  <th>Course</th>
+                  <th>Topic</th>
+                  <th>Instructor</th>
+                  <th>Notes</th>
                 </tr>
               </thead>
               <tbody>
                 {past.map((cls) => (
                   <tr key={cls.key}>
-                    <td style={s.td}>{cls.date}</td>
-                    <td style={s.td}>{cls.courseTitle}</td>
-                    <td style={s.td}>{cls.topic}</td>
-                    <td style={s.td}>{cls.instructor}</td>
-                    <td style={s.td}>{cls.notes || '—'}</td>
+                    <td className="mono">{cls.date}</td>
+                    <td>{cls.courseTitle}</td>
+                    <td>{cls.topic}</td>
+                    <td>{cls.instructor}</td>
+                    <td>{cls.notes || '—'}</td>
                   </tr>
                 ))}
               </tbody>
