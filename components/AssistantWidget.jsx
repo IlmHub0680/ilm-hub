@@ -7,6 +7,7 @@ import { menuFor, MORE_OPTIONS_VALUE } from '@/lib/assistantKnowledge';
 import { useSiteBranding } from '@/components/SiteBrandingProvider';
 import { at } from '@/lib/assistantI18n';
 import LanguageSelector from '@/components/LanguageSelector';
+import { BotIcon, TrashIcon, UserRoundIcon } from '@/components/Icons';
 
 // Which part of the site this pathname belongs to, for the assistant's
 // context-aware menu and welcome message. This only shapes what the
@@ -144,13 +145,29 @@ export default function AssistantWidget() {
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState(null);
   const [identity, setIdentity] = useState(null); // null | 'student' | 'employee' | 'visitor'
-  const [awaitingFirstMessage, setAwaitingFirstMessage] = useState(true);
-  const idleTimerRef = useRef(null);
   const [lang, setLang] = useState('en'); // 'en' | 'ar' — this widget's own switcher, independent of the rest of the site
   const scrollRef = useRef(null);
 
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
   const t = (text) => at(lang, text);
+
+  // "9/29/2026, 1:29 PM"-style timestamp under every message bubble --
+  // locale-aware (Arabic gets Arabic digits/format), falls back to an
+  // empty string rather than throwing if Intl ever can't format it.
+  function formatTimestamp(ts) {
+    if (!ts) return '';
+    try {
+      return new Date(ts).toLocaleString(lang === 'ar' ? 'ar' : 'en-US', {
+        month: 'numeric',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    } catch {
+      return '';
+    }
+  }
 
   // Best-effort, fire-and-forget -- never lets an analytics hiccup
   // touch the actual conversation. Logs only structured event metadata,
@@ -196,7 +213,6 @@ export default function AssistantWidget() {
       setOpen(false);
       setMessages(null);
       setIdentity(null);
-      setAwaitingFirstMessage(true);
     }
   }, [pathZone]);
 
@@ -238,72 +254,77 @@ export default function AssistantWidget() {
     }
   }
 
-  // Greeting only -- who's asking (the identity chooser) or what they
-  // might want (the zone menu) is revealed only once the visitor says
-  // something, or after a short idle wait (see the idle-nudge effect
-  // below) -- never stacked onto the greeting itself. Seeded once,
-  // the first time the widget is opened for this zone.
+  // Which zone a resolved identity maps to -- shared by the greeting
+  // seed below and selectIdentity, so both use exactly the same
+  // student/employee/visitor-on-a-content-section rule.
+  function zoneForIdentity(id) {
+    if (id === 'student') return 'student';
+    if (id === 'employee') return 'employee';
+    return ['bookstore', 'media', 'library'].includes(pathZone) ? pathZone : 'general';
+  }
+
+  // Builds a fresh greeting + immediate reveal (the identity chooser,
+  // or -- once identity is already known -- this zone's welcome and
+  // quick-option menu) as one seeded pair of messages. Both the
+  // greeting-seed effect below and the delete/reset button call this,
+  // so opening the widget for the first time and clearing an existing
+  // conversation always land in exactly the same starting state.
+  function buildInitialMessages(resolvedIdentity) {
+    const configuredGreeting = lang === 'ar' ? settings?.welcomeMessageAr : settings?.welcomeMessageEn;
+    const firstName = authUser?.name ? authUser.name.split(' ')[0] : null;
+    const greetingText = configuredGreeting
+      ? configuredGreeting
+      : firstName
+      ? `${firstName}! ${GREETING_TEXT}`
+      : GREETING_TEXT;
+
+    const greetingMessage = {
+      role: 'assistant',
+      text: greetingText,
+      skipTranslate: Boolean(configuredGreeting || firstName),
+      timestamp: Date.now(),
+    };
+
+    const revealMessage =
+      resolvedIdentity === null
+        ? { role: 'assistant', kind: 'identity', text: IDENTITY_PROMPT_TEXT, timestamp: Date.now() }
+        : {
+            role: 'assistant',
+            text: `${ZONE_WELCOME[zoneForIdentity(resolvedIdentity)] || ZONE_WELCOME.general}\n\n${ACK_TEXT}`,
+            options: menuFor(zoneForIdentity(resolvedIdentity)),
+            timestamp: Date.now(),
+          };
+
+    return [greetingMessage, revealMessage];
+  }
+
+  // Greeting + reveal, seeded together the first time the widget is
+  // opened for this zone -- the identity chooser (or the zone's
+  // welcome + quick-option menu, once identity is already known)
+  // appears immediately alongside the greeting, with no message or
+  // wait required. The only other way back to this exact state is
+  // the delete button (see clearConversation below).
   useEffect(() => {
     if (messages === null && autoIdentity !== undefined) {
-      const configuredGreeting = lang === 'ar' ? settings?.welcomeMessageAr : settings?.welcomeMessageEn;
-      const firstName = authUser?.name ? authUser.name.split(' ')[0] : null;
-      const greetingText = configuredGreeting
-        ? configuredGreeting
-        : firstName
-        ? `${firstName}! ${GREETING_TEXT}`
-        : GREETING_TEXT;
-
-      setMessages([
-        { role: 'assistant', text: greetingText, skipTranslate: Boolean(configuredGreeting || firstName) },
-      ]);
-      setIdentity(autoIdentity || null);
-      setAwaitingFirstMessage(true);
+      const resolvedIdentity = autoIdentity || null;
+      setMessages(buildInitialMessages(resolvedIdentity));
+      setIdentity(resolvedIdentity);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, autoIdentity]);
 
-  // Reveals the identity chooser (if we still don't know who's asking)
-  // or the current zone's welcome + quick-option menu (if we do) --
-  // the one moment this widget offers its menu on its own, instead of
-  // an answer stacking the menu on every single reply. Used both
-  // right after the first message of a conversation and by the
-  // idle-nudge timer below.
-  function pushReveal(promptText) {
-    setAwaitingFirstMessage(false);
-    setMessages((m) => {
-      if (identityRef.current === null) {
-        return [
-          ...(m || []),
-          { role: 'assistant', kind: 'identity', text: promptText || IDENTITY_PROMPT_TEXT },
-        ];
-      }
-      return [
-        ...(m || []),
-        {
-          role: 'assistant',
-          text: promptText ? `${promptText}\n\n${ACK_TEXT}` : ACK_TEXT,
-          options: menuFor(zoneRef.current),
-        },
-      ];
-    });
+  // The header's delete/trash button: a full reset back to the exact
+  // opening state (greeting + identity chooser or zone menu), not the
+  // partial "just ask identity again" reset "Start over" below does.
+  // Rebuilds directly with buildInitialMessages rather than nulling
+  // messages and hoping the effect above re-fires -- that effect only
+  // depends on [open, autoIdentity], neither of which changes here.
+  function clearConversation() {
+    logEvent('conversation_cleared', { zone: effectiveZone });
+    const resolvedIdentity = autoIdentity || null;
+    setMessages(buildInitialMessages(resolvedIdentity));
+    setIdentity(resolvedIdentity);
   }
-
-  // Idle nudge: if the conversation sits quiet for 35s while the
-  // widget is open, gently resurface "how may I help you" + the menu
-  // -- the same reveal as above, just triggered by silence instead of
-  // a message. Re-arms after firing, so a second long pause nudges
-  // again.
-  useEffect(() => {
-    if (!open || messages === null) return undefined;
-
-    const timer = setTimeout(() => {
-      pushReveal(GREETING_TEXT);
-    }, 35000);
-    idleTimerRef.current = timer;
-
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, open]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -314,31 +335,28 @@ export default function AssistantWidget() {
   function selectIdentity(id) {
     logEvent('identity_selected', { identity: id });
     setIdentity(id);
-    setAwaitingFirstMessage(false);
-    const zone = id === 'student' ? 'student' : id === 'employee' ? 'employee' : (['bookstore', 'media', 'library'].includes(pathZone) ? pathZone : 'general');
+    const zone = zoneForIdentity(id);
     setMessages((m) => [
       ...(m || []),
       {
         role: 'assistant',
         text: `${ZONE_WELCOME[zone] || ZONE_WELCOME.general}\n\n${ACK_TEXT}`,
         options: menuFor(zone),
+        timestamp: Date.now(),
       },
     ]);
   }
 
   function resetIdentity() {
     setIdentity(null);
-    setMessages((m) => [...(m || []), { role: 'assistant', kind: 'identity', text: IDENTITY_PROMPT_TEXT }]);
+    setMessages((m) => [...(m || []), { role: 'assistant', kind: 'identity', text: IDENTITY_PROMPT_TEXT, timestamp: Date.now() }]);
   }
 
   async function sendMessage(text) {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
 
-    const isFirstMessage = awaitingFirstMessage;
-    setAwaitingFirstMessage(false);
-
-    setMessages((m) => [...(m || []), { role: 'user', text: trimmed }]);
+    setMessages((m) => [...(m || []), { role: 'user', text: trimmed, timestamp: Date.now() }]);
     setSending(true);
 
     try {
@@ -369,20 +387,13 @@ export default function AssistantWidget() {
           department: data.department,
           href: data.href || null,
           options: showOptions ? data.options : null,
+          timestamp: Date.now(),
         },
       ]);
-
-      // The first thing the visitor ever says in this conversation
-      // still earns the one spontaneous reveal (identity chooser, or
-      // the zone menu) -- unless the server already attached options
-      // to this exact reply.
-      if (isFirstMessage && !showOptions) {
-        pushReveal();
-      }
     } catch {
       setMessages((m) => [
         ...(m || []),
-        { role: 'assistant', text: "Sorry, I couldn't reach the server — please try again shortly." },
+        { role: 'assistant', text: "Sorry, I couldn't reach the server — please try again shortly.", timestamp: Date.now() },
       ]);
     } finally {
       setSending(false);
@@ -468,6 +479,26 @@ export default function AssistantWidget() {
 
               <button
                 type="button"
+                onClick={clearConversation}
+                aria-label={t('Clear conversation')}
+                title={t('Clear conversation')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'inherit',
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  opacity: 0.85,
+                }}
+              >
+                <TrashIcon size={17} />
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setOpen(false)}
                 aria-label={t('Close assistant')}
                 style={{
@@ -510,23 +541,63 @@ export default function AssistantWidget() {
               >
                 <div
                   style={{
-                    background: m.role === 'user' ? 'var(--brand)' : 'var(--surface)',
-                    color: m.role === 'user' ? 'var(--on-accent)' : 'var(--ink)',
-                    border: m.role === 'user' ? 'none' : '1px solid var(--border)',
-                    borderRadius: 'var(--radius-m)',
-                    padding: '9px 12px',
-                    fontSize: '13.5px',
-                    lineHeight: 1.5,
-                    whiteSpace: 'pre-line',
+                    display: 'flex',
+                    flexDirection: m.role === 'user' ? 'row-reverse' : 'row',
+                    alignItems: 'flex-end',
+                    gap: '8px',
                   }}
                 >
-                  {m.skipTranslate ? m.text : t(m.text)}
-                  {m.department && (
-                    <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--gold-dark)', fontWeight: 700 }}>
-                      {t(m.department)}
-                    </div>
-                  )}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: m.role === 'user' ? 'var(--gold)' : 'var(--brand)',
+                      color: 'var(--on-accent)',
+                    }}
+                  >
+                    {m.role === 'user' ? <UserRoundIcon size={14} /> : <BotIcon size={14} />}
+                  </span>
+                  <div
+                    style={{
+                      background: m.role === 'user' ? 'var(--brand)' : 'var(--surface)',
+                      color: m.role === 'user' ? 'var(--on-accent)' : 'var(--ink)',
+                      border: m.role === 'user' ? 'none' : '1px solid var(--border)',
+                      borderRadius: 'var(--radius-m)',
+                      padding: '9px 12px',
+                      fontSize: '13.5px',
+                      lineHeight: 1.5,
+                      whiteSpace: 'pre-line',
+                    }}
+                  >
+                    {m.skipTranslate ? m.text : t(m.text)}
+                    {m.department && (
+                      <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--gold-dark)', fontWeight: 700 }}>
+                        {t(m.department)}
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                {m.timestamp && (
+                  <div
+                    style={{
+                      fontSize: '10px',
+                      color: 'var(--ink-soft)',
+                      opacity: 0.7,
+                      textAlign: m.role === 'user' ? 'end' : 'start',
+                      paddingInlineStart: m.role === 'user' ? 0 : '34px',
+                      paddingInlineEnd: m.role === 'user' ? '34px' : 0,
+                    }}
+                  >
+                    {formatTimestamp(m.timestamp)}
+                  </div>
+                )}
 
                 {m.href && (
                   <Link
@@ -557,41 +628,28 @@ export default function AssistantWidget() {
                     and every actual data lookup still comes from the
                     signed-in session, exactly as before this existed. */}
                 {m.kind === 'identity' && !identity && (
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {IDENTITY_CARDS.map((card) => (
                       <button
                         key={card.id}
                         type="button"
                         onClick={() => selectIdentity(card.id)}
                         style={{
-                          flex: '1 1 90px',
                           display: 'flex',
-                          flexDirection: 'column',
                           alignItems: 'center',
-                          gap: '8px',
-                          background: 'var(--surface)',
-                          border: '1px solid var(--border)',
+                          gap: '10px',
+                          background: 'var(--brand)',
+                          border: 'none',
                           borderRadius: 'var(--radius-m)',
-                          padding: '14px 8px 10px',
+                          padding: '13px 16px',
                           cursor: 'pointer',
-                          fontSize: '12.5px',
+                          fontSize: '13.5px',
                           fontWeight: 700,
-                          color: 'var(--ink)',
+                          color: 'var(--on-accent)',
+                          textAlign: 'start',
                         }}
                       >
-                        <span
-                          aria-hidden="true"
-                          style={{
-                            width: '40px',
-                            height: '40px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)',
-                            background: 'linear-gradient(135deg, var(--gold) 0%, var(--brand) 100%)',
-                            fontSize: '18px',
-                          }}
-                        >
+                        <span aria-hidden="true" style={{ fontSize: '17px', lineHeight: 1 }}>
                           {card.icon}
                         </span>
                         {t(card.label)}
@@ -618,17 +676,11 @@ export default function AssistantWidget() {
                           <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--ink-soft)' }}>
                             {t('What would you like to do next?')}
                           </div>
-                          {/* Square/grid layout: two columns of compact
-                              tiles instead of one long vertical list, so
-                              a full set of quick options is scannable at
-                              a glance rather than requiring a scroll. */}
-                          <div
-                            style={{
-                              display: 'grid',
-                              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                              gap: '7px',
-                            }}
-                          >
+                          {/* Stacked, full-width elegant rectangle
+                              buttons -- solid deep green, matching the
+                              identity cards above -- instead of a
+                              two-column grid of small bordered tiles. */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
                             {topicOptions.map((opt, oi) => (
                               <button
                                 key={oi}
@@ -637,42 +689,21 @@ export default function AssistantWidget() {
                                 disabled={sending}
                                 style={{
                                   display: 'flex',
-                                  flexDirection: 'column',
                                   alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '6px',
-                                  minHeight: '64px',
-                                  background: 'var(--surface)',
-                                  color: 'var(--ink)',
-                                  border: '1px solid var(--border)',
+                                  justifyContent: 'flex-start',
+                                  background: 'var(--brand)',
+                                  color: 'var(--on-accent)',
+                                  border: 'none',
                                   borderRadius: 'var(--radius-m)',
-                                  padding: '10px 8px',
-                                  fontSize: '12px',
-                                  fontWeight: 600,
-                                  textAlign: 'center',
-                                  lineHeight: 1.25,
+                                  padding: '11px 14px',
+                                  fontSize: '12.5px',
+                                  fontWeight: 700,
+                                  textAlign: 'start',
+                                  lineHeight: 1.3,
                                   cursor: sending ? 'not-allowed' : 'pointer',
                                   opacity: sending ? 0.6 : 1,
                                 }}
                               >
-                                <span
-                                  aria-hidden="true"
-                                  style={{
-                                    width: '24px',
-                                    height: '24px',
-                                    flexShrink: 0,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)',
-                                    background: 'linear-gradient(135deg, var(--gold) 0%, var(--brand) 100%)',
-                                    color: 'var(--on-accent)',
-                                    fontSize: '10.5px',
-                                    fontWeight: 800,
-                                  }}
-                                >
-                                  {oi + 1}
-                                </span>
                                 {t(opt.label)}
                               </button>
                             ))}
