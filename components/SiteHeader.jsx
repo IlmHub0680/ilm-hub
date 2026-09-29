@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { UserRound, LayoutDashboard, LogIn, Search, Menu, X } from 'lucide-react';
+import { UserRound, LayoutDashboard, LogIn, Search } from 'lucide-react';
 import { ChevronRightIcon } from '@/components/Icons';
 import { MEDIA_CATEGORIES } from '@/lib/media';
 import { LIBRARY_CATEGORIES } from '@/lib/library';
@@ -144,17 +144,6 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
     '--logo-mobile-height': Math.round(48 * logoScale) + 'px',
     '--logo-mobile-max-width': Math.round(150 * logoScale) + 'px',
   };
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Single "which mobile submenu is open" state, not five independent
-  // booleans -- see the comment above the old useState calls this
-  // replaced. null means none open; opening one panel (see the
-  // per-section onClick handlers below) always closes any other.
-  const [openMobilePanel, setOpenMobilePanel] = useState(null);
-  const academyMobileOpen = openMobilePanel === 'academy';
-  const admissionMobileOpen = openMobilePanel === 'admission';
-  const bookstoreMobileOpen = openMobilePanel === 'bookstore';
-  const mediaMobileOpen = openMobilePanel === 'media';
-  const libraryMobileOpen = openMobilePanel === 'library';
 
   // Seeded from the server via the root layout -- see
   // components/SiteAuthProvider.jsx. No client fetch, no flash: the
@@ -230,13 +219,8 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
   }, []);
 
   useEffect(() => {
-    // Close mobile menu on route change so it doesn't stay open after
-    // a link is followed. Previously only reset the Academy/Admission
-    // panels (Bookstore/Media/Library could stay stuck open across a
-    // navigation) -- now resets whichever one panel is open, covering
-    // all five.
-    setMobileMenuOpen(false);
-    setOpenMobilePanel(null);
+    // Close the "More" overflow menu on route change so it doesn't
+    // stay open after a link is followed.
     setMoreMenuOpen(false);
   }, [pathname]);
 
@@ -330,16 +314,16 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
             <NavDropdown label="Bookstore" href="/bookstore" items={BOOKSTORE_DROPDOWN_ITEMS} />
           )}
 
-          {/* Between 900 and 1280px there still isn't room for Media,
-              Library and Donate at full size even with the shrink
-              below -- rather than let one of them wrap to its own
-              row, they move into this single "More" trigger in that
-              range only (hidden entirely outside it: .uai-nav-more-wrap
-              in the stylesheet below). The three items themselves
-              stay in the DOM as normal nav items (.uai-nav-overflow-item),
-              just hidden by the same breakpoint, so nothing changes
-              above 1280px or below 900px (where the whole nav hides
-              in favor of the mobile drawer anyway). */}
+          {/* At 1280px and below (tablet through phone -- the nav
+              never hides behind a hamburger, it just condenses) there
+              isn't room for Media, Library and Donate at full size
+              even with the shrink below -- rather than let one of
+              them wrap to its own row, they move into this single
+              "More" trigger for the whole of that range (hidden
+              entirely above 1280px: .uai-nav-more-wrap in the
+              stylesheet below). The three items themselves stay in
+              the DOM as normal nav items (.uai-nav-overflow-item),
+              just hidden by the same breakpoint. */}
           {!sectionMode && (
             <div ref={moreMenuRef} style={navDropdownWrap} className="uai-nav-more-wrap">
               <button
@@ -516,321 +500,8 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
             </Link>
           )}
 
-          {/* Mobile menu toggle -- lives in this same actions row now
-              (used to be its own full-width row below the header,
-              stacked under the logo/search/portal/Apply row, which
-              read as two disconnected bars on a phone). Hidden by
-              default (.site-header-mobile-trigger), shown only at
-              the same <=900px width where the desktop nav itself
-              hides. */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen((open) => !open)}
-            style={mobileMenuButton}
-            aria-label="Toggle navigation menu"
-            aria-expanded={mobileMenuOpen}
-            className="site-header-mobile-trigger"
-          >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
         </div>
       </div>
-
-      {/* MOBILE NAVIGATION */}
-      {mobileMenuOpen && (
-        <div style={mobileMenuContainer}>
-          {showSearch && (
-          <div style={mobileSearchWrap}>
-            <input
-              type="text"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search the site…"
-              style={mobileSearchInput}
-              aria-label="Search the site"
-            />
-          </div>
-          )}
-
-          {showSearch && query.trim().length >= 2 && (
-            <div style={mobileSearchResultsBox}>
-              {searching && <div style={searchStateText}>Searching…</div>}
-              {!searching && !hasResults && (
-                <div style={searchStateText}>No results for &ldquo;{query.trim()}&rdquo;.</div>
-              )}
-              {!searching &&
-                hasResults &&
-                RESULT_GROUPS.map((group) => {
-                  const items = (results && results[group.key]) || [];
-                  if (items.length === 0) return null;
-                  return (
-                    <div key={group.key} style={searchGroup}>
-                      <div style={searchGroupLabel}>{group.label}</div>
-                      {items.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          style={searchResultLink}
-                          onClick={() => {
-                            setMobileMenuOpen(false);
-                            setQuery('');
-                          }}
-                        >
-                          <span style={searchResultTitle}>{item.title}</span>
-                          {item.meta && <span style={searchResultMeta}>{item.meta}</span>}
-                        </Link>
-                      ))}
-                    </div>
-                  );
-                })}
-            </div>
-          )}
-
-          <Link href="/" style={mobileNavLink} onClick={() => setMobileMenuOpen(false)}>
-            Home
-          </Link>
-
-          {!sectionMode && (
-            <Link
-              href="/admission"
-              style={mobileApplyButton}
-              className="uai-gold-btn"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Apply Now
-            </Link>
-          )}
-
-          {!sectionMode && (
-          <>
-          <button
-            type="button"
-            onClick={() => setOpenMobilePanel((current) => (current === 'academy' ? null : 'academy'))}
-            style={mobileAccordionTrigger}
-            aria-expanded={academyMobileOpen}
-            aria-controls="mobile-academy-panel"
-          >
-            Academy
-            <span
-              aria-hidden="true"
-              style={{
-                transform: academyMobileOpen ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.15s',
-              }}
-            >
-              ▾
-            </span>
-          </button>
-
-          {academyMobileOpen && (
-            <div id="mobile-academy-panel" style={mobileAccordionPanel}>
-              <Link href="/academy" style={mobileAccordionLink} onClick={() => setMobileMenuOpen(false)}>
-                Academy Hub — All Programmes &amp; Documents
-              </Link>
-              {ACADEMY_DROPDOWN_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={mobileAccordionLink}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          )}
-          </>
-          )}
-
-          {!sectionMode && (
-          <>
-          <button
-            type="button"
-            onClick={() => setOpenMobilePanel((current) => (current === 'admission' ? null : 'admission'))}
-            style={mobileAccordionTrigger}
-            aria-expanded={admissionMobileOpen}
-            aria-controls="mobile-admission-panel"
-          >
-            Admission &amp; Registration
-            <span
-              aria-hidden="true"
-              style={{
-                transform: admissionMobileOpen ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.15s',
-              }}
-            >
-              ▾
-            </span>
-          </button>
-
-          {admissionMobileOpen && (
-            <div id="mobile-admission-panel" style={mobileAccordionPanel}>
-              {ADMISSION_DROPDOWN_GROUPS.map((group) => (
-                <div key={group.label}>
-                  <div style={mobileAccordionGroupLabel}>{group.label}</div>
-                  {group.items.map((item) => (
-                    <Link
-                      key={group.label + item.label}
-                      href={item.href}
-                      style={mobileAccordionLink}
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-          </>
-          )}
-          {(!sectionMode || sectionMode === 'bookstore') && (
-          <>
-          <button
-            type="button"
-            onClick={() => setOpenMobilePanel((current) => (current === 'bookstore' ? null : 'bookstore'))}
-            style={mobileAccordionTrigger}
-            aria-expanded={bookstoreMobileOpen}
-            aria-controls="mobile-bookstore-panel"
-          >
-            Bookstore
-            <span
-              aria-hidden="true"
-              style={{
-                transform: bookstoreMobileOpen ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.15s',
-              }}
-            >
-              ▾
-            </span>
-          </button>
-
-          {bookstoreMobileOpen && (
-            <div id="mobile-bookstore-panel" style={mobileAccordionPanel}>
-              <Link href="/bookstore" style={mobileAccordionLink} onClick={() => setMobileMenuOpen(false)}>
-                Bookstore Home
-              </Link>
-              {BOOKSTORE_DROPDOWN_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={mobileAccordionLink}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          )}
-          </>
-          )}
-
-          {(!sectionMode || sectionMode === 'media') && (
-          <>
-          <button
-            type="button"
-            onClick={() => setOpenMobilePanel((current) => (current === 'media' ? null : 'media'))}
-            style={mobileAccordionTrigger}
-            aria-expanded={mediaMobileOpen}
-            aria-controls="mobile-media-panel"
-          >
-            Media
-            <span
-              aria-hidden="true"
-              style={{
-                transform: mediaMobileOpen ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.15s',
-              }}
-            >
-              ▾
-            </span>
-          </button>
-
-          {mediaMobileOpen && (
-            <div id="mobile-media-panel" style={mobileAccordionPanel}>
-              <Link href="/media" style={mobileAccordionLink} onClick={() => setMobileMenuOpen(false)}>
-                Media Home
-              </Link>
-              {MEDIA_DROPDOWN_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={mobileAccordionLink}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          )}
-          </>
-          )}
-
-          {(!sectionMode || sectionMode === 'library') && (
-          <>
-          <button
-            type="button"
-            onClick={() => setOpenMobilePanel((current) => (current === 'library' ? null : 'library'))}
-            style={mobileAccordionTrigger}
-            aria-expanded={libraryMobileOpen}
-            aria-controls="mobile-library-panel"
-          >
-            Library
-            <span
-              aria-hidden="true"
-              style={{
-                transform: libraryMobileOpen ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.15s',
-              }}
-            >
-              ▾
-            </span>
-          </button>
-
-          {libraryMobileOpen && (
-            <div id="mobile-library-panel" style={mobileAccordionPanel}>
-              <Link href="/library" style={mobileAccordionLink} onClick={() => setMobileMenuOpen(false)}>
-                Library Home
-              </Link>
-              {LIBRARY_DROPDOWN_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={mobileAccordionLink}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          )}
-          </>
-          )}
-          {!sectionMode && (
-            <Link href="/donate" style={mobileNavLink} onClick={() => setMobileMenuOpen(false)}>
-              Donate
-            </Link>
-          )}
-          {portalHref && (
-            <Link
-              href={portalHref}
-              style={{ ...mobileNavLink, display: 'flex', alignItems: 'center', gap: '8px' }}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {sectionMode === 'bookstore' || sectionMode === 'media' ? (
-                user ? (
-                  <LayoutDashboard size={16} strokeWidth={2.2} />
-                ) : (
-                  <LogIn size={16} strokeWidth={2.2} />
-                )
-              ) : (
-                <UserRound size={16} strokeWidth={2.2} />
-              )}
-              {portalLabel}
-            </Link>
-          )}
-        </div>
-      )}
 
       <style jsx>{`
         .uai-portal-icon-btn {
@@ -850,35 +521,30 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           }
         }
 
-        /* Hidden by default -- shown only at <=900px (see below), where
-           it now sits inline at the end of the same header-actions
-           row as search/portal/Apply Now, instead of the awkward
-           separate full-width row it used to render as. */
-        .site-header-mobile-trigger {
-          display: none;
-        }
-
         /* The "More" overflow trigger (Media/Library/Donate) is
-           hidden outside the 900-1280px range -- see the media query
-           below for why that range needs it at all. */
+           hidden above 1280px -- see the media query below, which
+           now covers everything at or under that width, tablet
+           through phone, since the nav no longer hides behind a
+           hamburger at any width. */
         .uai-nav-more-wrap {
           display: none;
         }
 
-        /* Between 900px (desktop nav's own cutoff below) and 1280px
-           (headerInner's own max-width, past which it has all the
-           room it will ever use), the nav's actual width equals the
+        /* At 1280px (headerInner's own max-width, past which it has
+           all the room it will ever use) and every width below it,
+           down through phones, the nav's actual width equals the
            viewport's, and seven items -- one of them "Admission &
            Registration" -- plus the brand name genuinely don't all
            fit at their full desktop size. Rather than let flex-wrap
            strand an item on its own row, two things happen together
-           in exactly this range: the nav's items and the brand name
+           for this whole range: the nav's items and the brand name
            shrink a notch, AND Media/Library/Donate move behind a
            single "More" trigger (.uai-nav-overflow-item hidden,
            .uai-nav-more-wrap shown) -- so what's left (Home, Academy,
-           Admission, Bookstore, More) comfortably fits on one line.
-           Above 1280px this block does nothing and everything stays
-           at full desktop size/layout. !important because these are
+           Admission, Bookstore, More) comfortably fits on one line
+           all the way down to the narrowest phones. Above 1280px
+           this block does nothing and everything stays at full
+           desktop size/layout. !important because these are
            overriding inline styles, same pattern as the rest of this
            file's responsive overrides. */
         @media (max-width: 1280px) {
@@ -915,6 +581,36 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           }
         }
 
+        /* Extra safety margin for narrow phones now that the nav
+           (Home/Academy/Admission/Bookstore/More) never hides behind
+           a hamburger -- shrinks the nav items and the fixed-width
+           search/portal/Apply Now cluster a notch further so the row
+           has the best chance of staying on one line all the way
+           down. If a device is narrower still, .site-header-nav's
+           own flexWrap:'wrap' (see navStyle) lets it wrap to a second
+           line as a graceful fallback rather than breaking anything. */
+        @media (max-width: 560px) {
+          .uai-nav-link {
+            font-size: 12px !important;
+            padding: 6px 5px !important;
+          }
+
+          .site-header-nav {
+            gap: 1px !important;
+          }
+
+          .site-header-portal-btn,
+          .uai-portal-icon-btn {
+            width: 34px !important;
+            height: 34px !important;
+          }
+
+          .site-header-apply-btn {
+            padding: 8px 12px !important;
+            font-size: 12px !important;
+          }
+        }
+
         @media (max-width: 480px) {
           .site-header-inner {
             padding-left: 14px !important;
@@ -930,26 +626,6 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
             font-size: 7px !important;
             letter-spacing: 0.1px !important;
             white-space: normal !important;
-          }
-        }
-
-        @media (max-width: 900px) {
-          .site-header-nav {
-            display: none !important;
-          }
-
-          .site-header-mobile-trigger {
-            display: flex !important;
-          }
-
-          /* Both are still reachable on mobile -- Student Portal as
-             its own link inside the drawer below, Apply Now as the
-             prominent button right under Home in that same drawer --
-             so hiding them here only removes the crowding, not the
-             access. */
-          .site-header-portal-btn,
-          .site-header-apply-btn {
-            display: none !important;
           }
         }
       `}</style>
@@ -1288,16 +964,6 @@ const navDropdownGroupSpacing = {
   borderTop: '1px solid var(--border)',
 };
 
-const mobileAccordionGroupLabel = {
-  padding: '10px 15px 4px 30px',
-  fontSize: '11px',
-  fontWeight: '800',
-  letterSpacing: '0.5px',
-  textTransform: 'uppercase',
-  color: 'var(--ink-soft)',
-  opacity: 0.75,
-};
-
 const headerActions = {
   display: 'flex',
   gap: '8px',
@@ -1435,103 +1101,3 @@ const applyNowButton = {
   whiteSpace: 'nowrap',
 };
 
-const mobileMenuButton = {
-  border: '1px solid var(--border)',
-  background: 'var(--paper)',
-  color: 'var(--brand)',
-  width: '42px',
-  height: '42px',
-  borderRadius: '9px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const mobileMenuContainer = {
-  borderTop: '1px solid var(--border)',
-  background: 'var(--surface)',
-  padding: '5px 0',
-};
-
-const mobileApplyButton = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  margin: '2px 15px 12px',
-  padding: '12px 16px',
-  borderRadius: '10px',
-  background: 'var(--gold)',
-  color: 'var(--on-accent, #fff)',
-  fontWeight: '800',
-  fontSize: '14px',
-  textDecoration: 'none',
-};
-
-const mobileSearchWrap = {
-  padding: '10px 15px',
-};
-
-const mobileSearchInput = {
-  width: '100%',
-  boxSizing: 'border-box',
-  padding: '10px 12px',
-  borderRadius: '8px',
-  border: '1px solid var(--border)',
-  fontSize: '13.5px',
-  fontFamily: 'inherit',
-};
-
-const mobileSearchResultsBox = {
-  padding: '0 15px 10px',
-  maxHeight: '300px',
-  overflowY: 'auto',
-};
-
-const mobileAccordionTrigger = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  width: '100%',
-  padding: '12px 15px',
-  borderBottom: '1px solid var(--border)',
-  background: 'none',
-  border: 'none',
-  borderBottomStyle: 'solid',
-  textAlign: 'left',
-  cursor: 'pointer',
-  font: 'inherit',
-  fontWeight: '700',
-  color: 'var(--ink-soft)',
-};
-
-const mobileAccordionPanel = {
-  background: 'var(--brand-tint)',
-  borderBottom: '1px solid var(--border)',
-  // A long submenu (Media has 7+ items) previously pushed every
-  // section below it -- Library, Donate, Student Portal -- far down
-  // the page. Capping the panel's own height and letting it scroll
-  // internally keeps the rest of the menu reachable without a long
-  // page-level scroll.
-  maxHeight: '46vh',
-  overflowY: 'auto',
-};
-
-const mobileAccordionLink = {
-  display: 'block',
-  color: 'var(--ink-soft)',
-  textDecoration: 'none',
-  padding: '11px 15px 11px 30px',
-  borderTop: '1px solid var(--border-soft)',
-  fontSize: '13px',
-  fontWeight: '700',
-};
-
-const mobileNavLink = {
-  display: 'block',
-  color: 'var(--ink-soft)',
-  textDecoration: 'none',
-  padding: '12px 15px',
-  borderBottom: '1px solid var(--border)',
-  fontWeight: '700',
-};
