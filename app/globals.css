@@ -135,6 +135,24 @@ a.ih-card:hover{box-shadow:0 12px 28px rgba(27,36,31,0.14); transform:translateY
   .uai-events-news-grid{grid-template-columns:minmax(0,1fr) !important;}
 }
 
+/* AnnouncementsSection's 2-card grid (app/page.jsx) -- same
+   cross-component styled-jsx scoping issue as .uai-events-news-grid
+   above: a scoped copy of this rule inside HomeContent's own <style
+   jsx> block never actually applied to AnnouncementsSection's grid,
+   since that's a separate component -- so it lives here instead. */
+@media (max-width: 820px){
+  .uai-notices-updates-grid{grid-template-columns:minmax(0,1fr) !important;}
+}
+
+/* Hover feedback for the Announcements and Important Links list rows
+   (app/page.jsx) -- both are <Link>s styled as plain rows, so this
+   gives a visible affordance that they're tappable. */
+.uai-list-row{transition:background .15s ease;}
+.uai-list-row:hover{background:var(--paper);}
+@media (prefers-reduced-motion: reduce){
+  .uai-list-row{transition:none;}
+}
+
 /* ---------- table ---------- */
 .ih-tbl-wrap{border:1px solid var(--border); border-radius:var(--radius-l); overflow:auto; background:var(--surface); box-shadow:var(--shadow-raised);}
 .ih-tbl{width:100%; border-collapse:collapse; font-size:13.5px;}

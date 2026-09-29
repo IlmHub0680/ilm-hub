@@ -1107,12 +1107,6 @@ function HomeContent() {
           }
         }
 
-        @media (max-width: 820px) {
-          .uai-notices-updates-grid {
-            grid-template-columns: minmax(0,1fr) !important;
-          }
-        }
-
         /* .uai-lift-card, .uai-lift-card-dark and .uai-gold-btn now
            live as global, unscoped rules in app/globals.css -- several
            of the components that use them (FeatureCard,
@@ -1333,20 +1327,36 @@ function FooterButton({ onClick, children }) {
   );
 }
 
-// Notices & Announcements -- an auto-advancing, reduced-motion-aware
-// slider of notices, in its own card. This used to share a two-column
-// row with a compact Events + News list; that combined feed is now
-// EventsAndNewsSection below instead, its own full-width section with
-// the 3-cards-at-a-time carousel and "View All" button the reference
-// design called for, rather than a text list squeezed into half this
-// card's width. Renders nothing at all when there are no announcements
-// (same "return null when empty" convention used throughout this file).
+// Real pages already on the site -- picked for what a first-time
+// visitor most often needs next (how to apply, term dates, the
+// library, the course catalog, common questions, how to give) --
+// never a placeholder or made-up destination. Rendered by the
+// Important Links card inside AnnouncementsSection below.
+const IMPORTANT_LINKS = [
+  { icon: '\ud83c\udf93', label: 'Admission Requirements', href: '/admission-requirements' },
+  { icon: '\ud83d\udcc5', label: 'Academic Calendar', href: '/academic-calendar' },
+  { icon: '\ud83d\udcd6', label: 'Digital Library', href: '/library' },
+  { icon: '\ud83c\udfdb\ufe0f', label: 'Academic Programmes', href: '/programs' },
+  { icon: '\u2753', label: 'Frequently Asked Questions', href: '/faq' },
+  { icon: '\ud83d\udc9a', label: 'Donate to Ulul Azm', href: '/donate' },
+];
+
+// Announcements + Important Links -- a two-card row. Left: the
+// institution's current notices, shown as a plain list of rows
+// (megaphone icon, title, date, arrow) all at once rather than one
+// slide at a time, matching the reference layout, with a "View All"
+// link through to the full listing page. Right: the fixed Important
+// Links card above, so a visitor can jump straight to a handful of
+// genuinely useful pages without hunting through the main nav. The
+// Announcements card shows an empty-state message rather than
+// disappearing when nothing is published -- Important Links stays
+// useful either way, so the section no longer returns null once
+// loaded.
 function AnnouncementsSection() {
   const { t, dir } = useLanguage();
 
   const [announcements, setAnnouncements] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -1371,82 +1381,87 @@ function AnnouncementsSection() {
     };
   }, []);
 
-  // Auto-advance the notices slider -- only when there's more than
-  // one notice, and never for anyone whose system asks for reduced
-  // motion.
-  useEffect(() => {
-    if (announcements.length < 2) return undefined;
-    if (
-      typeof window !== 'undefined' &&
-      window.matchMedia &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
-      return undefined;
-    }
-
-    const timer = setInterval(() => {
-      setActiveIndex((index) => (index + 1) % announcements.length);
-    }, 6000);
-
-    return () => clearInterval(timer);
-  }, [announcements.length]);
-
-  if (!loaded || announcements.length === 0) {
+  if (!loaded) {
     return null;
   }
 
   return (
     <section style={noticesUpdatesSection} dir={dir}>
-      <div style={{ ...noticesUpdatesGrid, gridTemplateColumns: 'minmax(0,1fr)' }}>
+      <div
+        style={{ ...noticesUpdatesGrid, gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}
+        className="uai-notices-updates-grid"
+      >
 
         <div className="ih-card uai-lift-card" style={noticesCard}>
-          <div style={utilityStripHeading}>
-            <span style={utilityStripLabel}>{t('NOTICES & ANNOUNCEMENTS')}</span>
-            <h2 style={noticesCardTitle}>{t("What's happening at Ulul Azm")}</h2>
+          <div style={noticesCardHeaderRow}>
+            <div>
+              <span style={utilityStripLabel}>{t('NOTICES & ANNOUNCEMENTS')}</span>
+              <h2 style={noticesCardTitle}>{t('Announcements')}</h2>
+            </div>
+            <Link href="/announcements" style={outlineButtonSmall}>
+              {t('View All')}
+            </Link>
           </div>
 
-          <div style={announcementsSliderViewport}>
-            <div
-              style={{
-                ...announcementsSliderTrack,
-                transform: `translateX(-${activeIndex * 100}%)`,
-              }}
-            >
-              {announcements.map((item) => (
-                <div key={item.id} style={announcementsSlide}>
-                  <div style={announcementCardInCard}>
-                    <div style={announcementDate}>
+          {announcements.length === 0 ? (
+            <p style={announcementsEmptyText}>
+              {t('No announcements at the moment \u2014 please check back soon.')}
+            </p>
+          ) : (
+            <div style={announcementsList}>
+              {announcements.map((item, index) => (
+                <Link
+                  key={item.id}
+                  href={`/announcements#announcement-${item.id}`}
+                  className="uai-list-row"
+                  style={{
+                    ...announcementsListRow,
+                    ...(index === announcements.length - 1 ? { borderBottom: 'none' } : {}),
+                  }}
+                >
+                  <span aria-hidden="true" style={announcementsRowIcon}>\ud83d\udce3</span>
+                  <span style={announcementsRowBody}>
+                    <span style={announcementsRowTitle}>{item.titleEn}</span>
+                    <span style={announcementsRowDate}>
                       {new Date(item.publishedAt).toLocaleDateString([], {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
                       })}
-                    </div>
-
-                    <h3 style={announcementTitle}>{item.titleEn}</h3>
-
-                    <p style={announcementBody}>{item.bodyEn}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {announcements.length > 1 && (
-            <div style={announcementsDots} role="tablist" aria-label="Announcements">
-              {announcements.map((item, index) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  onClick={() => setActiveIndex(index)}
-                  aria-label={`Show notice ${index + 1} of ${announcements.length}`}
-                  aria-selected={index === activeIndex}
-                  style={index === activeIndex ? announcementsDotActive : announcementsDot}
-                />
+                    </span>
+                  </span>
+                  <span aria-hidden="true" style={announcementsRowArrow}>\u203a</span>
+                </Link>
               ))}
             </div>
           )}
+        </div>
+
+        <div className="ih-card uai-lift-card" style={noticesCard}>
+          <div style={noticesCardHeaderRow}>
+            <div>
+              <span style={utilityStripLabel}>{t('QUICK ACCESS')}</span>
+              <h2 style={noticesCardTitle}>{t('Important Links')}</h2>
+            </div>
+          </div>
+
+          <div style={importantLinksList}>
+            {IMPORTANT_LINKS.map((link, index) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="uai-list-row"
+                style={{
+                  ...importantLinksRow,
+                  ...(index === IMPORTANT_LINKS.length - 1 ? { borderBottom: 'none' } : {}),
+                }}
+              >
+                <span aria-hidden="true" style={importantLinksRowIcon}>{link.icon}</span>
+                <span style={importantLinksRowLabel}>{t(link.label)}</span>
+                <span aria-hidden="true" style={importantLinksRowArrow}>\u2197</span>
+              </Link>
+            ))}
+          </div>
         </div>
 
       </div>
@@ -2651,91 +2666,13 @@ const utilityStripTitle = {
   margin: '8px 0 0',
 };
 
-const announcementsGrid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))',
-  gap: '18px',
-  marginTop: '10px',
-};
-
-const announcementsSliderViewport = {
-  overflow: 'hidden',
-  marginTop: '10px',
-};
-
-const announcementsSliderTrack = {
-  display: 'flex',
-  transition: 'transform 0.6s ease',
-};
-
-const announcementsSlide = {
-  flex: '0 0 100%',
-  minWidth: '100%',
-  boxSizing: 'border-box',
-  padding: '2px',
-};
-
-const announcementsDots = {
-  display: 'flex',
-  justifyContent: 'center',
-  gap: '8px',
-  marginTop: '18px',
-};
-
-const announcementsDot = {
-  width: '8px',
-  height: '8px',
-  borderRadius: '50%',
-  border: 'none',
-  background: 'var(--border)',
-  cursor: 'pointer',
-  padding: 0,
-  transition: 'width 0.2s ease, border-radius 0.2s ease, background 0.2s ease',
-};
-
-const announcementsDotActive = {
-  ...announcementsDot,
-  width: '22px',
-  borderRadius: '5px',
-  background: 'var(--gold)',
-};
-
-const announcementCard = {
-  background: 'var(--surface)',
-  border: '1px solid var(--border)',
-  borderRadius: '14px',
-  padding: '22px',
-  borderTop: '3px solid var(--gold)',
-};
-
-const announcementDate = {
-  color: 'var(--gold-dark)',
-  fontWeight: '800',
-  fontSize: '11.5px',
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  marginBottom: '10px',
-};
-
-const announcementTitle = {
-  color: 'var(--brand)',
-  fontSize: '18px',
-  margin: '0 0 8px',
-};
-
-const announcementBody = {
-  color: 'var(--ink-soft)',
-  lineHeight: 1.7,
-  fontSize: '14.5px',
-  margin: 0,
-};
-
-// Styles for AnnouncementsSection -- the Notices & Announcements card.
-// Reuses the shared .ih-card class (background/border/radius/shadow
-// already defined once in globals.css) for the "elegant design card"
-// look asked for, and adds only its own inner spacing/typography
-// here. Matches the hero's own maxWidth (1240px) for a consistent
-// width rhythm down the page.
+// Styles for AnnouncementsSection -- now a two-card row: a live list
+// of the institution's current notices on the left, and a fixed set
+// of real, frequently-needed pages ("Important Links") on the right.
+// Both reuse the shared .ih-card class (background/border/radius/
+// shadow already defined once in globals.css) for the "elegant design
+// card" look asked for, and match the hero's own maxWidth (1240px)
+// for a consistent width rhythm down the page.
 const noticesUpdatesSection = {
   maxWidth: '1240px',
   margin: '0 auto',
@@ -2750,12 +2687,21 @@ const noticesUpdatesGrid = {
 
 // A thin gold top accent plus the same hover-lift treatment as the
 // Media & Library cards (.uai-lift-card) -- echoing that card
-// language even though these cards hold a live data feed rather than
-// one static banner image, so the whole homepage's "card" vocabulary
+// language even though these cards hold list content rather than one
+// static banner image, so the whole homepage's "card" vocabulary
 // reads as one consistent system.
 const noticesCard = {
   padding: '30px',
   borderTop: '4px solid var(--gold)',
+};
+
+const noticesCardHeaderRow = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  flexWrap: 'wrap',
+  gap: '12px',
+  marginBottom: '10px',
 };
 
 const noticesCardTitle = {
@@ -2765,13 +2711,137 @@ const noticesCardTitle = {
   margin: '8px 0 0',
 };
 
-// A leaner variant of announcementCard for use inside AnnouncementsSection,
-// where the surrounding .ih-card already supplies the background, border,
-// radius and shadow -- so this only needs the gold top rule that marks each
-// notice, not a second nested card frame.
-const announcementCardInCard = {
-  borderTop: '3px solid var(--gold)',
-  paddingTop: '16px',
+// A smaller "View All" button sized to sit inside a card header next
+// to the title, rather than the full outlineButton used below the
+// wider Events & News section heading.
+const outlineButtonSmall = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '9px 16px',
+  background: 'var(--surface)',
+  color: 'var(--brand)',
+  textDecoration: 'none',
+  border: '1px solid var(--border)',
+  borderRadius: '8px',
+  fontWeight: '800',
+  fontSize: '12.5px',
+  whiteSpace: 'nowrap',
+  transition: 'transform .2s ease, box-shadow .2s ease, border-color .2s ease',
+};
+
+const announcementsEmptyText = {
+  color: 'var(--ink-soft)',
+  fontSize: '14.5px',
+  lineHeight: 1.6,
+  margin: '8px 0 0',
+};
+
+const announcementsList = {
+  display: 'flex',
+  flexDirection: 'column',
+  marginTop: '4px',
+};
+
+// Each notice as one tappable row -- megaphone icon, title + date
+// stacked, trailing arrow -- all shown at once instead of one at a
+// time, per the reference layout. Links through to the full
+// announcements listing, scrolled to that specific notice.
+const announcementsListRow = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px',
+  padding: '14px 0',
+  borderBottom: '1px solid var(--border)',
+  textDecoration: 'none',
+  color: 'inherit',
+};
+
+const announcementsRowIcon = {
+  flexShrink: 0,
+  width: '38px',
+  height: '38px',
+  borderRadius: '10px',
+  background: 'var(--gold-tint)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '16px',
+};
+
+const announcementsRowBody = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '3px',
+  flex: '1 1 auto',
+  minWidth: 0,
+};
+
+const announcementsRowTitle = {
+  color: 'var(--ink)',
+  fontSize: '14.5px',
+  fontWeight: '700',
+  lineHeight: 1.4,
+  overflow: 'hidden',
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+};
+
+const announcementsRowDate = {
+  color: 'var(--ink-soft)',
+  fontSize: '12px',
+};
+
+const announcementsRowArrow = {
+  flexShrink: 0,
+  color: 'var(--gold-dark)',
+  fontSize: '20px',
+  lineHeight: 1,
+};
+
+// Real, existing pages -- never placeholder links -- picked for what
+// a first-time visitor most often needs next. See IMPORTANT_LINKS
+// above AnnouncementsSection.
+const importantLinksList = {
+  display: 'flex',
+  flexDirection: 'column',
+  marginTop: '4px',
+};
+
+const importantLinksRow = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px',
+  padding: '14px 0',
+  borderBottom: '1px solid var(--border)',
+  textDecoration: 'none',
+  color: 'inherit',
+};
+
+const importantLinksRowIcon = {
+  flexShrink: 0,
+  width: '38px',
+  height: '38px',
+  borderRadius: '10px',
+  background: 'var(--brand-tint)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '16px',
+};
+
+const importantLinksRowLabel = {
+  flex: '1 1 auto',
+  color: 'var(--ink)',
+  fontSize: '14.5px',
+  fontWeight: '700',
+  minWidth: 0,
+};
+
+const importantLinksRowArrow = {
+  flexShrink: 0,
+  color: 'var(--brand)',
+  fontSize: '15px',
 };
 
 // Styles for EventsAndNewsSection -- the "three cards, image, title,
