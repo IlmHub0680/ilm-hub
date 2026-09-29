@@ -523,11 +523,22 @@ export default function AssistantWidget() {
               background: 'var(--paper)',
             }}
           >
-            {visibleMessages.map((m, i) => (
+            {visibleMessages.map((m, i) => {
+              // Identity-chooser and quick-option messages carry a
+              // button grid that should read as centered in the
+              // widget -- forcing the column to its full 90% width
+              // here (instead of leaving it to shrink-wrap to
+              // whichever sibling, usually the short text bubble
+              // above the grid, happens to be narrowest) gives the
+              // grid the room it needs; plain text messages keep
+              // shrink-wrapping to their own content as before.
+              const hasGrid = m.kind === 'identity' || (Array.isArray(m.options) && m.options.length > 0);
+              return (
               <div
                 key={i}
                 style={{
                   alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                  width: hasGrid ? '90%' : undefined,
                   maxWidth: '90%',
                   display: 'flex',
                   flexDirection: 'column',
@@ -623,13 +634,19 @@ export default function AssistantWidget() {
                     and every actual data lookup still comes from the
                     signed-in session, exactly as before this existed. */}
                 {m.kind === 'identity' && !identity && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                  // Two per row, centered -- flexWrap + justifyContent:
+                  // 'center' rather than a 3-column grid, so the third
+                  // card (which wraps alone to its own row) centers
+                  // itself under the first two instead of hugging the
+                  // grid's left column.
+                  <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px' }}>
                     {IDENTITY_CARDS.map((card) => (
                       <button
                         key={card.id}
                         type="button"
                         onClick={() => selectIdentity(card.id)}
                         style={{
+                          flex: '0 1 calc(50% - 3px)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -734,7 +751,8 @@ export default function AssistantWidget() {
                   );
                 })()}
               </div>
-            ))}
+              );
+            })}
             {sending && (
               <div style={{ alignSelf: 'flex-start', fontSize: '12.5px', color: 'var(--ink-soft)' }}>
                 {t('Thinking…')}
