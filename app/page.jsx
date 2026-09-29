@@ -436,116 +436,130 @@ function HomeContent() {
 
       {/* =====================================================
           HERO
+          Redesigned from a single full-bleed photo with all copy,
+          two CTA buttons and a checkmark list crowded on top of it,
+          to a two-column layout: headline/copy on one side, the
+          admin-managed banner photo (still the same DB-driven
+          slider/crossfade logic as before, just no longer used as a
+          page background) on the other. The two CTA buttons were
+          removed outright -- both already exist one tap away in the
+          Admission & Registration nav dropdown, so keeping them here
+          too was pure duplication. The feature checkmarks moved to
+          their own compact strip just below (see heroFeaturesSection)
+          instead of crowding the photo.
       ===================================================== */}
 
       <section style={heroStyle} dir={dir}>
+        <div style={heroInner} className="uai-hero-inner">
 
-        {heroSlideCount > 0 ? (
-          <div style={heroSliderLayer} aria-hidden={heroSlideCount <= 1}>
-            {heroBanners.map((banner, i) => (
+          <div style={heroTextCol}>
+
+            <div style={heroBadge}>
+              {lang === 'ar' && hero.badgeAr ? hero.badgeAr : hero.badge}
+            </div>
+
+            <TypedHeadline
+              text={lang === 'ar' && hero.titleAr ? hero.titleAr : hero.title}
+              style={heroTitle}
+            />
+
+            <p style={heroText}>
+              {lang === 'ar' && hero.subtitleAr ? hero.subtitleAr : hero.subtitle}
+            </p>
+
+          </div>
+
+          <div style={heroImageCol} className="uai-hero-image-col">
+
+            {heroSlideCount > 0 ? (
+              <div style={heroSliderLayer} aria-hidden={heroSlideCount <= 1}>
+                {heroBanners.map((banner, i) => (
+                  <div
+                    key={banner.id || i}
+                    style={{
+                      ...heroSlide,
+                      backgroundImage: `url(${banner.imageUrl})`,
+                      opacity: i === activeSlideIndex ? 1 : 0,
+                    }}
+                  />
+                ))}
+              </div>
+            ) : hero.heroImageUrl ? (
               <div
-                key={banner.id || i}
                 style={{
                   ...heroSlide,
-                  backgroundImage: `linear-gradient(135deg, rgba(8,32,24,.78), rgba(8,32,24,.5)), url(${banner.imageUrl})`,
-                  opacity: i === activeSlideIndex ? 1 : 0,
+                  backgroundImage: `url(${hero.heroImageUrl})`,
+                  opacity: 1,
                 }}
               />
-            ))}
-          </div>
-        ) : hero.heroImageUrl ? (
-          <div
-            style={{
-              ...heroSlide,
-              backgroundImage: `linear-gradient(135deg, rgba(8,32,24,.78), rgba(8,32,24,.5)), url(${hero.heroImageUrl})`,
-              opacity: 1,
-            }}
-          />
-        ) : null}
+            ) : (
+              <div style={heroImagePlaceholder} aria-hidden="true">
+                <span style={{ fontSize: '46px' }}>🕌</span>
+              </div>
+            )}
 
-        <div style={heroOverlay} />
+            {heroSlideCount > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={goPrevSlide}
+                  aria-label="Previous banner"
+                  className="hero-slide-arrow hero-slide-arrow-prev"
+                  style={heroArrow}
+                >
+                  ‹
+                </button>
 
-        <div style={heroInner}>
+                <button
+                  type="button"
+                  onClick={goNextSlide}
+                  aria-label="Next banner"
+                  className="hero-slide-arrow hero-slide-arrow-next"
+                  style={heroArrow}
+                >
+                  ›
+                </button>
 
-          <div style={heroBadge}>
-            {lang === 'ar' && hero.badgeAr ? hero.badgeAr : hero.badge}
-          </div>
-
-          <h1 style={heroTitle}>
-            {lang === 'ar' && hero.titleAr ? hero.titleAr : hero.title}
-          </h1>
-
-          <p style={heroText}>
-            {lang === 'ar' && hero.subtitleAr ? hero.subtitleAr : hero.subtitle}
-          </p>
-
-          <div style={heroButtonRow}>
-
-            <Link
-              href={hero.primaryHref}
-              style={heroPrimaryButton}
-            >
-              {lang === 'ar' && hero.primaryLabelAr ? hero.primaryLabelAr : hero.primaryLabel}
-            </Link>
-
-            <Link
-              href={hero.secondaryHref}
-              style={heroSecondaryButton}
-            >
-              {lang === 'ar' && hero.secondaryLabelAr ? hero.secondaryLabelAr : hero.secondaryLabel}
-            </Link>
-
-          </div>
-
-          <div style={heroFeatures}>
-
-            {hero.features.map((feature, i) => (
-              <span key={feature}>✓ {lang === 'ar' && hero.featuresAr?.[i] ? hero.featuresAr[i] : feature}</span>
-            ))}
+                <div className="hero-slide-dots" style={heroDots}>
+                  {heroBanners.map((banner, i) => (
+                    <button
+                      key={banner.id || i}
+                      type="button"
+                      onClick={() => goToSlide(i)}
+                      aria-label={`Go to banner ${i + 1}`}
+                      style={{
+                        ...heroDot,
+                        opacity: i === activeSlideIndex ? 1 : 0.45,
+                        transform: i === activeSlideIndex ? 'scale(1.25)' : 'scale(1)',
+                      }}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
 
           </div>
 
         </div>
+      </section>
 
-        {heroSlideCount > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={goPrevSlide}
-              aria-label="Previous banner"
-              className="hero-slide-arrow hero-slide-arrow-prev"
-              style={heroArrow}
-            >
-              ‹
-            </button>
+      {/* =====================================================
+          HERO FEATURE HIGHLIGHTS
+          The checkmark list that used to sit inside the hero,
+          crowding the photo -- now a compact chip strip of its own
+          just below, so it still reads as a credibility signal
+          rather than clutter on top of an image.
+      ===================================================== */}
 
-            <button
-              type="button"
-              onClick={goNextSlide}
-              aria-label="Next banner"
-              className="hero-slide-arrow hero-slide-arrow-next"
-              style={heroArrow}
-            >
-              ›
-            </button>
-
-            <div className="hero-slide-dots" style={heroDots}>
-              {heroBanners.map((banner, i) => (
-                <button
-                  key={banner.id || i}
-                  type="button"
-                  onClick={() => goToSlide(i)}
-                  aria-label={`Go to banner ${i + 1}`}
-                  style={{
-                    ...heroDot,
-                    opacity: i === activeSlideIndex ? 1 : 0.45,
-                    transform: i === activeSlideIndex ? 'scale(1.25)' : 'scale(1)',
-                  }}
-                />
-              ))}
-            </div>
-          </>
-        )}
+      <section style={heroFeaturesSection} dir={dir}>
+        <div style={heroFeatures}>
+          {hero.features.map((feature, i) => (
+            <span key={feature} style={heroFeatureChip}>
+              <span aria-hidden="true" style={heroFeatureCheck}>✓</span>
+              {lang === 'ar' && hero.featuresAr?.[i] ? hero.featuresAr[i] : feature}
+            </span>
+          ))}
+        </div>
       </section>
 
       {/* =====================================================
@@ -869,32 +883,36 @@ function HomeContent() {
           footer, not only this one -- see components/SiteFooter.jsx. */}
 
       {/* =====================================================
-          EVENTS & NEWS (Model 27)
-          Genuinely new public content -- both sections render
-          nothing at all when there is no published data (same
-          "return null when empty" convention as AnnouncementsStrip
-          and SponsorsStrip just below), so an Institute with no
-          events or news yet never shows a broken or fake-looking
-          homepage section.
+          NOTICES & UPDATES (Model 30)
+          Two-column layout: Notices & Announcements on the left,
+          a combined Events + News feed on the right, each its own
+          elegant card -- so this content reads at a glance instead
+          of three separate full-width sections stacking the page
+          taller. Renders nothing at all when neither side has live
+          data (same "return null when empty" convention used
+          throughout this file), and each side independently
+          disappears if only one of them has content, so the
+          remaining card still takes the full width rather than
+          leaving a blank column. The "View All Events & News" link
+          opens the new standalone /updates page (search + share),
+          separate from the original /events and /news list pages,
+          which still exist and are still linked to from each
+          item's own read-more link.
       ===================================================== */}
 
-      <UpcomingEventsSection />
-      <LatestNewsSection />
+      <NoticesAndUpdatesSection />
 
       {/* =====================================================
-          NOTICES & SPONSORS
-          Moved down from directly under the hero (per admin
-          request) -- these are reference/utility content, not the
-          institute's primary message, so they now sit just above
-          the footer in a single compact strip instead of pushing
-          the academic content further down the page. Both still
-          render nothing at all when there is no live data (no
-          active announcements / no public sponsors), exactly as
-          before.
+          SPONSORS & PARTNERS
+          Kept as its own compact strip just above the footer --
+          trust/credibility content belongs near the end of the
+          page, after the institute's own academic message and
+          current activity, not competing with either for attention
+          higher up. Still renders nothing at all when there are no
+          public sponsors, exactly as before.
       ===================================================== */}
 
       <div style={utilityStripWrap}>
-        <AnnouncementsStrip />
         <SponsorsStrip />
       </div>
 
@@ -915,6 +933,57 @@ function HomeContent() {
       ===================================================== */}
 
       <style jsx>{`
+
+        .uai-hero-cursor {
+          display: inline-block;
+          margin-left: 2px;
+          animation: uai-hero-blink 1s step-end infinite;
+        }
+
+        @keyframes uai-hero-blink {
+          50% { opacity: 0; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .uai-hero-cursor {
+            animation: none;
+          }
+        }
+
+        .uai-sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0,0,0,0);
+          white-space: nowrap;
+          border: 0;
+        }
+
+        @media (max-width: 860px) {
+          .uai-hero-inner {
+            grid-template-columns: 1fr !important;
+            padding-top: 48px !important;
+            padding-bottom: 40px !important;
+            gap: 32px !important;
+          }
+
+          .uai-hero-image-col {
+            aspect-ratio: 16 / 10 !important;
+          }
+        }
+
+        .uai-update-item:hover {
+          background: var(--brand-tint);
+        }
+
+        @media (max-width: 820px) {
+          .uai-notices-updates-grid {
+            grid-template-columns: minmax(0,1fr) !important;
+          }
+        }
 
         .uai-lift-card:hover {
           transform: translateY(-4px);
@@ -1049,6 +1118,60 @@ function HomeContent() {
   );
 }
 
+// Types out the hero headline character by character with a blinking
+// cursor, the way the user asked for -- "the text or writing appears
+// like typing with a cursor". Skips straight to the full text with no
+// animation for anyone whose system asks for reduced motion (the
+// same window.matchMedia('(prefers-reduced-motion: reduce)') check
+// already used by AnnouncementsStrip's slider further down this
+// file). The full headline is also always present for screen readers
+// via a visually-hidden span, rather than only what's been "typed" so
+// far -- an animated partial string is not a reliable or pleasant
+// thing for assistive tech to read.
+function TypedHeadline({ text, style }) {
+  const [shownLength, setShownLength] = useState(0);
+
+  useEffect(() => {
+    if (!text) {
+      setShownLength(0);
+      return undefined;
+    }
+
+    const reducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reducedMotion) {
+      setShownLength(text.length);
+      return undefined;
+    }
+
+    setShownLength(0);
+
+    let charIndex = 0;
+    const interval = setInterval(() => {
+      charIndex += 1;
+      setShownLength(charIndex);
+      if (charIndex >= text.length) {
+        clearInterval(interval);
+      }
+    }, 38);
+
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return (
+    <h1 style={style}>
+      <span aria-hidden="true">
+        {(text || '').slice(0, shownLength)}
+        <span className="uai-hero-cursor">|</span>
+      </span>
+      <span className="uai-sr-only">{text}</span>
+    </h1>
+  );
+}
+
 export default function Home() {
   return (
     <LanguageProvider>
@@ -1097,164 +1220,96 @@ function FooterButton({ onClick, children }) {
   );
 }
 
-function UpcomingEventsSection() {
-  const [events, setEvents] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    fetch('/api/events')
-      .then((res) => res.json())
-      .then((result) => {
-        if (cancelled) return;
-        if (result && result.success && Array.isArray(result.data)) {
-          const now = Date.now();
-          const upcoming = result.data
-            .filter((e) => new Date(e.eventDate).getTime() >= now)
-            .slice(0, 3);
-          setEvents(upcoming);
-        }
-      })
-      .catch(() => {
-        /* silently ignore -- the homepage should never break because
-           the events feed is unavailable */
-      })
-      .finally(() => {
-        if (!cancelled) setLoaded(true);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (!loaded || events.length === 0) {
-    return null;
-  }
-
-  return (
-    <section style={sectionStyle}>
-      <div style={headingContainer}>
-        <span style={goldLabel}>UPCOMING EVENTS</span>
-        <h2 style={sectionTitle}>Join Us</h2>
-      </div>
-
-      <div style={miniCardGrid}>
-        {events.map((event) => (
-          <div key={event.id} style={miniCard}>
-            <div style={miniCardEyebrow}>
-              {new Date(event.eventDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-              {event.eventTime ? ` · ${event.eventTime}` : ''}
-            </div>
-            <div style={miniCardTitle}>{event.titleEn}</div>
-            <p style={miniCardDesc}>{event.descriptionEn}</p>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ textAlign: 'center', marginTop: 28 }}>
-        <Link href="/events" style={goldButton} className="uai-gold-btn">
-          View All Events
-        </Link>
-      </div>
-    </section>
-  );
+// Strips HTML tags down to a plain-text excerpt, truncated to maxLen
+// with an ellipsis -- same approach app/news/page.jsx already uses for
+// its own card previews, just parameterised with a shorter default
+// length to suit a narrower homepage card column.
+function stripHtmlExcerpt(html, maxLen = 110) {
+  if (!html) return '';
+  const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (text.length <= maxLen) return text;
+  return `${text.slice(0, maxLen).trim()}…`;
 }
 
-function LatestNewsSection() {
-  const [articles, setArticles] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    fetch('/api/news')
-      .then((res) => res.json())
-      .then((result) => {
-        if (cancelled) return;
-        if (result && result.success && Array.isArray(result.data)) {
-          setArticles(result.data.slice(0, 3));
-        }
-      })
-      .catch(() => {
-        /* silently ignore -- same convention as UpcomingEventsSection */
-      })
-      .finally(() => {
-        if (!cancelled) setLoaded(true);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (!loaded || articles.length === 0) {
-    return null;
-  }
-
-  return (
-    <section style={{ ...sectionStyle, borderTop: '1px solid var(--border)' }}>
-      <div style={headingContainer}>
-        <span style={goldLabel}>LATEST NEWS</span>
-        <h2 style={sectionTitle}>From the Institute</h2>
-      </div>
-
-      <div style={miniCardGrid}>
-        {articles.map((article) => (
-          <Link key={article.id} href={`/news/${article.id}`} style={{ ...miniCard, textDecoration: 'none', color: 'inherit' }}>
-            {article.featuredImageUrl && (
-              <div style={{ ...miniCardImage, backgroundImage: `url(${article.featuredImageUrl})` }} />
-            )}
-            <div style={miniCardEyebrow}>
-              {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : ''}
-            </div>
-            <div style={miniCardTitle}>{article.titleEn}</div>
-          </Link>
-        ))}
-      </div>
-
-      <div style={{ textAlign: 'center', marginTop: 28 }}>
-        <Link href="/news" style={goldButton} className="uai-gold-btn">
-          View All News
-        </Link>
-      </div>
-    </section>
-  );
-}
-
-function AnnouncementsStrip() {
+// Replaces the previous UpcomingEventsSection + LatestNewsSection +
+// AnnouncementsStrip trio (three separate full-width sections) with a
+// single two-column layout: Notices & Announcements on the left
+// (the same auto-advancing, reduced-motion-aware slider as before,
+// just now scoped to a card instead of a full-width strip), and a
+// combined Events + News feed on the right (soonest-first upcoming
+// events plus newest-first news, merged into one compact list with a
+// picture, excerpt, date and "Read more" link per item). Renders
+// nothing at all when neither side has data; renders only the side
+// that does when just one does, so the grid never leaves a blank
+// column.
+function NoticesAndUpdatesSection() {
   const { t, dir } = useLanguage();
+
   const [announcements, setAnnouncements] = useState([]);
+  const [updateItems, setUpdateItems] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
-    fetch('/api/announcements')
-      .then((res) => res.json())
-      .then((result) => {
-        if (cancelled) return;
-        if (result && result.success && Array.isArray(result.data)) {
-          setAnnouncements(result.data);
-        }
-      })
-      .catch(() => {
-        /* silently ignore — the homepage should never break because
-           the announcements feed is unavailable */
-      })
-      .finally(() => {
-        if (!cancelled) setLoaded(true);
-      });
+    Promise.allSettled([
+      fetch('/api/announcements').then((res) => res.json()),
+      fetch('/api/events').then((res) => res.json()),
+      fetch('/api/news').then((res) => res.json()),
+    ]).then(([announcementsResult, eventsResult, newsResult]) => {
+      if (cancelled) return;
+
+      if (announcementsResult.status === 'fulfilled' && announcementsResult.value?.success) {
+        setAnnouncements(announcementsResult.value.data || []);
+      }
+
+      const now = Date.now();
+
+      const upcomingEvents =
+        eventsResult.status === 'fulfilled' && eventsResult.value?.success
+          ? (eventsResult.value.data || [])
+              .filter((event) => new Date(event.eventDate).getTime() >= now)
+              .slice(0, 2)
+              .map((event) => ({
+                kind: 'event',
+                id: event.id,
+                title: event.titleEn,
+                excerpt: event.descriptionEn,
+                image: event.thumbnailUrl,
+                date: event.eventDate,
+                time: event.eventTime,
+                href: `/updates#event-${event.id}`,
+              }))
+          : [];
+
+      const latestNews =
+        newsResult.status === 'fulfilled' && newsResult.value?.success
+          ? (newsResult.value.data || [])
+              .slice(0, 3)
+              .map((article) => ({
+                kind: 'news',
+                id: article.id,
+                title: article.titleEn,
+                excerpt: stripHtmlExcerpt(article.bodyEnHtml),
+                image: article.featuredImageUrl,
+                date: article.publishedAt,
+                href: `/news/${article.id}`,
+              }))
+          : [];
+
+      setUpdateItems([...upcomingEvents, ...latestNews].slice(0, 4));
+      setLoaded(true);
+    });
 
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Auto-advance the slider -- only when there's more than one notice,
-  // and never for anyone whose system asks for reduced motion.
+  // Auto-advance the notices slider -- same convention as the previous
+  // AnnouncementsStrip: only when there's more than one notice, and
+  // never for anyone whose system asks for reduced motion.
   useEffect(() => {
     if (announcements.length < 2) return undefined;
     if (
@@ -1272,62 +1327,128 @@ function AnnouncementsStrip() {
     return () => clearInterval(timer);
   }, [announcements.length]);
 
-  if (!loaded || announcements.length === 0) {
+  if (!loaded) {
+    return null;
+  }
+
+  const hasAnnouncements = announcements.length > 0;
+  const hasUpdates = updateItems.length > 0;
+
+  if (!hasAnnouncements && !hasUpdates) {
     return null;
   }
 
   return (
-    <section style={utilityStripSectionStyle} dir={dir}>
-      <div style={utilityStripHeading}>
-        <span style={utilityStripLabel}>{t('NOTICES & ANNOUNCEMENTS')}</span>
+    <section style={noticesUpdatesSection} dir={dir}>
+      <div
+        style={{
+          ...noticesUpdatesGrid,
+          gridTemplateColumns: hasAnnouncements && hasUpdates ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)',
+        }}
+        className="uai-notices-updates-grid"
+      >
 
-        <h2 style={utilityStripTitle}>
-          {t("What's happening at Ulul Azm")}
-        </h2>
-      </div>
+        {hasAnnouncements && (
+          <div className="ih-card" style={noticesCard}>
+            <div style={utilityStripHeading}>
+              <span style={utilityStripLabel}>{t('NOTICES & ANNOUNCEMENTS')}</span>
+              <h2 style={noticesCardTitle}>{t("What's happening at Ulul Azm")}</h2>
+            </div>
 
-      <div style={announcementsSliderViewport}>
-        <div
-          style={{
-            ...announcementsSliderTrack,
-            transform: `translateX(-${activeIndex * 100}%)`,
-          }}
-        >
-          {announcements.map((item) => (
-            <div key={item.id} style={announcementsSlide}>
-              <div style={announcementCard}>
-                <div style={announcementDate}>
-                  {new Date(item.publishedAt).toLocaleDateString([], {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </div>
+            <div style={announcementsSliderViewport}>
+              <div
+                style={{
+                  ...announcementsSliderTrack,
+                  transform: `translateX(-${activeIndex * 100}%)`,
+                }}
+              >
+                {announcements.map((item) => (
+                  <div key={item.id} style={announcementsSlide}>
+                    <div style={announcementCardInCard}>
+                      <div style={announcementDate}>
+                        {new Date(item.publishedAt).toLocaleDateString([], {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </div>
 
-                <h3 style={announcementTitle}>{item.titleEn}</h3>
+                      <h3 style={announcementTitle}>{item.titleEn}</h3>
 
-                <p style={announcementBody}>{item.bodyEn}</p>
+                      <p style={announcementBody}>{item.bodyEn}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {announcements.length > 1 && (
-        <div style={announcementsDots} role="tablist" aria-label="Announcements">
-          {announcements.map((item, index) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              onClick={() => setActiveIndex(index)}
-              aria-label={`Show notice ${index + 1} of ${announcements.length}`}
-              aria-selected={index === activeIndex}
-              style={index === activeIndex ? announcementsDotActive : announcementsDot}
-            />
-          ))}
-        </div>
-      )}
+            {announcements.length > 1 && (
+              <div style={announcementsDots} role="tablist" aria-label="Announcements">
+                {announcements.map((item, index) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    onClick={() => setActiveIndex(index)}
+                    aria-label={`Show notice ${index + 1} of ${announcements.length}`}
+                    aria-selected={index === activeIndex}
+                    style={index === activeIndex ? announcementsDotActive : announcementsDot}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {hasUpdates && (
+          <div className="ih-card" style={updatesCard}>
+            <div style={utilityStripHeading}>
+              <span style={utilityStripLabel}>EVENTS & NEWS</span>
+              <h2 style={noticesCardTitle}>Latest Updates</h2>
+            </div>
+
+            <div style={updatesList}>
+              {updateItems.map((item) => (
+                <Link
+                  key={`${item.kind}-${item.id}`}
+                  href={item.href}
+                  style={updateItemRow}
+                  className="uai-update-item"
+                >
+                  <div
+                    style={{
+                      ...updateItemImage,
+                      ...(item.image ? { backgroundImage: `url(${item.image})` } : {}),
+                    }}
+                  >
+                    {!item.image && <span aria-hidden="true">{item.kind === 'event' ? '📅' : '📰'}</span>}
+                  </div>
+
+                  <div style={updateItemBody}>
+                    <span style={updateItemBadge}>{item.kind === 'event' ? 'EVENT' : 'NEWS'}</span>
+                    <div style={updateItemTitle}>{item.title}</div>
+                    {item.excerpt && <p style={updateItemExcerpt}>{item.excerpt}</p>}
+                    <div style={updateItemMeta}>
+                      <span>
+                        {new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {item.time ? ` · ${item.time}` : ''}
+                      </span>
+                      <span style={updateItemReadMore}>Read more →</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: 20 }}>
+              <Link href="/updates" style={goldButton} className="uai-gold-btn">
+                View All Events &amp; News
+              </Link>
+            </div>
+          </div>
+        )}
+
+      </div>
     </section>
   );
 }
@@ -1920,25 +2041,44 @@ const heroStyle = {
   color: 'var(--on-accent)',
 };
 
-const heroOverlay = {
-  position: 'absolute',
-  inset: 0,
-  background:
-    'radial-gradient(circle at 20% 80%,rgba(255,255,255,.04),transparent 25%)',
-};
-
 const heroInner = {
   position: 'relative',
-  maxWidth: '1100px',
+  maxWidth: '1240px',
   margin: '0 auto',
-  padding: '105px 24px 115px',
-  textAlign: 'center',
+  padding: '72px 24px',
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)',
+  gap: '48px',
+  alignItems: 'center',
+};
+
+const heroTextCol = {
+  textAlign: 'start',
+};
+
+const heroImageCol = {
+  position: 'relative',
+  borderRadius: '20px',
+  overflow: 'hidden',
+  aspectRatio: '4 / 3',
+  boxShadow: '0 30px 70px rgba(5,46,22,.35)',
+  border: '1px solid rgba(255,255,255,.18)',
+  background: 'var(--brand-dark)',
+};
+
+const heroImagePlaceholder = {
+  position: 'absolute',
+  inset: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background:
+    'radial-gradient(circle at 30% 30%,rgba(197,157,95,.25),transparent 45%),linear-gradient(135deg,var(--brand-dark),var(--brand-deepest))',
 };
 
 // Hero banner slider (Model 25) -- stacked absolutely-positioned
-// layers crossfade via opacity, so the slider needs no width/height
-// math of its own and inherits the section's existing responsive
-// height from heroInner's own padding.
+// layers crossfade via opacity, now sized to fill heroImageCol (an
+// aspect-ratio box) instead of the whole section background.
 const heroSliderLayer = {
   position: 'absolute',
   inset: 0,
@@ -1956,13 +2096,13 @@ const heroArrow = {
   position: 'absolute',
   top: '50%',
   transform: 'translateY(-50%)',
-  width: '42px',
-  height: '42px',
+  width: '38px',
+  height: '38px',
   borderRadius: '50%',
   border: '1px solid rgba(255,255,255,.35)',
-  background: 'rgba(8,32,24,.45)',
+  background: 'rgba(8,32,24,.55)',
   color: '#fff',
-  fontSize: '22px',
+  fontSize: '20px',
   lineHeight: '1',
   display: 'flex',
   alignItems: 'center',
@@ -1973,7 +2113,7 @@ const heroArrow = {
 
 const heroDots = {
   position: 'absolute',
-  bottom: '20px',
+  bottom: '16px',
   left: '50%',
   transform: 'translateX(-50%)',
   display: 'flex',
@@ -1982,8 +2122,8 @@ const heroDots = {
 };
 
 const heroDot = {
-  width: '10px',
-  height: '10px',
+  width: '9px',
+  height: '9px',
   borderRadius: '50%',
   border: '1px solid rgba(255,255,255,.6)',
   background: '#fff',
@@ -1999,72 +2139,59 @@ const heroBadge = {
   border: '1px solid rgba(197,157,95,.45)',
   color: '#f4d58d',
   background: 'rgba(197,157,95,.08)',
-  fontSize: '14.5px',
+  fontSize: '13.5px',
   fontWeight: '900',
   letterSpacing: '1.4px',
-  marginBottom: '22px',
+  marginBottom: '20px',
 };
 
 const heroTitle = {
-  fontSize: 'clamp(29px,4.2vw,50px)',
-  lineHeight: 1.05,
-  maxWidth: '1100px',
-  margin: '0 auto 24px',
-  letterSpacing: '-1.5px',
-  whiteSpace: 'nowrap',
+  fontSize: 'clamp(28px,3.6vw,44px)',
+  lineHeight: 1.12,
+  margin: '0 0 20px',
+  letterSpacing: '-1px',
 };
 
 const heroText = {
-  maxWidth: '820px',
-  margin: '0 auto 35px',
-  fontSize: '19px',
-  lineHeight: 1.85,
+  maxWidth: '520px',
+  margin: 0,
+  fontSize: '17px',
+  lineHeight: 1.8,
   color: '#dbeafe',
 };
 
-const heroButtonRow = {
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  gap: '20px',
-  flexWrap: 'wrap',
-  width: '100%',
-  marginTop: '10px',
-};
-
-const heroPrimaryButton = {
-  display: 'inline-block',
-  padding: '13px 24px',
-  borderRadius: '8px',
-  textDecoration: 'none',
-  background: 'var(--gold)',
-  color: 'var(--brand-deepest)',
-  fontWeight: '900',
-  fontSize: '14px',
-};
-
-const heroSecondaryButton = {
-  display: 'inline-block',
-  padding: '13px 24px',
-  borderRadius: '8px',
-  textDecoration: 'none',
-  background: 'rgba(255,255,255,.06)',
-  color: 'var(--on-accent)',
-  border: '1px solid rgba(255,255,255,.6)',
-  fontWeight: '800',
-  fontSize: '14px',
+const heroFeaturesSection = {
+  background: 'var(--surface)',
+  borderBottom: '1px solid var(--border)',
 };
 
 const heroFeatures = {
+  maxWidth: '1100px',
+  margin: '0 auto',
+  padding: '20px 24px',
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  gap: '21px',
+  gap: '12px',
   flexWrap: 'wrap',
-  marginTop: '29px',
-  color: '#c4d4cb',
-  fontSize: '14px',
-  textAlign: 'center',
+};
+
+const heroFeatureChip = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '7px',
+  padding: '8px 16px',
+  borderRadius: '999px',
+  background: 'var(--brand-tint)',
+  color: 'var(--brand)',
+  fontWeight: '700',
+  fontSize: '13px',
+  border: '1px solid var(--brand-tint-2)',
+};
+
+const heroFeatureCheck = {
+  color: 'var(--gold-dark)',
+  fontWeight: '900',
 };
 
 const sectionStyle = {
@@ -2382,6 +2509,126 @@ const announcementBody = {
   lineHeight: 1.7,
   fontSize: '14.5px',
   margin: 0,
+};
+
+// Styles for NoticesAndUpdatesSection -- the two-column Notices /
+// Events+News homepage layout. Both cards reuse the shared .ih-card
+// class (background/border/radius/shadow already defined once in
+// globals.css) for the "elegant design card" look asked for, and add
+// only their own inner spacing/typography here.
+const noticesUpdatesSection = {
+  maxWidth: '1200px',
+  margin: '0 auto',
+  padding: '56px 24px',
+};
+
+const noticesUpdatesGrid = {
+  display: 'grid',
+  gap: '28px',
+  alignItems: 'start',
+};
+
+const noticesCard = {
+  padding: '30px',
+};
+
+const updatesCard = {
+  padding: '30px',
+};
+
+const noticesCardTitle = {
+  color: 'var(--brand)',
+  fontFamily: 'var(--font-display)',
+  fontSize: 'clamp(19px,2.2vw,23px)',
+  margin: '8px 0 0',
+};
+
+// A leaner variant of announcementCard for use inside NoticesAndUpdatesSection,
+// where the surrounding .ih-card already supplies the background, border,
+// radius and shadow -- so this only needs the gold top rule that marks each
+// notice, not a second nested card frame.
+const announcementCardInCard = {
+  borderTop: '3px solid var(--gold)',
+  paddingTop: '16px',
+};
+
+const updatesList = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '10px',
+  marginTop: '6px',
+};
+
+const updateItemRow = {
+  display: 'flex',
+  gap: '14px',
+  textDecoration: 'none',
+  color: 'inherit',
+  padding: '10px',
+  borderRadius: '12px',
+  transition: 'background .15s ease',
+};
+
+const updateItemImage = {
+  flex: '0 0 84px',
+  width: '84px',
+  height: '84px',
+  borderRadius: '10px',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  background: 'var(--brand-tint)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '26px',
+};
+
+const updateItemBody = {
+  flex: '1 1 auto',
+  minWidth: 0,
+};
+
+const updateItemBadge = {
+  display: 'inline-block',
+  color: 'var(--gold-dark)',
+  fontWeight: '800',
+  fontSize: '10.5px',
+  letterSpacing: '0.08em',
+  marginBottom: '4px',
+};
+
+const updateItemTitle = {
+  color: 'var(--ink)',
+  fontWeight: '700',
+  fontSize: '15px',
+  lineHeight: 1.35,
+  marginBottom: '4px',
+};
+
+const updateItemExcerpt = {
+  color: 'var(--ink-soft)',
+  fontSize: '13px',
+  lineHeight: 1.5,
+  margin: '0 0 6px',
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
+};
+
+const updateItemMeta = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: '10px',
+  fontSize: '12px',
+  color: 'var(--ink-soft)',
+};
+
+const updateItemReadMore = {
+  color: 'var(--brand)',
+  fontWeight: '700',
+  flexShrink: 0,
 };
 
 const cardGrid = {

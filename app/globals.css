@@ -400,6 +400,15 @@ aside.ih-student-sidebar{
   z-index: 1;
 }
 
+/* Fallback for app/donate when no admin banner image has been
+   uploaded yet (HomepageHero.loginBackgroundUrl empty) -- a branded
+   gradient so the page still reads as "Ulul Azm Institute" rather
+   than a flat, unstyled page, until an admin sets a real photo. */
+.ih-donate-fallback-bg{
+  background-image: radial-gradient(circle at 15% 20%, rgba(197,157,95,.18), transparent 32%),
+    linear-gradient(135deg, var(--brand-deepest) 0%, var(--brand) 55%, var(--brand-light) 100%) !important;
+}
+
 /* ============================================================
    LOGIN SUBMIT BUTTON POLISH
    Shared by app/login, app/staff-login and app/author-portal/admission's

@@ -144,11 +144,16 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
     '--logo-mobile-max-width': Math.round(150 * logoScale) + 'px',
   };
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [academyMobileOpen, setAcademyMobileOpen] = useState(false);
-  const [admissionMobileOpen, setAdmissionMobileOpen] = useState(false);
-  const [bookstoreMobileOpen, setBookstoreMobileOpen] = useState(false);
-  const [mediaMobileOpen, setMediaMobileOpen] = useState(false);
-  const [libraryMobileOpen, setLibraryMobileOpen] = useState(false);
+  // Single "which mobile submenu is open" state, not five independent
+  // booleans -- see the comment above the old useState calls this
+  // replaced. null means none open; opening one panel (see the
+  // per-section onClick handlers below) always closes any other.
+  const [openMobilePanel, setOpenMobilePanel] = useState(null);
+  const academyMobileOpen = openMobilePanel === 'academy';
+  const admissionMobileOpen = openMobilePanel === 'admission';
+  const bookstoreMobileOpen = openMobilePanel === 'bookstore';
+  const mediaMobileOpen = openMobilePanel === 'media';
+  const libraryMobileOpen = openMobilePanel === 'library';
 
   // Seeded from the server via the root layout -- see
   // components/SiteAuthProvider.jsx. No client fetch, no flash: the
@@ -212,10 +217,12 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
 
   useEffect(() => {
     // Close mobile menu on route change so it doesn't stay open after
-    // a link is followed.
+    // a link is followed. Previously only reset the Academy/Admission
+    // panels (Bookstore/Media/Library could stay stuck open across a
+    // navigation) -- now resets whichever one panel is open, covering
+    // all five.
     setMobileMenuOpen(false);
-    setAcademyMobileOpen(false);
-    setAdmissionMobileOpen(false);
+    setOpenMobilePanel(null);
   }, [pathname]);
 
   const hasResults =
@@ -467,7 +474,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           <>
           <button
             type="button"
-            onClick={() => setAcademyMobileOpen((open) => !open)}
+            onClick={() => setOpenMobilePanel((current) => (current === 'academy' ? null : 'academy'))}
             style={mobileAccordionTrigger}
             aria-expanded={academyMobileOpen}
             aria-controls="mobile-academy-panel"
@@ -508,7 +515,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           <>
           <button
             type="button"
-            onClick={() => setAdmissionMobileOpen((open) => !open)}
+            onClick={() => setOpenMobilePanel((current) => (current === 'admission' ? null : 'admission'))}
             style={mobileAccordionTrigger}
             aria-expanded={admissionMobileOpen}
             aria-controls="mobile-admission-panel"
@@ -550,7 +557,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           <>
           <button
             type="button"
-            onClick={() => setBookstoreMobileOpen((open) => !open)}
+            onClick={() => setOpenMobilePanel((current) => (current === 'bookstore' ? null : 'bookstore'))}
             style={mobileAccordionTrigger}
             aria-expanded={bookstoreMobileOpen}
             aria-controls="mobile-bookstore-panel"
@@ -591,7 +598,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           <>
           <button
             type="button"
-            onClick={() => setMediaMobileOpen((open) => !open)}
+            onClick={() => setOpenMobilePanel((current) => (current === 'media' ? null : 'media'))}
             style={mobileAccordionTrigger}
             aria-expanded={mediaMobileOpen}
             aria-controls="mobile-media-panel"
@@ -632,7 +639,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           <>
           <button
             type="button"
-            onClick={() => setLibraryMobileOpen((open) => !open)}
+            onClick={() => setOpenMobilePanel((current) => (current === 'library' ? null : 'library'))}
             style={mobileAccordionTrigger}
             aria-expanded={libraryMobileOpen}
             aria-controls="mobile-library-panel"
@@ -1224,6 +1231,13 @@ const mobileAccordionTrigger = {
 const mobileAccordionPanel = {
   background: 'var(--brand-tint)',
   borderBottom: '1px solid var(--border)',
+  // A long submenu (Media has 7+ items) previously pushed every
+  // section below it -- Library, Donate, Student Portal -- far down
+  // the page. Capping the panel's own height and letting it scroll
+  // internally keeps the rest of the menu reachable without a long
+  // page-level scroll.
+  maxHeight: '46vh',
+  overflowY: 'auto',
 };
 
 const mobileAccordionLink = {

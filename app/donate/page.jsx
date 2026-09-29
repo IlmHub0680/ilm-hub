@@ -23,12 +23,29 @@ import SiteFooter from '@/components/SiteFooter';
 // build than a one-time charge, so offering it now would repeat the
 // exact problem being fixed here (a control that doesn't do what it
 // claims).
+//
+// Visual redesign note: this page previously sat on a flat gray
+// background with nothing to distinguish it from an error page. It
+// now reuses the same institute banner image already shown behind
+// the Student/Staff/Bookstore login forms (HomepageHero.loginBackgroundUrl,
+// fetched via /api/homepage-content -- see app/account/page.jsx for
+// the identical pattern) so the page carries the same visual identity
+// as the rest of the site's "gated" pages, rather than inventing a
+// separate image setting admins would have to manage on top of it.
+// The payment form and every piece of verification/submit logic below
+// is completely unchanged from before this redesign.
 
 const PURPOSES = [
   'General Institute Support',
   'Student Scholarship Fund',
   'Library & Publication Expansion',
   'Online Media & Broadcasting',
+];
+
+const IMPACT_POINTS = [
+  { icon: '📖', text: 'Funds tuition and materials for students who could not otherwise afford them' },
+  { icon: '🕌', text: 'Supports the classical texts, courses and lectures the Institute publishes' },
+  { icon: '🌍', text: 'Keeps Islamic knowledge freely accessible online to students everywhere' },
 ];
 
 export default function DonationsPage() {
@@ -43,6 +60,28 @@ export default function DonationsPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [cancelledNotice, setCancelledNotice] = useState(false);
   const [receipt, setReceipt] = useState(null);
+
+  // Same institute banner image used behind the Student/Staff/
+  // Bookstore-Media login forms -- see app/account/page.jsx's
+  // identical fetch for the established pattern this reuses.
+  const [backgroundUrl, setBackgroundUrl] = useState('');
+
+  useEffect(() => {
+    let cancelledRequest = false;
+
+    fetch('/api/homepage-content')
+      .then((res) => res.json())
+      .then((result) => {
+        if (cancelledRequest) return;
+        const url = result?.data?.hero?.loginBackgroundUrl;
+        if (url) setBackgroundUrl(url);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelledRequest = true;
+    };
+  }, []);
 
   // Handle returning from Paystack (?reference=) or Stripe
   // (?stripe_session_id=), and the cancelled-checkout case.
@@ -206,15 +245,77 @@ export default function DonationsPage() {
     <>
       <SiteHeader />
 
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--paper)', padding: '48px 20px 90px' }}>
+      <div
+        style={{
+          minHeight: '100vh',
+          padding: '56px 20px 90px',
+          ...(backgroundUrl ? { backgroundImage: `url(${backgroundUrl})` } : { background: 'var(--brand-deepest)' }),
+        }}
+        className={backgroundUrl ? 'ih-login-page-bg' : 'ih-donate-fallback-bg'}
+      >
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
+          {!receipt && !verifying && (
+            <div style={{ textAlign: 'center', marginBottom: 30 }}>
+              <div
+                style={{
+                  display: 'inline-block',
+                  color: 'var(--gold)',
+                  fontWeight: 800,
+                  fontSize: 12.5,
+                  letterSpacing: '1.3px',
+                  textTransform: 'uppercase',
+                  marginBottom: 10,
+                }}
+              >
+                Give to Ulul Azm Institute
+              </div>
+              <h1
+                style={{
+                  margin: '0 0 14px',
+                  fontSize: 'clamp(26px,4vw,36px)',
+                  fontWeight: 800,
+                  color: 'var(--on-accent)',
+                  fontFamily: 'var(--font-display)',
+                }}
+              >
+                Support Authentic Islamic Education
+              </h1>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                  gap: '10px 22px',
+                  maxWidth: 560,
+                  margin: '0 auto',
+                }}
+              >
+                {IMPACT_POINTS.map((point) => (
+                  <span
+                    key={point.text}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      color: 'var(--on-dark-soft)',
+                      fontSize: 13,
+                    }}
+                  >
+                    <span aria-hidden="true">{point.icon}</span>
+                    {point.text}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div
             style={{
               background: 'var(--surface)',
               border: '1px solid var(--border)',
-              borderRadius: 16,
+              borderRadius: 18,
               padding: '36px 34px',
-              boxShadow: '0 4px 20px rgba(27,36,31,.06)',
+              boxShadow: '0 20px 60px rgba(5,46,22,.35)',
             }}
           >
             {verifying ? (
@@ -298,10 +399,10 @@ export default function DonationsPage() {
               </div>
             ) : (
               <>
-                <h1 style={{ margin: '0 0 10px', fontSize: 28, fontWeight: 800, color: 'var(--ink)' }}>
-                  Support Ulul Azm Institute
-                </h1>
-                <p style={{ color: 'var(--ink-soft)', marginBottom: 26, lineHeight: 1.6 }}>
+                <h2 style={{ margin: '0 0 10px', fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>
+                  Make Your Donation
+                </h2>
+                <p style={{ color: 'var(--ink-soft)', marginBottom: 26, lineHeight: 1.6, fontSize: 14 }}>
                   Your contributions directly fund authentic Islamic education, student support, and
                   community outreach.
                 </p>
