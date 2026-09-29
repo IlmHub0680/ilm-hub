@@ -132,8 +132,7 @@ const DEFAULT_FOOTER_LINK_GROUPS = [
       { label: "Academy Pathways", href: "/academy-pathways" },
       { label: "Admission & Registration", href: "/admission" },
       { label: "Student & Staff Portal Login", href: "/login" },
-      { label: "Events", href: "/events" },
-      { label: "News", href: "/news" },
+      { label: "Events & News", href: "/updates" },
     ],
   },
   {

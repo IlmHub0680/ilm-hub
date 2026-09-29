@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserRound, LayoutDashboard, LogIn, Search, Menu, X } from 'lucide-react';
+import { ChevronRightIcon } from '@/components/Icons';
 import { MEDIA_CATEGORIES } from '@/lib/media';
 import { LIBRARY_CATEGORIES } from '@/lib/library';
 import { useSiteBranding } from '@/components/SiteBrandingProvider';
@@ -168,6 +169,13 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
   const [searching, setSearching] = useState(false);
   const searchBoxRef = useRef(null);
 
+  // "More" overflow menu -- see the 900-1280px CSS block below for
+  // why this exists: Media, Library and Donate move in here instead
+  // of shrinking the nav's text indefinitely or letting one of them
+  // wrap to its own row.
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef(null);
+
   // Debounced live search -- real, server-side, queried against the
   // Academy documents, Programs, Courses, Media, Library and Bookstore's
   // own existing data (see app/api/search/route.js). Not a hardcoded
@@ -200,10 +208,16 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
       if (searchBoxRef.current && !searchBoxRef.current.contains(event.target)) {
         setSearchOpen(false);
       }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target)) {
+        setMoreMenuOpen(false);
+      }
     }
 
     function handleEscape(event) {
-      if (event.key === 'Escape') setSearchOpen(false);
+      if (event.key === 'Escape') {
+        setSearchOpen(false);
+        setMoreMenuOpen(false);
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -223,6 +237,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
     // all five.
     setMobileMenuOpen(false);
     setOpenMobilePanel(null);
+    setMoreMenuOpen(false);
   }, [pathname]);
 
   const hasResults =
@@ -314,13 +329,89 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           {(!sectionMode || sectionMode === 'bookstore') && (
             <NavDropdown label="Bookstore" href="/bookstore" items={BOOKSTORE_DROPDOWN_ITEMS} />
           )}
+
+          {/* Between 900 and 1280px there still isn't room for Media,
+              Library and Donate at full size even with the shrink
+              below -- rather than let one of them wrap to its own
+              row, they move into this single "More" trigger in that
+              range only (hidden entirely outside it: .uai-nav-more-wrap
+              in the stylesheet below). The three items themselves
+              stay in the DOM as normal nav items (.uai-nav-overflow-item),
+              just hidden by the same breakpoint, so nothing changes
+              above 1280px or below 900px (where the whole nav hides
+              in favor of the mobile drawer anyway). */}
+          {!sectionMode && (
+            <div ref={moreMenuRef} style={navDropdownWrap} className="uai-nav-more-wrap">
+              <button
+                type="button"
+                onClick={() => setMoreMenuOpen((open) => !open)}
+                style={navDropdownTrigger}
+                className="uai-nav-link"
+                aria-haspopup="true"
+                aria-expanded={moreMenuOpen}
+              >
+                More
+                <ChevronRightIcon
+                  size={13}
+                  style={{
+                    transform: moreMenuOpen ? 'rotate(90deg)' : 'none',
+                    transition: 'transform 0.15s',
+                  }}
+                />
+              </button>
+
+              {moreMenuOpen && (
+                <div style={navDropdownPanel} role="menu">
+                  <Link
+                    href="/media"
+                    style={navDropdownItem}
+                    className="uai-nav-dropdown-item"
+                    onClick={() => setMoreMenuOpen(false)}
+                  >
+                    Media
+                  </Link>
+                  <Link
+                    href="/library"
+                    style={navDropdownItem}
+                    className="uai-nav-dropdown-item"
+                    onClick={() => setMoreMenuOpen(false)}
+                  >
+                    Library
+                  </Link>
+                  <Link
+                    href="/donate"
+                    style={navDropdownItem}
+                    className="uai-nav-dropdown-item"
+                    onClick={() => setMoreMenuOpen(false)}
+                  >
+                    Donate
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
           {(!sectionMode || sectionMode === 'media') && (
-            <NavDropdown label="Media" href="/media" items={MEDIA_DROPDOWN_ITEMS} />
+            <NavDropdown
+              label="Media"
+              href="/media"
+              items={MEDIA_DROPDOWN_ITEMS}
+              className={sectionMode ? undefined : 'uai-nav-overflow-item'}
+            />
           )}
           {(!sectionMode || sectionMode === 'library') && (
-            <NavDropdown label="Library" href="/library" items={LIBRARY_DROPDOWN_ITEMS} />
+            <NavDropdown
+              label="Library"
+              href="/library"
+              items={LIBRARY_DROPDOWN_ITEMS}
+              className={sectionMode ? undefined : 'uai-nav-overflow-item'}
+            />
           )}
-          {!sectionMode && <NavLink href="/donate">Donate</NavLink>}
+          {!sectionMode && (
+            <NavLink href="/donate" className="uai-nav-overflow-item">
+              Donate
+            </NavLink>
+          )}
         </nav>
 
         {/* HEADER ACTIONS */}
@@ -396,7 +487,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
             <Link
               href={portalHref}
               style={sectionMode === 'bookstore' || sectionMode === 'media' ? portalButton : portalIconButton}
-              className={sectionMode === 'bookstore' || sectionMode === 'media' ? undefined : 'uai-portal-icon-btn'}
+              className={sectionMode === 'bookstore' || sectionMode === 'media' ? undefined : 'uai-portal-icon-btn site-header-portal-btn'}
               aria-label={portalLabel || 'Portal'}
             >
               {sectionMode === 'bookstore' || sectionMode === 'media' ? (
@@ -420,24 +511,29 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
               header (not on the Bookstore or Media section headers,
               where it's off-topic). */}
           {!sectionMode && (
-            <Link href="/admission" style={applyNowButton} className="uai-gold-btn">
+            <Link href="/admission" style={applyNowButton} className="uai-gold-btn site-header-apply-btn">
               Apply Now
             </Link>
           )}
-        </div>
-      </div>
 
-      {/* MOBILE MENU BUTTON */}
-      <div className="mobile-menu-button-container">
-        <button
-          type="button"
-          onClick={() => setMobileMenuOpen((open) => !open)}
-          style={mobileMenuButton}
-          aria-label="Toggle navigation menu"
-          aria-expanded={mobileMenuOpen}
-        >
-          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+          {/* Mobile menu toggle -- lives in this same actions row now
+              (used to be its own full-width row below the header,
+              stacked under the logo/search/portal/Apply row, which
+              read as two disconnected bars on a phone). Hidden by
+              default (.site-header-mobile-trigger), shown only at
+              the same <=900px width where the desktop nav itself
+              hides. */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            style={mobileMenuButton}
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
+            className="site-header-mobile-trigger"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </div>
 
       {/* MOBILE NAVIGATION */}
@@ -493,6 +589,17 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           <Link href="/" style={mobileNavLink} onClick={() => setMobileMenuOpen(false)}>
             Home
           </Link>
+
+          {!sectionMode && (
+            <Link
+              href="/admission"
+              style={mobileApplyButton}
+              className="uai-gold-btn"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Apply Now
+            </Link>
+          )}
 
           {!sectionMode && (
           <>
@@ -743,9 +850,19 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           }
         }
 
-        .mobile-menu-button-container {
+        /* Hidden by default -- shown only at <=900px (see below), where
+           it now sits inline at the end of the same header-actions
+           row as search/portal/Apply Now, instead of the awkward
+           separate full-width row it used to render as. */
+        .site-header-mobile-trigger {
           display: none;
-          padding: 0 24px 15px;
+        }
+
+        /* The "More" overflow trigger (Media/Library/Donate) is
+           hidden outside the 900-1280px range -- see the media query
+           below for why that range needs it at all. */
+        .uai-nav-more-wrap {
+          display: none;
         }
 
         /* Between 900px (desktop nav's own cutoff below) and 1280px
@@ -754,10 +871,14 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
            viewport's, and seven items -- one of them "Admission &
            Registration" -- plus the brand name genuinely don't all
            fit at their full desktop size. Rather than let flex-wrap
-           strand "Donate" on its own row, both the nav's items and
-           the brand name shrink a notch in exactly this range only;
-           above 1280px this block does nothing and both stay at
-           their normal desktop size. !important because these are
+           strand an item on its own row, two things happen together
+           in exactly this range: the nav's items and the brand name
+           shrink a notch, AND Media/Library/Donate move behind a
+           single "More" trigger (.uai-nav-overflow-item hidden,
+           .uai-nav-more-wrap shown) -- so what's left (Home, Academy,
+           Admission, Bookstore, More) comfortably fits on one line.
+           Above 1280px this block does nothing and everything stays
+           at full desktop size/layout. !important because these are
            overriding inline styles, same pattern as the rest of this
            file's responsive overrides. */
         @media (max-width: 1280px) {
@@ -776,6 +897,14 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
 
           .site-header-brand-subtitle {
             font-size: 7.5px !important;
+          }
+
+          .uai-nav-overflow-item {
+            display: none !important;
+          }
+
+          .uai-nav-more-wrap {
+            display: inline-block !important;
           }
         }
 
@@ -809,16 +938,18 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
             display: none !important;
           }
 
-          .mobile-menu-button-container {
-            display: flex;
-            justify-content: flex-end;
+          .site-header-mobile-trigger {
+            display: flex !important;
           }
-        }
 
-        @media (max-width: 700px) {
-          .mobile-menu-button-container {
-            padding-left: 16px;
-            padding-right: 16px;
+          /* Both are still reachable on mobile -- Student Portal as
+             its own link inside the drawer below, Apply Now as the
+             prominent button right under Home in that same drawer --
+             so hiding them here only removes the crowding, not the
+             access. */
+          .site-header-portal-btn,
+          .site-header-apply-btn {
+            display: none !important;
           }
         }
       `}</style>
@@ -845,9 +976,9 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
   );
 }
 
-function NavLink({ href, children }) {
+function NavLink({ href, children, className }) {
   return (
-    <Link href={href} style={navLink} className="uai-nav-link">
+    <Link href={href} style={navLink} className={`uai-nav-link${className ? ` ${className}` : ''}`}>
       {children}
     </Link>
   );
@@ -857,7 +988,7 @@ function NavLink({ href, children }) {
 // clicking or tapping Enter still navigates straight to `href` (the
 // section's hub page), the caret only reveals the sub-page shortcuts.
 // Desktop only; the mobile menu uses its own accordion pattern above.
-function NavDropdown({ label, href, items, groups }) {
+function NavDropdown({ label, href, items, groups, className }) {
   const [open, setOpen] = useState(false);
   // Hover-intent close delay -- the dropdown panel sits a few
   // pixels below its trigger (see navDropdownPanel's `top`), which
@@ -909,7 +1040,12 @@ function NavDropdown({ label, href, items, groups }) {
   }
 
   return (
-    <div style={navDropdownWrap} onMouseEnter={openNow} onMouseLeave={closeSoon}>
+    <div
+      style={navDropdownWrap}
+      className={className}
+      onMouseEnter={openNow}
+      onMouseLeave={closeSoon}
+    >
       <Link
         href={href}
         style={navDropdownTrigger}
@@ -1316,6 +1452,20 @@ const mobileMenuContainer = {
   borderTop: '1px solid var(--border)',
   background: 'var(--surface)',
   padding: '5px 0',
+};
+
+const mobileApplyButton = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  margin: '2px 15px 12px',
+  padding: '12px 16px',
+  borderRadius: '10px',
+  background: 'var(--gold)',
+  color: 'var(--on-accent, #fff)',
+  fontWeight: '800',
+  fontSize: '14px',
+  textDecoration: 'none',
 };
 
 const mobileSearchWrap = {

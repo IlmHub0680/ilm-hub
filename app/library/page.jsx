@@ -184,9 +184,21 @@ const page = {
   fontFamily: 'var(--font-body)',
 };
 
+// Padding/minHeight roughly matches app/bookstore/page.jsx's own
+// hero (100px/90px padding around a taller content block) -- Library's
+// hero used to be noticeably shorter (64px/56px, no minHeight), so an
+// uploaded banner image (background-size: contain, never cropped --
+// see below) only had a slim strip of vertical room to render into
+// and looked thin instead of filling the section the way Bookstore's
+// does.
 const hero = {
   background: 'linear-gradient(135deg, var(--brand-dark), var(--brand))',
-  padding: '64px 24px 56px',
+  padding: '96px 24px 84px',
+  minHeight: '380px',
+  boxSizing: 'border-box',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
   color: 'var(--on-accent)',
 };
 

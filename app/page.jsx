@@ -8,6 +8,7 @@ import { useSiteBranding } from '@/components/SiteBrandingProvider';
 import IslamicDateWidget from '@/components/IslamicDateWidget';
 import { LanguageProvider, useLanguage } from './HomeLanguageContext';
 import LanguageSelector from '@/components/LanguageSelector';
+import { ArrowUpRightIcon, ExternalLinkIcon } from '@/components/Icons';
 
 // Lightens (positive percent) or darkens (negative percent) a "#rrggbb"
 // hex color, returning an "rgb(r, g, b)" string -- used to derive the
@@ -1419,7 +1420,7 @@ function AnnouncementsSection() {
                     ...(index === announcements.length - 1 ? { borderBottom: 'none' } : {}),
                   }}
                 >
-                  <span aria-hidden="true" style={announcementsRowIcon}>\ud83d\udce3</span>
+                  <span aria-hidden="true" style={announcementsRowIcon}>📣</span>
                   <span style={announcementsRowBody}>
                     <span style={announcementsRowTitle}>{item.titleEn}</span>
                     <span style={announcementsRowDate}>
@@ -1430,7 +1431,7 @@ function AnnouncementsSection() {
                       })}
                     </span>
                   </span>
-                  <span aria-hidden="true" style={announcementsRowArrow}>\u203a</span>
+                  <ArrowUpRightIcon size={17} style={announcementsRowArrow} />
                 </Link>
               ))}
             </div>
@@ -1458,7 +1459,7 @@ function AnnouncementsSection() {
               >
                 <span aria-hidden="true" style={importantLinksRowIcon}>{link.icon}</span>
                 <span style={importantLinksRowLabel}>{t(link.label)}</span>
-                <span aria-hidden="true" style={importantLinksRowArrow}>\u2197</span>
+                <ExternalLinkIcon size={15} style={importantLinksRowArrow} />
               </Link>
             ))}
           </div>
@@ -2795,8 +2796,6 @@ const announcementsRowDate = {
 const announcementsRowArrow = {
   flexShrink: 0,
   color: 'var(--gold-dark)',
-  fontSize: '20px',
-  lineHeight: 1,
 };
 
 // Real, existing pages -- never placeholder links -- picked for what
@@ -2841,7 +2840,6 @@ const importantLinksRowLabel = {
 const importantLinksRowArrow = {
   flexShrink: 0,
   color: 'var(--brand)',
-  fontSize: '15px',
 };
 
 // Styles for EventsAndNewsSection -- the "three cards, image, title,

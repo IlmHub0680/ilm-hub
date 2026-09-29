@@ -44,8 +44,8 @@ export default function NewsArticlePage() {
       <SiteHeader />
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--paper)', padding: '48px 20px 80px' }}>
         <div style={{ maxWidth: 760, margin: '0 auto' }}>
-          <Link href="/news" style={{ color: 'var(--brand)', fontWeight: 600, textDecoration: 'none', display: 'inline-block', marginBottom: 20 }}>
-            ← Back to News
+          <Link href="/updates" style={{ color: 'var(--brand)', fontWeight: 600, textDecoration: 'none', display: 'inline-block', marginBottom: 20 }}>
+            ← Back to Events & News
           </Link>
 
           {!article && !error && <div style={{ color: 'var(--ink-soft)' }}>Loading…</div>}

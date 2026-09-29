@@ -2024,6 +2024,7 @@ const footerLinkGroupsDefault = [
       { id: "footer-link-academy-pathways", label: "Academy Pathways", href: "/academy-pathways", order: 5 },
       { id: "footer-link-admission-registration", label: "Admission & Registration", href: "/admission", order: 6 },
       { id: "footer-link-student-portal-login", label: "Student Portal Login", href: "/login", order: 7 },
+      { id: "footer-link-events-news", label: "Events & News", href: "/updates", order: 8 },
     ],
   },
   // "Academic Governance" (12 raw internal governance/curriculum/
