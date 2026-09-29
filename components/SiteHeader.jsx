@@ -979,7 +979,7 @@ const headerInner = {
 const brandStyle = {
   display: 'flex',
   alignItems: 'center',
-  gap: '12px',
+  gap: '10px',
   textDecoration: 'none',
   flexShrink: 0,
 };
@@ -1007,10 +1007,16 @@ const logoStyle = {
   flexShrink: 0,
 };
 
+// Was 27px when this was just "Ulul Azm" -- now that it reads
+// "Ulul Azm Institute" on one line, the full name at that size ran
+// the desktop nav out of room and pushed "Donate" (the last item) to
+// its own row. Sized down so the merged name still reads as one
+// clear line without starving the nav next to it.
 const brandName = {
-  fontSize: '27px',
+  fontSize: '21px',
   fontWeight: '900',
   color: 'var(--brand)',
+  whiteSpace: 'nowrap',
 };
 
 // Was the standalone "Institute" line under "Ulul Azm" -- now that

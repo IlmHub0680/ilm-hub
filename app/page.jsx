@@ -524,14 +524,12 @@ function HomeContent() {
           <div
             style={{
               ...heroTextCol,
-              // Same picture-frame treatment as the image side (a thin
-              // dark line, then a wider color band) so the two halves
-              // read as one bordered unit -- scaled down from the
-              // image's 34/38px ring to fit inside this column's own
-              // padding instead of crowding the headline. Uses this
-              // slide's accent color, so both frames change together
-              // as the slider advances.
-              boxShadow: `inset 0 0 0 14px ${heroAccentFrame || 'var(--gold)'}, inset 0 0 0 16px rgba(5,46,22,.55)`,
+              // Same picture-frame treatment, and now the exact same
+              // 34/38px ring as the image side (was thinner) so
+              // neither half reads as more heavily bordered than the
+              // other. Uses this slide's accent color, so both frames
+              // change together as the slider advances.
+              boxShadow: `inset 0 0 0 34px ${heroAccentFrame || 'var(--gold)'}, inset 0 0 0 38px rgba(5,46,22,.55)`,
               transition: 'box-shadow 1s ease',
             }}
             className="uai-hero-text-col"
@@ -2155,7 +2153,7 @@ const heroTextCol = {
   // Lines the headline up with the logo/nav above -- the exact same
   // "max(24px, centered-1280px-column + 24px gutter)" formula
   // components/SiteHeader.jsx's own headerInner uses.
-  paddingLeft: 'max(24px, calc((100vw - 1280px) / 2 + 24px))',
+  paddingLeft: 'max(44px, calc((100vw - 1280px) / 2 + 24px))',
   paddingRight: '48px',
   paddingTop: '56px',
   paddingBottom: '56px',
@@ -2170,7 +2168,7 @@ const heroImageCol = {
 
 const heroImagePlaceholder = {
   position: 'absolute',
-  inset: 0,
+  inset: '38px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -2183,7 +2181,11 @@ const heroImagePlaceholder = {
 // aspect-ratio box) instead of the whole section background.
 const heroSliderLayer = {
   position: 'absolute',
-  inset: 0,
+  // Inset by the frame's own thickness (see heroImageCol's boxShadow)
+  // instead of edge-to-edge -- otherwise a banner photo with little
+  // letterboxing fills the whole box and paints straight over the
+  // frame ring instead of sitting inside it.
+  inset: '38px',
 };
 
 const heroSlide = {
@@ -2241,10 +2243,10 @@ const heroDot = {
 };
 
 const heroTitle = {
-  fontSize: 'clamp(28px,3.6vw,44px)',
-  lineHeight: 1.12,
+  fontSize: 'clamp(21px,2.6vw,32px)',
+  lineHeight: 1.16,
   margin: '0 0 20px',
-  letterSpacing: '-1px',
+  letterSpacing: '-0.5px',
 };
 
 const heroText = {
