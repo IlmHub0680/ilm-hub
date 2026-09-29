@@ -537,10 +537,6 @@ function HomeContent() {
             className="uai-hero-text-col"
           >
 
-            <div style={heroBadge}>
-              {lang === 'ar' && hero.badgeAr ? hero.badgeAr : hero.badge}
-            </div>
-
             <TypedHeadline
               text={heroHeadlineText}
               style={heroTitle}
@@ -2242,19 +2238,6 @@ const heroDot = {
   padding: 0,
   cursor: 'pointer',
   transition: 'opacity .3s ease, transform .3s ease',
-};
-
-const heroBadge = {
-  display: 'inline-block',
-  padding: '9px 16px',
-  borderRadius: '30px',
-  border: '1px solid rgba(197,157,95,.45)',
-  color: '#f4d58d',
-  background: 'rgba(197,157,95,.08)',
-  fontSize: '13.5px',
-  fontWeight: '900',
-  letterSpacing: '1.4px',
-  marginBottom: '20px',
 };
 
 const heroTitle = {

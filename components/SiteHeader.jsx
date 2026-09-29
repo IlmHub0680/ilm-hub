@@ -291,8 +291,8 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
             <div style={dynamicLogoStyle} className="site-header-logo">ع</div>
           )}
           <div>
-            <div style={brandName} className="site-header-brand-name">Ulul Azm</div>
-            <div style={brandSubtitle} className="site-header-brand-subtitle">Institute</div>
+            <div style={brandName} className="site-header-brand-name">Ulul Azm Institute</div>
+            <div style={brandSubtitle} className="site-header-brand-subtitle">A Digital Home For Islamic Knowledge</div>
           </div>
         </Link>
 
@@ -761,8 +761,9 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           }
 
           .site-header-brand-subtitle {
-            font-size: 11px !important;
-            letter-spacing: 0.8px !important;
+            font-size: 7.5px !important;
+            letter-spacing: 0.4px !important;
+            white-space: normal !important;
           }
         }
 
@@ -1012,12 +1013,19 @@ const brandName = {
   color: 'var(--brand)',
 };
 
+// Was the standalone "Institute" line under "Ulul Azm" -- now that
+// the brand name reads as one line ("Ulul Azm Institute"), this slot
+// carries the tagline that used to sit in the hero text side instead
+// ("A Digital Home For Islamic Knowledge"), sized small enough to
+// stay well under the brand name's own width rather than competing
+// with it.
 const brandSubtitle = {
-  fontSize: '13.5px',
+  fontSize: '9.5px',
   color: 'var(--gold-dark)',
   fontWeight: '800',
-  letterSpacing: '1.2px',
+  letterSpacing: '0.8px',
   textTransform: 'uppercase',
+  whiteSpace: 'nowrap',
 };
 
 const navStyle = {
