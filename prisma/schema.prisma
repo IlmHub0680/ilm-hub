@@ -3374,14 +3374,21 @@ model HomepageHero {
 // /admin/homepage/banner-slider; the public homepage only shows
 // rows with isActive true, in "order" order.
 model HomepageHeroBanner {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
   // /api/assets/<key> path from /api/admin/uploads/image, same
   // convention as HomepageHero.heroImageUrl and SectionBanner.imageUrl.
-  imageUrl  String
-  order     Int      @default(0)
-  isActive  Boolean  @default(true)
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  imageUrl   String
+  // Short caption describing this specific banner image -- typed out
+  // in the hero headline in sync with the slide, replacing the
+  // static HomepageHero.title while banners are active. Optional:
+  // an empty caption falls back to HomepageHero.title/titleAr so a
+  // banner added without one never leaves the headline blank.
+  captionEn  String?
+  captionAr  String?
+  order      Int      @default(0)
+  isActive   Boolean  @default(true)
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
 }
 
 // Homepage "Welcome", "Academy" and "Our Approach" section text, plus

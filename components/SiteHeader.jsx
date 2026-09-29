@@ -386,8 +386,24 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
 
           {rightExtra}
 
+          {/* Apply Now sits right next to the portal icon so it's the
+              first thing a prospective student sees, not just one more
+              item inside the Admission & Registration dropdown -- only
+              shown in the default/general header (not on the Bookstore
+              or Media section headers, where it's off-topic). */}
+          {!sectionMode && (
+            <Link href="/admission" style={applyNowButton} className="uai-gold-btn">
+              Apply Now
+            </Link>
+          )}
+
           {portalHref && (
-            <Link href={portalHref} style={portalButton}>
+            <Link
+              href={portalHref}
+              style={sectionMode === 'bookstore' || sectionMode === 'media' ? portalButton : portalIconButton}
+              aria-label={portalLabel || 'Portal'}
+              title={portalLabel || undefined}
+            >
               {sectionMode === 'bookstore' || sectionMode === 'media' ? (
                 user ? (
                   <LayoutDashboard size={18} strokeWidth={2.2} />
@@ -395,9 +411,11 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
                   <LogIn size={18} strokeWidth={2.2} />
                 )
               ) : (
-                <CircleUserRound size={18} strokeWidth={2.2} />
+                <CircleUserRound size={20} strokeWidth={2} />
               )}
-              <span>{portalLabel}</span>
+              {(sectionMode === 'bookstore' || sectionMode === 'media') && (
+                <span>{portalLabel}</span>
+              )}
             </Link>
           )}
         </div>
@@ -994,11 +1012,14 @@ const navStyle = {
   minWidth: 0,
 };
 
+// Nudged down from 17px/900 -- read as slightly too big/heavy at
+// the top of every page. Still bold and easy to scan, just not
+// overpowering the rest of the header.
 const navLink = {
   color: 'var(--ink-soft)',
   textDecoration: 'none',
-  fontSize: '17px',
-  fontWeight: '900',
+  fontSize: '15px',
+  fontWeight: '800',
   padding: '9px 10px',
   borderRadius: '7px',
   whiteSpace: 'nowrap',
@@ -1170,6 +1191,35 @@ const portalButton = {
   color: 'var(--brand)',
   fontWeight: '800',
   fontSize: '13.5px',
+};
+
+// Icon-only variant for the default/general header (matches the
+// unlabeled circular portal icon the user asked to match), used only
+// when there's no text label to show alongside the icon.
+const portalIconButton = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '38px',
+  height: '38px',
+  borderRadius: '10px',
+  border: '1px solid var(--border)',
+  textDecoration: 'none',
+  color: 'var(--brand)',
+  flexShrink: 0,
+};
+
+const applyNowButton = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '9px 16px',
+  borderRadius: '999px',
+  background: 'var(--gold)',
+  color: 'var(--on-accent, #fff)',
+  fontWeight: '800',
+  fontSize: '13px',
+  textDecoration: 'none',
+  whiteSpace: 'nowrap',
 };
 
 const mobileMenuButton = {

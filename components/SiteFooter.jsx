@@ -90,7 +90,7 @@ const DEFAULT_FOOTER_LINK_GROUPS = [
       { label: 'Academy Foundation', href: '/academy-foundation' },
       { label: 'Academy Pathways', href: '/academy-pathways' },
       { label: 'Admission & Registration', href: '/admission' },
-      { label: 'Student Portal Login', href: '/login' },
+      { label: 'Student & Staff Portal Login', href: '/login' },
       { label: 'Events', href: '/events' },
       { label: 'News', href: '/news' },
     ],
@@ -107,7 +107,6 @@ const DEFAULT_FOOTER_LINK_GROUPS = [
       { label: 'Refund Policy', href: '/refund' },
       { label: 'Academic Policies', href: '/academic-policies' },
       { label: 'Student Resources', href: '/student-resources' },
-      { label: 'Staff & Admin Portal', href: '/admin' },
     ],
   },
 ];

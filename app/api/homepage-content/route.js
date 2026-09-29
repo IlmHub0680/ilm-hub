@@ -261,7 +261,7 @@ export async function GET() {
         // state -- the public homepage then falls back to hero.heroImageUrl
         // (and, below that, the plain gradient background) exactly as it
         // always has.
-        heroBanners: heroBanners.map((banner) => ({ id: banner.id, imageUrl: banner.imageUrl })),
+        heroBanners: heroBanners.map((banner) => ({ id: banner.id, imageUrl: banner.imageUrl, captionEn: banner.captionEn || '', captionAr: banner.captionAr || '' })),
         socialLinks:
           socialLinks.length > 0
             ? socialLinks.map((link) => ({

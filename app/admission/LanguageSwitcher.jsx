@@ -1,10 +1,15 @@
 'use client';
 
 import { useLanguage } from './LanguageContext';
+import LanguageSelector from '@/components/LanguageSelector';
 
-// A clearly visible English/Arabic toggle, fixed to the top-right (or
+// A clearly visible language picker, fixed to the top-right (or
 // top-left in RTL) of every page under /admission so it is reachable
 // from anywhere in the application flow, not just the first screen.
+// Shares the same globe-icon dropdown as the rest of the site
+// (components/LanguageSelector) -- only English and Arabic are wired
+// to this flow's own LanguageContext (its actual translated content),
+// French and Hausa show as "Coming soon" the same as everywhere else.
 export default function LanguageSwitcher() {
   const { lang, setLang, dir } = useLanguage();
 
@@ -23,56 +28,7 @@ export default function LanguageSwitcher() {
         boxSizing: 'border-box',
       }}
     >
-      <div
-        role="group"
-        aria-label="Language selector"
-        style={{
-          display: 'inline-flex',
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: '999px',
-          padding: '4px',
-          gap: '2px',
-          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setLang('en')}
-          aria-pressed={lang === 'en'}
-          style={{
-            padding: '7px 16px',
-            borderRadius: '999px',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: 700,
-            fontFamily: 'var(--font-body)',
-            background: lang === 'en' ? 'var(--brand)' : 'transparent',
-            color: lang === 'en' ? 'var(--on-accent)' : 'var(--ink-soft)',
-          }}
-        >
-          EN
-        </button>
-        <button
-          type="button"
-          onClick={() => setLang('ar')}
-          aria-pressed={lang === 'ar'}
-          style={{
-            padding: '7px 16px',
-            borderRadius: '999px',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: 700,
-            fontFamily: 'var(--font-arabic-display), var(--font-arabic)',
-            background: lang === 'ar' ? 'var(--brand)' : 'transparent',
-            color: lang === 'ar' ? 'var(--on-accent)' : 'var(--ink-soft)',
-          }}
-        >
-          العربية
-        </button>
-      </div>
+      <LanguageSelector lang={lang} onChange={setLang} dir={dir} />
     </div>
   );
 }

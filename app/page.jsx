@@ -7,6 +7,7 @@ import SiteFooter from '@/components/SiteFooter';
 import { useSiteBranding } from '@/components/SiteBrandingProvider';
 import IslamicDateWidget from '@/components/IslamicDateWidget';
 import { LanguageProvider, useLanguage } from './HomeLanguageContext';
+import LanguageSelector from '@/components/LanguageSelector';
 
 function HomeContent() {
   const { t, dir, lang, setLang } = useLanguage();
@@ -247,6 +248,21 @@ function HomeContent() {
   const heroSlideCount = heroBanners.length;
   const activeSlideIndex = heroSlideCount > 0 ? ((activeSlide % heroSlideCount) + heroSlideCount) % heroSlideCount : 0;
 
+  // The headline that types out in the hero -- when at least one
+  // banner is active, each slide gets its own caption describing that
+  // photo (the user's ask: "the image slides and a designated text
+  // that describe the image... slides with the image since it
+  // describes it"), retyping whenever the slide changes because
+  // TypedHeadline's own effect re-runs on every change to its `text`
+  // prop. A banner with no caption saved yet (or when there are no
+  // banners at all) falls back to the Hero Section's own static
+  // title, exactly as before -- the headline is never left blank.
+  const activeBanner = heroSlideCount > 0 ? heroBanners[activeSlideIndex] : null;
+  const activeBannerCaption = activeBanner
+    ? (lang === 'ar' && activeBanner.captionAr ? activeBanner.captionAr : activeBanner.captionEn)
+    : '';
+  const heroHeadlineText = activeBannerCaption || (lang === 'ar' && hero.titleAr ? hero.titleAr : hero.title);
+
   function goToSlide(index) {
     setActiveSlide(index);
   }
@@ -409,20 +425,7 @@ function HomeContent() {
           </div>
 
           <div style={langToggleRow}>
-            <button
-              type="button"
-              onClick={() => setLang('en')}
-              style={lang === 'en' ? langToggleBtnActive : langToggleBtn}
-            >
-              EN
-            </button>
-            <button
-              type="button"
-              onClick={() => setLang('ar')}
-              style={lang === 'ar' ? langToggleBtnActiveAr : langToggleBtnAr}
-            >
-              العربية
-            </button>
+            <LanguageSelector lang={lang} onChange={setLang} dir={dir} />
           </div>
 
         </div>
@@ -459,7 +462,7 @@ function HomeContent() {
             </div>
 
             <TypedHeadline
-              text={lang === 'ar' && hero.titleAr ? hero.titleAr : hero.title}
+              text={heroHeadlineText}
               style={heroTitle}
             />
 

@@ -11,6 +11,8 @@ function serialize(banner) {
   return {
     id: banner.id,
     imageUrl: banner.imageUrl,
+    captionEn: banner.captionEn || '',
+    captionAr: banner.captionAr || '',
     order: banner.order,
     isActive: banner.isActive,
   };
@@ -62,8 +64,13 @@ export async function PUT(request) {
         return json({ success: false, error: `Banner ${i + 1}: an image is required.` }, 400);
       }
 
+      const captionEn = typeof item?.captionEn === "string" ? item.captionEn.trim() : "";
+      const captionAr = typeof item?.captionAr === "string" ? item.captionAr.trim() : "";
+
       values.push({
         imageUrl,
+        captionEn: captionEn || null,
+        captionAr: captionAr || null,
         order: i,
         isActive: item?.isActive !== false,
       });

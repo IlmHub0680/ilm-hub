@@ -27,7 +27,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import SectionDiscussion from '@/components/SectionDiscussion';
 import AcademicCalendarView from '@/components/AcademicCalendarView';
 import { MAX_GPA, latestGradeByCourse } from '@/lib/grading';
@@ -173,6 +173,31 @@ export default function LoginPage() {
   // links to a dedicated /academics/* page (an internal-tab item is
   // still highlighted via activeStudentTab, see menuItems below).
   const pathname = usePathname();
+
+  // Which portal this login form is currently set to -- 'student'
+  // (unchanged default/existing behaviour) or 'staff' (new: same
+  // /api/auth/login call, then routed to the account's real
+  // destination via /api/auth/staff-destination, exactly like the
+  // standalone /staff-login page already does).
+  const [portalRole, setPortalRole] = useState('student');
+  const router = useRouter();
+
+  // Arriving here via the legacy /staff-login redirect (still linked
+  // from ~30 staff-only pages' own auth guards) should open straight
+  // to the Staff Portal side of this form, not default to Student.
+  // Read via window.location.search rather than useSearchParams() so
+  // this doesn't require wrapping the whole page in a Suspense
+  // boundary just for one query param.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('portal') === 'staff') {
+        setPortalRole('staff');
+      }
+    } catch (error) {
+      // window/URLSearchParams unavailable -- default to Student stands.
+    }
+  }, []);
 
   // ==========================================================
   // LOGIN
@@ -1076,12 +1101,42 @@ const handleLogin = async (e) => {
       return;
     }
 
-    // Play the form-exit + checkmark micro-interaction before flipping this
-    // component into its dashboard view. This component never navigates on
-    // login (no router.push) -- it just re-renders in place once
-    // isLoggedIn flips, so the animation is sequenced entirely with local
-    // state and timers matching the durations defined in globals.css
-    // (.ih-login-form-out .32s, .ih-login-check-ring .5s).
+    // Staff Portal: resolve the account's real destination server-side
+    // (getStaffDestination in lib/permissions.ts -- the exact same
+    // lookup the standalone /staff-login page uses) and navigate
+    // there. Never assume every Staff Portal login belongs on the
+    // Admin Dashboard.
+    if (portalRole === 'staff') {
+      const destResponse = await fetch('/api/auth/staff-destination', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      const destData = await destResponse.json();
+
+      if (!destData?.success || !destData.destination) {
+        setAuthError(
+          'This account is not set up with staff dashboard access. Please contact an administrator.'
+        );
+        setAuthLoading(false);
+        return;
+      }
+
+      setAuthLoading(false);
+      setLoginSuccess(true);
+      setTimeout(() => {
+        router.push(destData.destination);
+        router.refresh();
+      }, 700);
+      return;
+    }
+
+    // Student Portal: play the form-exit + checkmark micro-interaction
+    // before flipping this component into its dashboard view. This
+    // component never navigates on a student login (no router.push)
+    // -- it just re-renders in place once isLoggedIn flips, so the
+    // animation is sequenced entirely with local state and timers
+    // matching the durations defined in globals.css (.ih-login-form-
+    // out .32s, .ih-login-check-ring .5s).
     setAuthLoading(false);
     setLoginSuccess(true);
     setTimeout(() => {
@@ -2229,12 +2284,51 @@ const handleLogout = async () => {
               <div style={styles.loginKicker}>Ulul Azm Institute</div>
 
               <h1 style={styles.loginTitle}>
-                Student Portal
+                {portalRole === 'staff' ? 'Staff Portal' : 'Student Portal'}
               </h1>
 
               <p style={styles.loginSubtitle}>
-                Access your Ulul Azm student account
+                {portalRole === 'staff'
+                  ? 'Access your Ulul Azm staff account'
+                  : 'Access your Ulul Azm student account'}
               </p>
+            </div>
+
+            {/* Two-circle portal chooser -- picking one decides both
+                which credentials this form expects and, on success,
+                where it sends the signed-in account (see handleLogin
+                above). Disabled during the sign-in success animation
+                so a click can't change portals mid-transition. */}
+            <div style={styles.portalRoleRow} role="radiogroup" aria-label="Choose a portal">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={portalRole === 'student'}
+                onClick={() => setPortalRole('student')}
+                disabled={loginSuccess}
+                style={portalRole === 'student' ? styles.portalRoleOptionActive : styles.portalRoleOption}
+              >
+                <span
+                  aria-hidden="true"
+                  style={portalRole === 'student' ? styles.portalRoleDotActive : styles.portalRoleDot}
+                />
+                Student Portal
+              </button>
+
+              <button
+                type="button"
+                role="radio"
+                aria-checked={portalRole === 'staff'}
+                onClick={() => setPortalRole('staff')}
+                disabled={loginSuccess}
+                style={portalRole === 'staff' ? styles.portalRoleOptionActive : styles.portalRoleOption}
+              >
+                <span
+                  aria-hidden="true"
+                  style={portalRole === 'staff' ? styles.portalRoleDotActive : styles.portalRoleDot}
+                />
+                Staff Portal
+              </button>
             </div>
 
             <form
@@ -2253,7 +2347,7 @@ const handleLogout = async () => {
                   onChange={(e) =>
                     setEmail(e.target.value)
                   }
-                  placeholder="student@ululazm.edu"
+                  placeholder={portalRole === 'staff' ? 'staff@ululazm.edu' : 'student@ululazm.edu'}
                   required
                   disabled={loginSuccess}
                   className="ih-login-input"
@@ -2313,20 +2407,22 @@ const handleLogout = async () => {
     cursor: (authLoading || loginSuccess) ? 'not-allowed' : 'pointer',
   }}
 >
-  {authLoading ? 'Signing In...' : 'Login as Student'}
+  {authLoading ? 'Signing In...' : portalRole === 'staff' ? 'Login as Staff' : 'Login as Student'}
 </button>
 
             </form>
 
-            <div style={styles.loginFooter}>
-              New student?{' '}
-              <Link
-                href="/admission"
-                style={styles.link}
-              >
-                Register for Admission
-              </Link>
-            </div>
+            {portalRole === 'student' && (
+              <div style={styles.loginFooter}>
+                New student?{' '}
+                <Link
+                  href="/admission"
+                  style={styles.link}
+                >
+                  Register for Admission
+                </Link>
+              </div>
+            )}
           </div>
 
           {loginSuccess && (
@@ -5321,6 +5417,65 @@ const styles = {
     fontSize: '15px',
     margin: 0,
     lineHeight: 1.5
+  },
+
+  portalRoleRow: {
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '24px',
+  },
+
+  portalRoleOption: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '12px 14px',
+    borderRadius: '12px',
+    border: '1px solid var(--border)',
+    background: 'var(--surface)',
+    color: 'var(--ink-soft)',
+    fontWeight: 700,
+    fontSize: '13.5px',
+    cursor: 'pointer',
+    transition: 'border-color .15s ease, background .15s ease, color .15s ease',
+  },
+
+  portalRoleOptionActive: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '12px 14px',
+    borderRadius: '12px',
+    border: '1px solid var(--brand)',
+    background: 'var(--brand-tint)',
+    color: 'var(--brand)',
+    fontWeight: 800,
+    fontSize: '13.5px',
+    cursor: 'pointer',
+  },
+
+  portalRoleDot: {
+    display: 'inline-block',
+    width: '14px',
+    height: '14px',
+    borderRadius: '50%',
+    border: '2px solid var(--border)',
+    background: 'transparent',
+    flexShrink: 0,
+  },
+
+  portalRoleDotActive: {
+    display: 'inline-block',
+    width: '14px',
+    height: '14px',
+    borderRadius: '50%',
+    border: '4px solid var(--brand)',
+    background: 'var(--surface)',
+    flexShrink: 0,
   },
 
   loginForm: {

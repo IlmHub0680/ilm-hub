@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { menuFor, MORE_OPTIONS_VALUE } from '@/lib/assistantKnowledge';
 import { useSiteBranding } from '@/components/SiteBrandingProvider';
 import { at } from '@/lib/assistantI18n';
+import LanguageSelector from '@/components/LanguageSelector';
 
 // Which part of the site this pathname belongs to, for the assistant's
 // context-aware menu and welcome message. This only shapes what the
@@ -463,48 +464,7 @@ export default function AssistantWidget() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {/* Language switcher -- visible at all times, switches the
                   whole widget without leaving the conversation. */}
-              <div
-                role="group"
-                aria-label="Language / اللغة"
-                style={{
-                  display: 'flex',
-                  border: '1px solid rgba(255,255,255,0.35)',
-                  borderRadius: '999px',
-                  overflow: 'hidden',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => changeLang('en')}
-                  aria-pressed={lang === 'en'}
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px 8px',
-                    background: lang === 'en' ? 'var(--on-accent)' : 'transparent',
-                    color: lang === 'en' ? 'var(--brand-dark)' : 'var(--on-accent)',
-                  }}
-                >
-                  EN
-                </button>
-                <button
-                  type="button"
-                  onClick={() => changeLang('ar')}
-                  aria-pressed={lang === 'ar'}
-                  style={{
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px 8px',
-                    background: lang === 'ar' ? 'var(--on-accent)' : 'transparent',
-                    color: lang === 'ar' ? 'var(--brand-dark)' : 'var(--on-accent)',
-                    fontFamily: 'var(--font-arabic)',
-                  }}
-                >
-                  ع
-                </button>
-              </div>
+              <LanguageSelector lang={lang} onChange={changeLang} dir={dir} theme="dark" align="end" />
 
               <button
                 type="button"

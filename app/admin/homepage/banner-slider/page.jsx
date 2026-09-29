@@ -5,8 +5,19 @@ import { uploadFileWithProgress } from '@/lib/xhrUpload';
 
 const MAX_BANNERS = 5;
 
+const captionInputStyle = {
+  width: '100%',
+  boxSizing: 'border-box',
+  padding: '8px 10px',
+  border: '1px solid var(--border)',
+  borderRadius: 8,
+  fontSize: 13,
+  color: 'var(--ink)',
+  backgroundColor: 'var(--surface)',
+};
+
 function emptyBanner() {
-  return { imageUrl: '', isActive: true };
+  return { imageUrl: '', captionEn: '', captionAr: '', isActive: true };
 }
 
 export default function HeroBannerSliderPage() {
@@ -133,7 +144,11 @@ export default function HeroBannerSliderPage() {
           independent of the single banner image on the Hero Section page —
           when at least one image here is enabled, the slider is shown on the
           homepage instead; when none are enabled, the homepage falls back to
-          the Hero Section's single image exactly as before.
+          the Hero Section's single image exactly as before. Give each banner
+          a short caption (English, and Arabic if you have it) — it types out
+          in the homepage headline as that banner is shown, describing the
+          picture on screen. Leave a caption blank to fall back to the Hero
+          Section's own title instead.
         </p>
       </div>
 
@@ -182,6 +197,24 @@ export default function HeroBannerSliderPage() {
               hasImage={Boolean(banner.imageUrl)}
               onUpload={(file) => handleImageUpload(i, file)}
             />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 260px', minWidth: 220 }}>
+              <input
+                type="text"
+                value={banner.captionEn || ''}
+                onChange={(e) => updateBanner(i, 'captionEn', e.target.value)}
+                placeholder="Caption (English) — describes this banner image"
+                style={captionInputStyle}
+              />
+              <input
+                type="text"
+                dir="rtl"
+                value={banner.captionAr || ''}
+                onChange={(e) => updateBanner(i, 'captionAr', e.target.value)}
+                placeholder="التسمية التوضيحية (عربي) — اختياري"
+                style={{ ...captionInputStyle, fontFamily: 'var(--font-arabic)' }}
+              />
+            </div>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
               <input
