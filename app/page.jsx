@@ -2674,8 +2674,10 @@ const utilityStripTitle = {
 // shadow already defined once in globals.css) for the "elegant design
 // card" look asked for, and match the hero's own maxWidth (1240px)
 // for a consistent width rhythm down the page.
+// Narrowed from the hero's own 1240px -- these two cards read as too
+// wide at that width, per feedback after the two-card rework.
 const noticesUpdatesSection = {
-  maxWidth: '1240px',
+  maxWidth: '1080px',
   margin: '0 auto',
   padding: '56px 24px',
 };
