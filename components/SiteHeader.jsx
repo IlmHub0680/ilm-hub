@@ -302,8 +302,14 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           {!sectionMode && (
             <NavDropdown label="Academy" href="/academy" items={ACADEMY_DROPDOWN_ITEMS} />
           )}
+          {/* Nav label was "Admission & Registration" -- the single
+              longest item in this nav, and the main reason "Donate"
+              kept getting squeezed onto its own row even after
+              trimming the brand name and the nav's own font size.
+              The dropdown panel underneath still spells the office
+              name out in full. */}
           {!sectionMode && (
-            <NavDropdown label="Admission & Registration" href="/admission" groups={ADMISSION_DROPDOWN_GROUPS} />
+            <NavDropdown label="Admission" href="/admission" groups={ADMISSION_DROPDOWN_GROUPS} />
           )}
           {(!sectionMode || sectionMode === 'bookstore') && (
             <NavDropdown label="Bookstore" href="/bookstore" items={BOOKSTORE_DROPDOWN_ITEMS} />
@@ -767,6 +773,10 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           .site-header-brand-name {
             font-size: 18px !important;
           }
+
+          .site-header-brand-subtitle {
+            font-size: 7.5px !important;
+          }
         }
 
         @media (max-width: 700px) {
@@ -788,8 +798,8 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           }
 
           .site-header-brand-subtitle {
-            font-size: 7.5px !important;
-            letter-spacing: 0.4px !important;
+            font-size: 7px !important;
+            letter-spacing: 0.1px !important;
             white-space: normal !important;
           }
         }
@@ -1052,12 +1062,17 @@ const brandName = {
 // ("A Digital Home For Islamic Knowledge"), sized small enough to
 // stay well under the brand name's own width rather than competing
 // with it.
+// Sized (and cased) to always stay narrower than the brand name
+// above it -- "A Digital Home For Islamic Knowledge" is nearly twice
+// the character count of "Ulul Azm Institute", so matching its width
+// instead of its font-size needed both a much smaller size AND
+// dropping the uppercase transform (all-caps runs noticeably wider
+// per character than mixed case), not just a smaller number.
 const brandSubtitle = {
-  fontSize: '9.5px',
+  fontSize: '9px',
   color: 'var(--gold-dark)',
-  fontWeight: '800',
-  letterSpacing: '0.8px',
-  textTransform: 'uppercase',
+  fontWeight: '700',
+  letterSpacing: '0.2px',
   whiteSpace: 'nowrap',
 };
 

@@ -557,6 +557,15 @@ function HomeContent() {
           <div
             style={{
               ...heroImageCol,
+              // Reaches 27px past its own grid column into the text
+              // column's -- see the comment above this JSX block --
+              // so its own left-edge frame covers heroTextCol's
+              // right-edge frame instead of the two stacking into a
+              // doubled band at the seam. Desktop (side-by-side) only;
+              // cancelled back to normal in the stacked mobile layout
+              // by the .uai-hero-image-col media rule below.
+              marginLeft: '-27px',
+              width: 'calc(100% + 27px)',
               // Same gradient formula as the section background behind
               // the text side (was a flat single color here), so the
               // margin around the photo actually fills with the same
@@ -1086,6 +1095,11 @@ function HomeContent() {
           .uai-hero-image-col {
             aspect-ratio: 16 / 9 !important;
             order: -1;
+            /* The desktop side-by-side overlap (see the inline
+               marginLeft/width on this element) doesn't apply once
+               the columns stack -- back to a normal full-width block. */
+            margin-left: 0 !important;
+            width: 100% !important;
           }
         }
 
