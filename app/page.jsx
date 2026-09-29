@@ -1021,24 +1021,28 @@ function HomeContent() {
           footer, not only this one -- see components/SiteFooter.jsx. */}
 
       {/* =====================================================
-          NOTICES & UPDATES (Model 30)
-          Two-column layout: Notices & Announcements on the left,
-          a combined Events + News feed on the right, each its own
-          elegant card -- so this content reads at a glance instead
-          of three separate full-width sections stacking the page
-          taller. Renders nothing at all when neither side has live
-          data (same "return null when empty" convention used
-          throughout this file), and each side independently
-          disappears if only one of them has content, so the
-          remaining card still takes the full width rather than
-          leaving a blank column. The "View All Events & News" link
-          opens the new standalone /updates page (search + share),
-          separate from the original /events and /news list pages,
-          which still exist and are still linked to from each
-          item's own read-more link.
+          NOTICES & ANNOUNCEMENTS (Model 30)
+          Its own card, unchanged: an auto-advancing slider of
+          notices. Renders nothing when there are none yet (same
+          "return null when empty" convention used throughout this
+          file).
       ===================================================== */}
 
-      <NoticesAndUpdatesSection />
+      <AnnouncementsSection />
+
+      {/* =====================================================
+          EVENTS AND NEWS
+          Its own full-width section, matching the "three cards --
+          image, title, date, Read More -- with View All and paging
+          arrows/dots" reference design: soonest-first upcoming
+          events plus newest-first news, three at a time, tapping any
+          card opens that item's own page. "View All" opens the
+          standalone /updates page (search + share), which still
+          lists every event and article in full. Renders nothing when
+          there's no live data yet.
+      ===================================================== */}
+
+      <EventsAndNewsSection />
 
       {/* =====================================================
           SPONSORS & PARTNERS
@@ -1103,10 +1107,6 @@ function HomeContent() {
           }
         }
 
-        .uai-update-item:hover {
-          background: var(--brand-tint);
-        }
-
         @media (max-width: 820px) {
           .uai-notices-updates-grid {
             grid-template-columns: minmax(0,1fr) !important;
@@ -1116,10 +1116,10 @@ function HomeContent() {
         /* .uai-lift-card, .uai-lift-card-dark and .uai-gold-btn now
            live as global, unscoped rules in app/globals.css -- several
            of the components that use them (FeatureCard,
-           DepartmentMiniCard, PathwayCard, NoticesAndUpdatesSection)
-           are separate from this one, so a scoped copy here never
-           actually applied to their cards/buttons. See the comment
-           there for the full explanation. */
+           DepartmentMiniCard, PathwayCard, AnnouncementsSection,
+           EventsAndNewsSection) are separate from this one, so a
+           scoped copy here never actually applied to their cards/
+           buttons. See the comment there for the full explanation. */
 
         .mobile-menu-button-container {
           display: none;
@@ -1333,96 +1333,47 @@ function FooterButton({ onClick, children }) {
   );
 }
 
-// Strips HTML tags down to a plain-text excerpt, truncated to maxLen
-// with an ellipsis -- same approach app/news/page.jsx already uses for
-// its own card previews, just parameterised with a shorter default
-// length to suit a narrower homepage card column.
-function stripHtmlExcerpt(html, maxLen = 110) {
-  if (!html) return '';
-  const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-  if (text.length <= maxLen) return text;
-  return `${text.slice(0, maxLen).trim()}…`;
-}
-
-// Replaces the previous UpcomingEventsSection + LatestNewsSection +
-// AnnouncementsStrip trio (three separate full-width sections) with a
-// single two-column layout: Notices & Announcements on the left
-// (the same auto-advancing, reduced-motion-aware slider as before,
-// just now scoped to a card instead of a full-width strip), and a
-// combined Events + News feed on the right (soonest-first upcoming
-// events plus newest-first news, merged into one compact list with a
-// picture, excerpt, date and "Read more" link per item). Renders
-// nothing at all when neither side has data; renders only the side
-// that does when just one does, so the grid never leaves a blank
-// column.
-function NoticesAndUpdatesSection() {
+// Notices & Announcements -- an auto-advancing, reduced-motion-aware
+// slider of notices, in its own card. This used to share a two-column
+// row with a compact Events + News list; that combined feed is now
+// EventsAndNewsSection below instead, its own full-width section with
+// the 3-cards-at-a-time carousel and "View All" button the reference
+// design called for, rather than a text list squeezed into half this
+// card's width. Renders nothing at all when there are no announcements
+// (same "return null when empty" convention used throughout this file).
+function AnnouncementsSection() {
   const { t, dir } = useLanguage();
 
   const [announcements, setAnnouncements] = useState([]);
-  const [updateItems, setUpdateItems] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
-    Promise.allSettled([
-      fetch('/api/announcements').then((res) => res.json()),
-      fetch('/api/events').then((res) => res.json()),
-      fetch('/api/news').then((res) => res.json()),
-    ]).then(([announcementsResult, eventsResult, newsResult]) => {
-      if (cancelled) return;
-
-      if (announcementsResult.status === 'fulfilled' && announcementsResult.value?.success) {
-        setAnnouncements(announcementsResult.value.data || []);
-      }
-
-      const now = Date.now();
-
-      const upcomingEvents =
-        eventsResult.status === 'fulfilled' && eventsResult.value?.success
-          ? (eventsResult.value.data || [])
-              .filter((event) => new Date(event.eventDate).getTime() >= now)
-              .slice(0, 2)
-              .map((event) => ({
-                kind: 'event',
-                id: event.id,
-                title: event.titleEn,
-                excerpt: event.descriptionEn,
-                image: event.thumbnailUrl,
-                date: event.eventDate,
-                time: event.eventTime,
-                href: `/updates#event-${event.id}`,
-              }))
-          : [];
-
-      const latestNews =
-        newsResult.status === 'fulfilled' && newsResult.value?.success
-          ? (newsResult.value.data || [])
-              .slice(0, 3)
-              .map((article) => ({
-                kind: 'news',
-                id: article.id,
-                title: article.titleEn,
-                excerpt: stripHtmlExcerpt(article.bodyEnHtml),
-                image: article.featuredImageUrl,
-                date: article.publishedAt,
-                href: `/news/${article.id}`,
-              }))
-          : [];
-
-      setUpdateItems([...upcomingEvents, ...latestNews].slice(0, 4));
-      setLoaded(true);
-    });
+    fetch('/api/announcements')
+      .then((res) => res.json())
+      .then((result) => {
+        if (cancelled) return;
+        if (result?.success) {
+          setAnnouncements(result.data || []);
+        }
+      })
+      .catch(() => {
+        /* homepage should never break because this feed is down */
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
 
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Auto-advance the notices slider -- same convention as the previous
-  // AnnouncementsStrip: only when there's more than one notice, and
-  // never for anyone whose system asks for reduced motion.
+  // Auto-advance the notices slider -- only when there's more than
+  // one notice, and never for anyone whose system asks for reduced
+  // motion.
   useEffect(() => {
     if (announcements.length < 2) return undefined;
     if (
@@ -1440,128 +1391,262 @@ function NoticesAndUpdatesSection() {
     return () => clearInterval(timer);
   }, [announcements.length]);
 
-  if (!loaded) {
-    return null;
-  }
-
-  const hasAnnouncements = announcements.length > 0;
-  const hasUpdates = updateItems.length > 0;
-
-  if (!hasAnnouncements && !hasUpdates) {
+  if (!loaded || announcements.length === 0) {
     return null;
   }
 
   return (
     <section style={noticesUpdatesSection} dir={dir}>
-      <div
-        style={{
-          ...noticesUpdatesGrid,
-          gridTemplateColumns: hasAnnouncements && hasUpdates ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)',
-        }}
-        className="uai-notices-updates-grid"
-      >
+      <div style={{ ...noticesUpdatesGrid, gridTemplateColumns: 'minmax(0,1fr)' }}>
 
-        {hasAnnouncements && (
-          <div className="ih-card uai-lift-card" style={noticesCard}>
-            <div style={utilityStripHeading}>
-              <span style={utilityStripLabel}>{t('NOTICES & ANNOUNCEMENTS')}</span>
-              <h2 style={noticesCardTitle}>{t("What's happening at Ulul Azm")}</h2>
-            </div>
-
-            <div style={announcementsSliderViewport}>
-              <div
-                style={{
-                  ...announcementsSliderTrack,
-                  transform: `translateX(-${activeIndex * 100}%)`,
-                }}
-              >
-                {announcements.map((item) => (
-                  <div key={item.id} style={announcementsSlide}>
-                    <div style={announcementCardInCard}>
-                      <div style={announcementDate}>
-                        {new Date(item.publishedAt).toLocaleDateString([], {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </div>
-
-                      <h3 style={announcementTitle}>{item.titleEn}</h3>
-
-                      <p style={announcementBody}>{item.bodyEn}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {announcements.length > 1 && (
-              <div style={announcementsDots} role="tablist" aria-label="Announcements">
-                {announcements.map((item, index) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="tab"
-                    onClick={() => setActiveIndex(index)}
-                    aria-label={`Show notice ${index + 1} of ${announcements.length}`}
-                    aria-selected={index === activeIndex}
-                    style={index === activeIndex ? announcementsDotActive : announcementsDot}
-                  />
-                ))}
-              </div>
-            )}
+        <div className="ih-card uai-lift-card" style={noticesCard}>
+          <div style={utilityStripHeading}>
+            <span style={utilityStripLabel}>{t('NOTICES & ANNOUNCEMENTS')}</span>
+            <h2 style={noticesCardTitle}>{t("What's happening at Ulul Azm")}</h2>
           </div>
-        )}
 
-        {hasUpdates && (
-          <div className="ih-card uai-lift-card" style={updatesCard}>
-            <div style={utilityStripHeading}>
-              <span style={utilityStripLabel}>EVENTS & NEWS</span>
-              <h2 style={noticesCardTitle}>Latest Updates</h2>
-            </div>
-
-            <div style={updatesList}>
-              {updateItems.map((item) => (
-                <Link
-                  key={`${item.kind}-${item.id}`}
-                  href={item.href}
-                  style={updateItemRow}
-                  className="uai-update-item"
-                >
-                  <div
-                    style={{
-                      ...updateItemImage,
-                      ...(item.image ? { backgroundImage: `url(${item.image})` } : {}),
-                    }}
-                  >
-                    {!item.image && <span aria-hidden="true">{item.kind === 'event' ? '📅' : '📰'}</span>}
-                  </div>
-
-                  <div style={updateItemBody}>
-                    <span style={updateItemBadge}>{item.kind === 'event' ? 'EVENT' : 'NEWS'}</span>
-                    <div style={updateItemTitle}>{item.title}</div>
-                    {item.excerpt && <p style={updateItemExcerpt}>{item.excerpt}</p>}
-                    <div style={updateItemMeta}>
-                      <span>
-                        {new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                        {item.time ? ` · ${item.time}` : ''}
-                      </span>
-                      <span style={updateItemReadMore}>Read more →</span>
+          <div style={announcementsSliderViewport}>
+            <div
+              style={{
+                ...announcementsSliderTrack,
+                transform: `translateX(-${activeIndex * 100}%)`,
+              }}
+            >
+              {announcements.map((item) => (
+                <div key={item.id} style={announcementsSlide}>
+                  <div style={announcementCardInCard}>
+                    <div style={announcementDate}>
+                      {new Date(item.publishedAt).toLocaleDateString([], {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
                     </div>
+
+                    <h3 style={announcementTitle}>{item.titleEn}</h3>
+
+                    <p style={announcementBody}>{item.bodyEn}</p>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
-
-            <div style={{ textAlign: 'center', marginTop: 20 }}>
-              <Link href="/updates" style={goldButton} className="uai-gold-btn">
-                View All Events &amp; News
-              </Link>
-            </div>
           </div>
-        )}
+
+          {announcements.length > 1 && (
+            <div style={announcementsDots} role="tablist" aria-label="Announcements">
+              {announcements.map((item, index) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  onClick={() => setActiveIndex(index)}
+                  aria-label={`Show notice ${index + 1} of ${announcements.length}`}
+                  aria-selected={index === activeIndex}
+                  style={index === activeIndex ? announcementsDotActive : announcementsDot}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
       </div>
+    </section>
+  );
+}
+
+// How many cards show at once in EventsAndNewsSection's carousel --
+// "it should be able to take three cards", matching the reference
+// design (image, title, date, a solid Read More button, three across,
+// with prev/next arrows and paging dots once there's more than one
+// page's worth).
+const EVENTS_NEWS_PAGE_SIZE = 3;
+
+// A full-width "Events and News" showcase -- soonest-first upcoming
+// events plus newest-first news articles, merged into one feed and
+// paged three cards at a time. Each card is itself the link (tapping
+// anywhere on it, not just "Read More", opens that event's or
+// article's own page -- events open the full /updates listing
+// scrolled to that event, since there's no standalone event page yet;
+// news opens its own /news/[id] page). "View All" opens the same
+// /updates page the homepage's old compact list already linked to.
+// Renders nothing at all when there's no live data yet.
+function EventsAndNewsSection() {
+  const [items, setItems] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.allSettled([
+      fetch('/api/events').then((res) => res.json()),
+      fetch('/api/news').then((res) => res.json()),
+    ]).then(([eventsResult, newsResult]) => {
+      if (cancelled) return;
+
+      const now = Date.now();
+
+      const upcomingEvents =
+        eventsResult.status === 'fulfilled' && eventsResult.value?.success
+          ? (eventsResult.value.data || [])
+              .filter((event) => new Date(event.eventDate).getTime() >= now)
+              .slice(0, 6)
+              .map((event) => ({
+                kind: 'event',
+                id: event.id,
+                title: event.titleEn,
+                image: event.thumbnailUrl,
+                date: event.eventDate,
+                href: `/updates#event-${event.id}`,
+              }))
+          : [];
+
+      const latestNews =
+        newsResult.status === 'fulfilled' && newsResult.value?.success
+          ? (newsResult.value.data || [])
+              .slice(0, 6)
+              .map((article) => ({
+                kind: 'news',
+                id: article.id,
+                title: article.titleEn,
+                image: article.featuredImageUrl,
+                date: article.publishedAt,
+                href: `/news/${article.id}`,
+              }))
+          : [];
+
+      // Soonest events first, then newest news -- same ordering the
+      // old compact list used -- capped at 9 (three pages of three).
+      setItems([...upcomingEvents, ...latestNews].slice(0, 9));
+      setLoaded(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const pageCount = Math.ceil(items.length / EVENTS_NEWS_PAGE_SIZE) || 0;
+
+  // Auto-advance through pages, same convention (6s, paused for
+  // reduced motion) as the Announcements slider above -- only when
+  // there's more than one page to cycle through.
+  useEffect(() => {
+    if (pageCount < 2) return undefined;
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return undefined;
+    }
+
+    const timer = setInterval(() => {
+      setPage((current) => (current + 1) % pageCount);
+    }, 6000);
+
+    return () => clearInterval(timer);
+  }, [pageCount]);
+
+  if (!loaded || items.length === 0) {
+    return null;
+  }
+
+  const currentPage = pageCount > 0 ? page % pageCount : 0;
+  const visibleItems = items.slice(
+    currentPage * EVENTS_NEWS_PAGE_SIZE,
+    currentPage * EVENTS_NEWS_PAGE_SIZE + EVENTS_NEWS_PAGE_SIZE
+  );
+
+  function goPrevPage() {
+    setPage((current) => (current - 1 + pageCount) % pageCount);
+  }
+
+  function goNextPage() {
+    setPage((current) => (current + 1) % pageCount);
+  }
+
+  return (
+    <section style={eventsNewsSection}>
+      <div style={eventsNewsHeaderRow}>
+        <div>
+          <h2 style={eventsNewsTitle}>Events and News</h2>
+          <p style={eventsNewsSubtitle}>
+            The latest events, announcements, and press coverage from Ulul Azm Institute.
+          </p>
+        </div>
+
+        <Link href="/updates" style={outlineButton}>
+          View All
+        </Link>
+      </div>
+
+      <div style={eventsNewsGrid} className="uai-events-news-grid">
+        {visibleItems.map((item) => (
+          <Link
+            key={`${item.kind}-${item.id}`}
+            href={item.href}
+            className="ih-card uai-lift-card"
+            style={eventsNewsCard}
+          >
+            <div
+              style={{
+                ...eventsNewsCardImage,
+                ...(item.image ? { backgroundImage: `url(${item.image})` } : {}),
+              }}
+            >
+              {!item.image && (
+                <span aria-hidden="true" style={{ fontSize: '32px' }}>
+                  {item.kind === 'event' ? '📅' : '📰'}
+                </span>
+              )}
+            </div>
+
+            <div style={eventsNewsCardBody}>
+              <h3 style={eventsNewsCardTitle}>{item.title}</h3>
+
+              <div style={eventsNewsCardFooter}>
+                <span style={eventsNewsCardDate}>
+                  <span aria-hidden="true">📅</span>{' '}
+                  {new Date(item.date).toLocaleDateString([], {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </span>
+                <span style={eventsNewsReadMoreBtn}>Read More</span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {pageCount > 1 && (
+        <div style={eventsNewsControls}>
+          <div style={eventsNewsArrows}>
+            <button type="button" onClick={goPrevPage} aria-label="Previous events and news" style={eventsNewsArrowBtn}>
+              ‹
+            </button>
+            <button type="button" onClick={goNextPage} aria-label="Next events and news" style={eventsNewsArrowBtn}>
+              ›
+            </button>
+          </div>
+
+          <div style={eventsNewsDots} role="tablist" aria-label="Events and News pages">
+            {Array.from({ length: pageCount }).map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                role="tab"
+                onClick={() => setPage(index)}
+                aria-label={`Show page ${index + 1} of ${pageCount}`}
+                aria-selected={index === currentPage}
+                style={index === currentPage ? eventsNewsDotActive : eventsNewsDot}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -2645,17 +2730,12 @@ const announcementBody = {
   margin: 0,
 };
 
-// Styles for NoticesAndUpdatesSection -- the two-column Notices /
-// Events+News homepage layout. Both cards reuse the shared .ih-card
-// class (background/border/radius/shadow already defined once in
-// globals.css) for the "elegant design card" look asked for, and add
-// only their own inner spacing/typography here.
-// Deliberately wider than the Media & Library cards section (maxWidth
-// 800px, see mediaLibraryGrid) -- this section carries more content
-// per card (a slider on one side, a list of items on the other), so
-// it needs the extra room to read as spacious rather than cramped.
-// Matches the hero's own maxWidth (1240px) for a consistent width
-// rhythm down the page.
+// Styles for AnnouncementsSection -- the Notices & Announcements card.
+// Reuses the shared .ih-card class (background/border/radius/shadow
+// already defined once in globals.css) for the "elegant design card"
+// look asked for, and adds only its own inner spacing/typography
+// here. Matches the hero's own maxWidth (1240px) for a consistent
+// width rhythm down the page.
 const noticesUpdatesSection = {
   maxWidth: '1240px',
   margin: '0 auto',
@@ -2678,11 +2758,6 @@ const noticesCard = {
   borderTop: '4px solid var(--gold)',
 };
 
-const updatesCard = {
-  padding: '30px',
-  borderTop: '4px solid var(--gold)',
-};
-
 const noticesCardTitle = {
   color: 'var(--brand)',
   fontFamily: 'var(--font-display)',
@@ -2690,7 +2765,7 @@ const noticesCardTitle = {
   margin: '8px 0 0',
 };
 
-// A leaner variant of announcementCard for use inside NoticesAndUpdatesSection,
+// A leaner variant of announcementCard for use inside AnnouncementsSection,
 // where the surrounding .ih-card already supplies the background, border,
 // radius and shadow -- so this only needs the gold top rule that marks each
 // notice, not a second nested card frame.
@@ -2699,83 +2774,173 @@ const announcementCardInCard = {
   paddingTop: '16px',
 };
 
-const updatesList = {
+// Styles for EventsAndNewsSection -- the "three cards, image, title,
+// date, a solid Read More button, View All + paging arrows/dots"
+// homepage showcase.
+const eventsNewsSection = {
+  maxWidth: '1240px',
+  margin: '0 auto',
+  padding: '56px 24px',
+};
+
+const eventsNewsHeaderRow = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  flexWrap: 'wrap',
+  gap: '16px',
+  marginBottom: '28px',
+};
+
+const eventsNewsTitle = {
+  color: 'var(--brand)',
+  fontFamily: 'var(--font-display)',
+  fontSize: 'clamp(22px,2.8vw,28px)',
+  margin: '0 0 6px',
+};
+
+const eventsNewsSubtitle = {
+  color: 'var(--ink-soft)',
+  fontSize: '14.5px',
+  lineHeight: 1.6,
+  margin: 0,
+  maxWidth: '520px',
+};
+
+const eventsNewsGrid = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, minmax(0,1fr))',
+  gap: '24px',
+};
+
+// Overrides .ih-card's own padding to 0 (with its own inner padding
+// added back just around the text below) so the image can sit flush
+// with the card's top and side edges instead of floating inside a
+// padded frame -- matching the reference design.
+const eventsNewsCard = {
   display: 'flex',
   flexDirection: 'column',
-  gap: '10px',
-  marginTop: '6px',
-};
-
-const updateItemRow = {
-  display: 'flex',
-  gap: '14px',
+  padding: 0,
+  overflow: 'hidden',
   textDecoration: 'none',
   color: 'inherit',
-  padding: '10px',
-  borderRadius: '12px',
-  transition: 'background .15s ease',
 };
 
-const updateItemImage = {
-  flex: '0 0 84px',
-  width: '84px',
-  height: '84px',
-  borderRadius: '10px',
+const eventsNewsCardImage = {
+  height: '170px',
+  backgroundColor: 'var(--brand-tint)',
   backgroundSize: 'cover',
   backgroundPosition: 'center',
-  background: 'var(--brand-tint)',
+  backgroundRepeat: 'no-repeat',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: '26px',
+  color: 'var(--brand)',
+  flexShrink: 0,
 };
 
-const updateItemBody = {
+const eventsNewsCardBody = {
+  padding: '20px 22px 22px',
+  display: 'flex',
+  flexDirection: 'column',
   flex: '1 1 auto',
-  minWidth: 0,
+  gap: '14px',
 };
 
-const updateItemBadge = {
-  display: 'inline-block',
-  color: 'var(--gold-dark)',
-  fontWeight: '800',
-  fontSize: '10.5px',
-  letterSpacing: '0.08em',
-  marginBottom: '4px',
-};
-
-const updateItemTitle = {
+// Clamped to 2 lines with a fixed minHeight so every card's date/
+// button row lines up along the same baseline across a row, even
+// when titles differ in length.
+const eventsNewsCardTitle = {
   color: 'var(--ink)',
-  fontWeight: '700',
-  fontSize: '15px',
-  lineHeight: 1.35,
-  marginBottom: '4px',
-};
-
-const updateItemExcerpt = {
-  color: 'var(--ink-soft)',
-  fontSize: '13px',
-  lineHeight: 1.5,
-  margin: '0 0 6px',
+  fontFamily: 'var(--font-display)',
+  fontSize: '16.5px',
+  lineHeight: 1.4,
+  margin: 0,
+  minHeight: '46px',
   display: '-webkit-box',
   WebkitLineClamp: 2,
   WebkitBoxOrient: 'vertical',
   overflow: 'hidden',
 };
 
-const updateItemMeta = {
+const eventsNewsCardFooter = {
+  marginTop: 'auto',
   display: 'flex',
-  justifyContent: 'space-between',
   alignItems: 'center',
+  justifyContent: 'space-between',
   gap: '10px',
-  fontSize: '12px',
+  flexWrap: 'wrap',
+};
+
+const eventsNewsCardDate = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '6px',
+  fontSize: '12.5px',
   color: 'var(--ink-soft)',
 };
 
-const updateItemReadMore = {
-  color: 'var(--brand)',
+const eventsNewsReadMoreBtn = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '9px 16px',
+  borderRadius: '8px',
+  background: 'var(--brand)',
+  color: 'var(--on-accent)',
   fontWeight: '700',
-  flexShrink: 0,
+  fontSize: '12.5px',
+  whiteSpace: 'nowrap',
+};
+
+const eventsNewsControls = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginTop: '24px',
+};
+
+const eventsNewsArrows = {
+  display: 'flex',
+  gap: '10px',
+};
+
+const eventsNewsArrowBtn = {
+  width: '38px',
+  height: '38px',
+  borderRadius: '50%',
+  border: '1px solid var(--border)',
+  background: 'var(--surface)',
+  color: 'var(--brand)',
+  fontSize: '18px',
+  lineHeight: '1',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  padding: 0,
+};
+
+const eventsNewsDots = {
+  display: 'flex',
+  gap: '8px',
+};
+
+const eventsNewsDot = {
+  width: '8px',
+  height: '8px',
+  borderRadius: '50%',
+  border: 'none',
+  background: 'var(--border)',
+  cursor: 'pointer',
+  padding: 0,
+  transition: 'width 0.2s ease, border-radius 0.2s ease, background 0.2s ease',
+};
+
+const eventsNewsDotActive = {
+  ...eventsNewsDot,
+  width: '22px',
+  borderRadius: '5px',
+  background: 'var(--gold)',
 };
 
 const cardGrid = {

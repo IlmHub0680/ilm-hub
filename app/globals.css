@@ -124,6 +124,17 @@ h1,h2,h3{font-family:var(--font-display); color:inherit; margin:0;}
 a.ih-card{transition:box-shadow .15s ease, transform .15s ease;}
 a.ih-card:hover{box-shadow:0 12px 28px rgba(27,36,31,0.14); transform:translateY(-2px); border-color:var(--gold);}
 
+/* EventsAndNewsSection's 3-card grid (app/page.jsx) -- global for the
+   same reason as the rules above: it's a separate component from the
+   one whose own <style jsx> block lives in this file, so a scoped
+   media query there would silently never apply here. */
+@media (max-width: 900px){
+  .uai-events-news-grid{grid-template-columns:repeat(2, minmax(0,1fr)) !important;}
+}
+@media (max-width: 620px){
+  .uai-events-news-grid{grid-template-columns:minmax(0,1fr) !important;}
+}
+
 /* ---------- table ---------- */
 .ih-tbl-wrap{border:1px solid var(--border); border-radius:var(--radius-l); overflow:auto; background:var(--surface); box-shadow:var(--shadow-raised);}
 .ih-tbl{width:100%; border-collapse:collapse; font-size:13.5px;}
