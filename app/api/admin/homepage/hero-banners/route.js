@@ -7,6 +7,14 @@ function json(data, status = 200) {
   return Response.json(data, { status });
 }
 
+// Postgres text columns reject raw NUL bytes, and pasted rich text
+// (Word/Google Docs) sometimes carries other non-printable control
+// characters -- strip those instead of letting the whole save 500 on
+// a single invisible character. Keeps \n \r \t.
+function sanitizeText(value) {
+  return value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "");
+}
+
 function serialize(banner) {
   return {
     id: banner.id,
@@ -33,7 +41,7 @@ export async function GET() {
     if (error?.message === "FORBIDDEN") return json({ success: false, error: "Admin access required." }, 403);
 
     console.error("GET hero banners error:", error);
-    return json({ success: false, error: "Failed to load hero banners." }, 500);
+    return json({ success: false, error: "Failed to load hero banners.", detail: error?.message || String(error) }, 500);
   }
 }
 
@@ -67,10 +75,10 @@ export async function PUT(request) {
         return json({ success: false, error: `Banner ${i + 1}: an image is required.` }, 400);
       }
 
-      const captionEn = typeof item?.captionEn === "string" ? item.captionEn.trim() : "";
-      const captionAr = typeof item?.captionAr === "string" ? item.captionAr.trim() : "";
-      const bodyEn = typeof item?.bodyEn === "string" ? item.bodyEn.trim() : "";
-      const bodyAr = typeof item?.bodyAr === "string" ? item.bodyAr.trim() : "";
+      const captionEn = sanitizeText(typeof item?.captionEn === "string" ? item.captionEn.trim() : "");
+      const captionAr = sanitizeText(typeof item?.captionAr === "string" ? item.captionAr.trim() : "");
+      const bodyEn = sanitizeText(typeof item?.bodyEn === "string" ? item.bodyEn.trim() : "");
+      const bodyAr = sanitizeText(typeof item?.bodyAr === "string" ? item.bodyAr.trim() : "");
       const accentColorRaw = typeof item?.accentColor === "string" ? item.accentColor.trim() : "";
       const accentColor = /^#[0-9a-fA-F]{6}$/.test(accentColorRaw) ? accentColorRaw : "";
 
@@ -102,6 +110,6 @@ export async function PUT(request) {
     if (error?.message === "FORBIDDEN") return json({ success: false, error: "Admin access required." }, 403);
 
     console.error("PUT hero banners error:", error);
-    return json({ success: false, error: "Failed to save hero banners." }, 500);
+    return json({ success: false, error: "Failed to save hero banners.", detail: error?.message || String(error) }, 500);
   }
 }

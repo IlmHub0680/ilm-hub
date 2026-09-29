@@ -331,16 +331,16 @@ function HomeContent() {
     setActiveSlide((prev) => (heroSlideCount > 0 ? (prev + 1) % heroSlideCount : 0));
   }
 
-  // Auto-advance every 5 seconds. Re-running this effect on every
+  // Auto-advance every 10 seconds. Re-running this effect on every
   // activeSlide change (rather than only on mount) means a manual
-  // prev/next/dot click resets the 5s countdown instead of the next
+  // prev/next/dot click resets the 10s countdown instead of the next
   // auto-advance landing right after it.
   useEffect(() => {
     if (heroSlideCount <= 1) return;
 
     const timer = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % heroSlideCount);
-    }, 5000);
+    }, 10000);
 
     return () => clearInterval(timer);
   }, [heroSlideCount, activeSlide]);
@@ -521,7 +521,21 @@ function HomeContent() {
       >
         <div style={heroInner} className="uai-hero-inner">
 
-          <div style={heroTextCol}>
+          <div
+            style={{
+              ...heroTextCol,
+              // Same picture-frame treatment as the image side (a thin
+              // dark line, then a wider color band) so the two halves
+              // read as one bordered unit -- scaled down from the
+              // image's 34/38px ring to fit inside this column's own
+              // padding instead of crowding the headline. Uses this
+              // slide's accent color, so both frames change together
+              // as the slider advances.
+              boxShadow: `inset 0 0 0 14px ${heroAccentFrame || 'var(--gold)'}, inset 0 0 0 16px rgba(5,46,22,.55)`,
+              transition: 'box-shadow 1s ease',
+            }}
+            className="uai-hero-text-col"
+          >
 
             <div style={heroBadge}>
               {lang === 'ar' && hero.badgeAr ? hero.badgeAr : hero.badge}
