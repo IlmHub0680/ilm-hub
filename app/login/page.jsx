@@ -4344,7 +4344,7 @@ const handleLogout = async () => {
                     </button>
                   </div>
 
-                  <div style={styles.calendarWeekHeader}>
+                  <div className="ih-calendar-week-header" style={styles.calendarWeekHeader}>
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(
                       (day) => (
                         <div key={day}>{day}</div>
@@ -4352,7 +4352,7 @@ const handleLogout = async () => {
                     )}
                   </div>
 
-                  <div style={styles.calendarGrid}>
+                  <div className="ih-calendar-grid" style={styles.calendarGrid}>
                     {calendarDays.map((day) => {
                       const isCurrentMonth =
                         day.date.getMonth() ===
@@ -5608,6 +5608,12 @@ const styles = {
     right: 0,
     zIndex: 30,
     width: '280px',
+    // Caps the panel so it can never spill past the left edge of a
+    // narrow phone screen -- it's anchored with right: 0, so a fixed
+    // 280px width alone would overflow the viewport on anything
+    // narrower than about 300px of available width once the top bar's
+    // own side padding is accounted for.
+    maxWidth: 'calc(100vw - 32px)',
     background: 'var(--surface)',
     border: '1px solid var(--border)',
     borderRadius: '14px',
@@ -7435,6 +7441,22 @@ if (typeof document !== 'undefined') {
 
         .ih-overview-tile-row {
           grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+
+        .ih-calendar-week-header,
+        .ih-calendar-grid {
+          min-width: 0 !important;
+        }
+
+        .ih-calendar-week-header > div {
+          padding: 4px 2px !important;
+          font-size: 10px !important;
+        }
+
+        .ih-calendar-grid > div {
+          min-height: 40px !important;
+          padding: 3px 2px !important;
+          font-size: 10px !important;
         }
       }
     `;

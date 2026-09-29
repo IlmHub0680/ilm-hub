@@ -51,7 +51,7 @@ function HomeContent() {
           }
         );
 
-        setIslamicDate(`${hijriFormatter.format(now)} AH`);
+        setIslamicDate(hijriFormatter.format(now));
       } catch (error) {
         try {
           const fallbackFormatter = new Intl.DateTimeFormat(
@@ -63,7 +63,7 @@ function HomeContent() {
             }
           );
 
-          setIslamicDate(`${fallbackFormatter.format(now)} AH`);
+          setIslamicDate(fallbackFormatter.format(now));
         } catch (fallbackError) {
           setIslamicDate('Hijri date unavailable');
         }
@@ -377,10 +377,10 @@ function HomeContent() {
           TOP INFORMATION BAR
       ===================================================== */}
 
-      <div style={topBar}>
-        <div style={topBarInner}>
+      <div style={topBar} className="uai-topbar">
+        <div style={topBarInner} className="uai-topbar-inner">
 
-          <div>
+          <div className="uai-topbar-datetime">
             <strong>{currentDate}</strong>
 
             <span style={topBarDivider}>
@@ -390,7 +390,7 @@ function HomeContent() {
             <strong>{currentTime}</strong>
           </div>
 
-          <div>
+          <div className="uai-topbar-hijri">
             <span style={{ color: '#e7d48b' }}>
               <strong>{t('Hijri:')}</strong>
             </span>{' '}
@@ -964,6 +964,27 @@ function HomeContent() {
         @media (prefers-reduced-motion: reduce) {
           .hero-slide-arrow {
             transition: none !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+
+          .uai-topbar {
+            padding: 10px 14px !important;
+          }
+
+          .uai-topbar-inner {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 6px !important;
+          }
+
+          .uai-topbar-datetime,
+          .uai-topbar-hijri {
+            max-width: 100%;
+            white-space: normal;
+            word-break: break-word;
+            font-size: 12px;
           }
         }
 

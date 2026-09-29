@@ -276,7 +276,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
 
   return (
     <header style={headerStyle}>
-      <div style={headerInner}>
+      <div style={headerInner} className="site-header-inner">
         <Link href="/" style={brandStyle}>
           {logoUrl ? (
             <img src={logoUrl} alt="Ulul Azm Institute" style={dynamicLogoImgStyle} className="site-header-logo" />
@@ -284,8 +284,8 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
             <div style={dynamicLogoStyle} className="site-header-logo">ع</div>
           )}
           <div>
-            <div style={brandName}>Ulul Azm</div>
-            <div style={brandSubtitle}>Institute</div>
+            <div style={brandName} className="site-header-brand-name">Ulul Azm</div>
+            <div style={brandSubtitle} className="site-header-brand-subtitle">Institute</div>
           </div>
         </Link>
 
@@ -704,6 +704,23 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           .site-header-logo {
             height: var(--logo-mobile-height, 48px) !important;
             max-width: var(--logo-mobile-max-width, 150px) !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .site-header-inner {
+            padding-left: 14px !important;
+            padding-right: 14px !important;
+            gap: 10px !important;
+          }
+
+          .site-header-brand-name {
+            font-size: 19px !important;
+          }
+
+          .site-header-brand-subtitle {
+            font-size: 11px !important;
+            letter-spacing: 0.8px !important;
           }
         }
 
