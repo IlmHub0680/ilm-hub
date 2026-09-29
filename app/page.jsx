@@ -934,33 +934,11 @@ function HomeContent() {
 
       <style jsx>{`
 
-        .uai-hero-cursor {
-          display: inline-block;
-          margin-left: 2px;
-          animation: uai-hero-blink 1s step-end infinite;
-        }
-
-        @keyframes uai-hero-blink {
-          50% { opacity: 0; }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .uai-hero-cursor {
-            animation: none;
-          }
-        }
-
-        .uai-sr-only {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          padding: 0;
-          margin: -1px;
-          overflow: hidden;
-          clip: rect(0,0,0,0);
-          white-space: nowrap;
-          border: 0;
-        }
+        /* .uai-hero-cursor and .uai-sr-only now live as global,
+           unscoped rules in app/globals.css -- TypedHeadline is a
+           separate component from the one that renders this <style
+           jsx> block, so a scoped copy here never actually applied
+           to it. See the comment there for the full explanation. */
 
         @media (max-width: 860px) {
           .uai-hero-inner {
@@ -971,7 +949,7 @@ function HomeContent() {
           }
 
           .uai-hero-image-col {
-            aspect-ratio: 16 / 10 !important;
+            aspect-ratio: 16 / 9 !important;
           }
         }
 
@@ -985,31 +963,13 @@ function HomeContent() {
           }
         }
 
-        .uai-lift-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 18px 40px rgba(15,23,42,.12);
-          border-color: var(--gold);
-        }
-
-        .uai-lift-card-dark:hover {
-          transform: translateY(-3px);
-          background: rgba(255,255,255,.12);
-          border-color: rgba(255,255,255,.25);
-        }
-
-        .uai-gold-btn:hover {
-          transform: translateY(-2px);
-          filter: brightness(1.06);
-          box-shadow: 0 12px 26px rgba(197,157,95,.35);
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .uai-lift-card,
-          .uai-lift-card-dark,
-          .uai-gold-btn {
-            transition: none !important;
-          }
-        }
+        /* .uai-lift-card, .uai-lift-card-dark and .uai-gold-btn now
+           live as global, unscoped rules in app/globals.css -- several
+           of the components that use them (FeatureCard,
+           DepartmentMiniCard, PathwayCard, NoticesAndUpdatesSection)
+           are separate from this one, so a scoped copy here never
+           actually applied to their cards/buttons. See the comment
+           there for the full explanation. */
 
         .mobile-menu-button-container {
           display: none;
@@ -1349,7 +1309,7 @@ function NoticesAndUpdatesSection() {
       >
 
         {hasAnnouncements && (
-          <div className="ih-card" style={noticesCard}>
+          <div className="ih-card uai-lift-card" style={noticesCard}>
             <div style={utilityStripHeading}>
               <span style={utilityStripLabel}>{t('NOTICES & ANNOUNCEMENTS')}</span>
               <h2 style={noticesCardTitle}>{t("What's happening at Ulul Azm")}</h2>
@@ -1401,7 +1361,7 @@ function NoticesAndUpdatesSection() {
         )}
 
         {hasUpdates && (
-          <div className="ih-card" style={updatesCard}>
+          <div className="ih-card uai-lift-card" style={updatesCard}>
             <div style={utilityStripHeading}>
               <span style={utilityStripLabel}>EVENTS & NEWS</span>
               <h2 style={noticesCardTitle}>Latest Updates</h2>
@@ -2047,7 +2007,7 @@ const heroInner = {
   margin: '0 auto',
   padding: '72px 24px',
   display: 'grid',
-  gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)',
+  gridTemplateColumns: 'minmax(0,0.9fr) minmax(0,1.1fr)',
   gap: '48px',
   alignItems: 'center',
 };
@@ -2060,7 +2020,7 @@ const heroImageCol = {
   position: 'relative',
   borderRadius: '20px',
   overflow: 'hidden',
-  aspectRatio: '4 / 3',
+  aspectRatio: '16 / 9',
   boxShadow: '0 30px 70px rgba(5,46,22,.35)',
   border: '1px solid rgba(255,255,255,.18)',
   background: 'var(--brand-dark)',
@@ -2516,8 +2476,14 @@ const announcementBody = {
 // class (background/border/radius/shadow already defined once in
 // globals.css) for the "elegant design card" look asked for, and add
 // only their own inner spacing/typography here.
+// Deliberately wider than the Media & Library cards section (maxWidth
+// 800px, see mediaLibraryGrid) -- this section carries more content
+// per card (a slider on one side, a list of items on the other), so
+// it needs the extra room to read as spacious rather than cramped.
+// Matches the hero's own maxWidth (1240px) for a consistent width
+// rhythm down the page.
 const noticesUpdatesSection = {
-  maxWidth: '1200px',
+  maxWidth: '1240px',
   margin: '0 auto',
   padding: '56px 24px',
 };
@@ -2528,12 +2494,19 @@ const noticesUpdatesGrid = {
   alignItems: 'start',
 };
 
+// A thin gold top accent plus the same hover-lift treatment as the
+// Media & Library cards (.uai-lift-card) -- echoing that card
+// language even though these cards hold a live data feed rather than
+// one static banner image, so the whole homepage's "card" vocabulary
+// reads as one consistent system.
 const noticesCard = {
   padding: '30px',
+  borderTop: '4px solid var(--gold)',
 };
 
 const updatesCard = {
   padding: '30px',
+  borderTop: '4px solid var(--gold)',
 };
 
 const noticesCardTitle = {

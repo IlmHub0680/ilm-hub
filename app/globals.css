@@ -92,6 +92,35 @@ h1,h2,h3{font-family:var(--font-display); color:inherit; margin:0;}
 .ih-stat-tile.accent{border-top:3px solid var(--gold);}
 
 .ih-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); padding:var(--sp-5); box-shadow:var(--shadow-raised);}
+
+/* Hero typed headline (TypedHeadline component in app/page.jsx) --
+   global and unscoped on purpose: styled-jsx's scoping only reaches
+   elements rendered by the component that contains the <style jsx>
+   block, and TypedHeadline is a separate component, so a scoped
+   version of these two rules silently never applied on the live
+   site. .uai-sr-only in particular must always work, since without
+   it the full headline text renders a second time, visibly, right
+   next to the animated one. */
+.uai-hero-cursor{display:inline-block; margin-left:2px; animation:uai-hero-blink 1s step-end infinite;}
+@keyframes uai-hero-blink{50%{opacity:0;}}
+@media (prefers-reduced-motion: reduce){.uai-hero-cursor{animation:none;}}
+.uai-sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
+
+/* Card hover-lift + gold button hover -- moved here for the same
+   reason as the rules above: used by several separate components
+   (FeatureCard, DepartmentMiniCard, PathwayCard, NoticesAndUpdatesSection),
+   not only the one component whose <style jsx> block used to declare
+   them, so a scoped copy silently never applied outside that one
+   component's own direct JSX. */
+.uai-lift-card{transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;}
+.uai-lift-card:hover{transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,23,42,.12); border-color:var(--gold);}
+.uai-lift-card-dark{transition:transform .22s ease, background .22s ease, border-color .22s ease;}
+.uai-lift-card-dark:hover{transform:translateY(-3px); background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.25);}
+.uai-gold-btn{transition:transform .18s ease, filter .18s ease, box-shadow .18s ease;}
+.uai-gold-btn:hover{transform:translateY(-2px); filter:brightness(1.06); box-shadow:0 12px 26px rgba(197,157,95,.35);}
+@media (prefers-reduced-motion: reduce){
+  .uai-lift-card, .uai-lift-card-dark, .uai-gold-btn{transition:none !important;}
+}
 a.ih-card{transition:box-shadow .15s ease, transform .15s ease;}
 a.ih-card:hover{box-shadow:0 12px 28px rgba(27,36,31,0.14); transform:translateY(-2px); border-color:var(--gold);}
 
