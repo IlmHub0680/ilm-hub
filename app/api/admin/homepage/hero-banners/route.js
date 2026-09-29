@@ -13,6 +13,8 @@ function serialize(banner) {
     imageUrl: banner.imageUrl,
     captionEn: banner.captionEn || '',
     captionAr: banner.captionAr || '',
+    bodyEn: banner.bodyEn || '',
+    bodyAr: banner.bodyAr || '',
     accentColor: banner.accentColor || '',
     order: banner.order,
     isActive: banner.isActive,
@@ -67,6 +69,8 @@ export async function PUT(request) {
 
       const captionEn = typeof item?.captionEn === "string" ? item.captionEn.trim() : "";
       const captionAr = typeof item?.captionAr === "string" ? item.captionAr.trim() : "";
+      const bodyEn = typeof item?.bodyEn === "string" ? item.bodyEn.trim() : "";
+      const bodyAr = typeof item?.bodyAr === "string" ? item.bodyAr.trim() : "";
       const accentColorRaw = typeof item?.accentColor === "string" ? item.accentColor.trim() : "";
       const accentColor = /^#[0-9a-fA-F]{6}$/.test(accentColorRaw) ? accentColorRaw : "";
 
@@ -74,6 +78,8 @@ export async function PUT(request) {
         imageUrl,
         captionEn: captionEn || null,
         captionAr: captionAr || null,
+        bodyEn: bodyEn || null,
+        bodyAr: bodyAr || null,
         accentColor: accentColor || null,
         order: i,
         isActive: item?.isActive !== false,

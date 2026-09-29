@@ -17,7 +17,7 @@ const captionInputStyle = {
 };
 
 function emptyBanner() {
-  return { imageUrl: '', captionEn: '', captionAr: '', accentColor: '', isActive: true };
+  return { imageUrl: '', captionEn: '', captionAr: '', bodyEn: '', bodyAr: '', accentColor: '', isActive: true };
 }
 
 export default function HeroBannerSliderPage() {
@@ -145,12 +145,15 @@ export default function HeroBannerSliderPage() {
           when at least one image here is enabled, the slider is shown on the
           homepage instead; when none are enabled, the homepage falls back to
           the Hero Section's single image exactly as before. Give each banner
-          a short caption (English, and Arabic if you have it) — it types out
-          in the homepage headline as that banner is shown, describing the
-          picture on screen. Leave a caption blank to fall back to the Hero
-          Section's own title instead. Pick an accent color to tint the
-          hero background and the image's frame while that banner is
-          showing -- Reset returns it to the site's default green.
+          a short Caption -- it types out in the homepage headline as that
+          banner is shown, describing the picture on screen. The longer Body
+          Message below it stays fully visible the whole time, never
+          animated -- keep the two separate rather than pasting one long
+          paragraph into the Caption, or the whole paragraph will type out
+          instead of just the short line. Either field left blank falls back
+          to the Hero Section's own title/description. Pick an accent color
+          to tint the hero background and the image's frame while that
+          banner is showing -- Reset returns it to the site's default green.
         </p>
       </div>
 
@@ -165,89 +168,117 @@ export default function HeroBannerSliderPage() {
           <div
             key={banner.id || i}
             className="ih-card"
-            style={{ padding: 18, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}
+            style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}
           >
-            <div>
-              {banner.imageUrl ? (
-                <img
-                  src={banner.imageUrl}
-                  alt={`Banner ${i + 1}`}
-                  style={{ width: 160, height: 90, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border)' }}
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div>
+                {banner.imageUrl ? (
+                  <img
+                    src={banner.imageUrl}
+                    alt={`Banner ${i + 1}`}
+                    style={{ width: 160, height: 90, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border)' }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 160,
+                      height: 90,
+                      borderRadius: 10,
+                      border: '1px dashed var(--border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--ink-soft)',
+                      fontSize: 11,
+                    }}
+                  >
+                    No image
+                  </div>
+                )}
+              </div>
+
+              <BannerUploadButton
+                uploading={uploadingIndex === i}
+                progress={uploadingIndex === i ? uploadProgress : 0}
+                hasImage={Boolean(banner.imageUrl)}
+                onUpload={(file) => handleImageUpload(i, file)}
+              />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+                <input
+                  type="color"
+                  value={banner.accentColor || '#0f4d2c'}
+                  onChange={(e) => updateBanner(i, 'accentColor', e.target.value)}
+                  title="Accent color -- the hero background/frame tints toward this while this banner is showing"
+                  style={{ width: 44, height: 30, padding: 0, border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', background: 'none' }}
                 />
-              ) : (
-                <div
-                  style={{
-                    width: 160,
-                    height: 90,
-                    borderRadius: 10,
-                    border: '1px dashed var(--border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--ink-soft)',
-                    fontSize: 11,
-                  }}
+                <button
+                  type="button"
+                  onClick={() => updateBanner(i, 'accentColor', '')}
+                  style={{ border: 'none', background: 'none', color: 'var(--ink-soft)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
                 >
-                  No image
-                </div>
-              )}
+                  Reset
+                </button>
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                <input
+                  type="checkbox"
+                  checked={banner.isActive !== false}
+                  onChange={(e) => updateBanner(i, 'isActive', e.target.checked)}
+                />
+                Enabled
+              </label>
+
+              <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+                <button type="button" onClick={() => moveBanner(i, -1)} disabled={i === 0} className="ih-btn ih-btn-secondary" title="Move up">↑</button>
+                <button type="button" onClick={() => moveBanner(i, 1)} disabled={i === banners.length - 1} className="ih-btn ih-btn-secondary" title="Move down">↓</button>
+                <button type="button" onClick={() => removeBanner(i)} className="ih-btn ih-btn-danger">Remove</button>
+              </div>
             </div>
 
-            <BannerUploadButton
-              uploading={uploadingIndex === i}
-              progress={uploadingIndex === i ? uploadProgress : 0}
-              hasImage={Boolean(banner.imageUrl)}
-              onUpload={(file) => handleImageUpload(i, file)}
-            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '.03em' }}>
+                  Caption -- types out
+                </span>
+                <input
+                  type="text"
+                  value={banner.captionEn || ''}
+                  onChange={(e) => updateBanner(i, 'captionEn', e.target.value)}
+                  placeholder="Caption (English) — a short line describing this picture"
+                  style={captionInputStyle}
+                />
+                <input
+                  type="text"
+                  dir="rtl"
+                  value={banner.captionAr || ''}
+                  onChange={(e) => updateBanner(i, 'captionAr', e.target.value)}
+                  placeholder="التسمية التوضيحية (عربي) — اختياري"
+                  style={{ ...captionInputStyle, fontFamily: 'var(--font-arabic)' }}
+                />
+              </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '1 1 260px', minWidth: 220 }}>
-              <input
-                type="text"
-                value={banner.captionEn || ''}
-                onChange={(e) => updateBanner(i, 'captionEn', e.target.value)}
-                placeholder="Caption (English) — describes this banner image"
-                style={captionInputStyle}
-              />
-              <input
-                type="text"
-                dir="rtl"
-                value={banner.captionAr || ''}
-                onChange={(e) => updateBanner(i, 'captionAr', e.target.value)}
-                placeholder="التسمية التوضيحية (عربي) — اختياري"
-                style={{ ...captionInputStyle, fontFamily: 'var(--font-arabic)' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
-              <input
-                type="color"
-                value={banner.accentColor || '#0f4d2c'}
-                onChange={(e) => updateBanner(i, 'accentColor', e.target.value)}
-                title="Accent color -- the hero background/frame tints toward this while this banner is showing"
-                style={{ width: 44, height: 30, padding: 0, border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', background: 'none' }}
-              />
-              <button
-                type="button"
-                onClick={() => updateBanner(i, 'accentColor', '')}
-                style={{ border: 'none', background: 'none', color: 'var(--ink-soft)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
-              >
-                Reset
-              </button>
-            </div>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-              <input
-                type="checkbox"
-                checked={banner.isActive !== false}
-                onChange={(e) => updateBanner(i, 'isActive', e.target.checked)}
-              />
-              Enabled
-            </label>
-
-            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
-              <button type="button" onClick={() => moveBanner(i, -1)} disabled={i === 0} className="ih-btn ih-btn-secondary" title="Move up">↑</button>
-              <button type="button" onClick={() => moveBanner(i, 1)} disabled={i === banners.length - 1} className="ih-btn ih-btn-secondary" title="Move down">↓</button>
-              <button type="button" onClick={() => removeBanner(i)} className="ih-btn ih-btn-danger">Remove</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '.03em' }}>
+                  Body message -- stays, never animates
+                </span>
+                <textarea
+                  value={banner.bodyEn || ''}
+                  onChange={(e) => updateBanner(i, 'bodyEn', e.target.value)}
+                  placeholder="Body message (English) — the longer, readable description"
+                  rows={2}
+                  style={{ ...captionInputStyle, resize: 'vertical', fontFamily: 'inherit' }}
+                />
+                <textarea
+                  dir="rtl"
+                  value={banner.bodyAr || ''}
+                  onChange={(e) => updateBanner(i, 'bodyAr', e.target.value)}
+                  placeholder="الرسالة النصية (عربي) — اختياري"
+                  rows={2}
+                  style={{ ...captionInputStyle, resize: 'vertical', fontFamily: 'var(--font-arabic)' }}
+                />
+              </div>
             </div>
           </div>
         ))}

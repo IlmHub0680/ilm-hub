@@ -3385,6 +3385,18 @@ model HomepageHeroBanner {
   // banner added without one never leaves the headline blank.
   captionEn   String?
   captionAr   String?
+  // Longer, non-animated description for this specific banner --
+  // stays fully visible and readable the whole time this slide is
+  // showing, never types out like the caption above. Optional: an
+  // empty body falls back to HomepageHero.subtitle/subtitleAr the
+  // same way an empty caption falls back to the title, so a banner
+  // added without one never leaves the paragraph blank. Without this
+  // field, admins had nowhere to put a real per-slide description and
+  // ended up pasting the whole thing into the caption instead, which
+  // is what made the *entire* paragraph type out character by
+  // character.
+  bodyEn      String?
+  bodyAr      String?
   // Hex color (e.g. "#0f4d2c") this banner's slide should tint the
   // hero section toward -- the background gradient and the image's
   // frame both derive from it, so the hero visibly changes color

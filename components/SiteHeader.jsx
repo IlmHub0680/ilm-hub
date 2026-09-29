@@ -721,12 +721,14 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
 
       <style jsx>{`
         .uai-portal-icon-btn {
-          transition: background .18s ease, border-color .18s ease, color .18s ease;
+          border: 1px solid var(--border);
+          transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
         }
 
         .uai-portal-icon-btn:hover {
           background: var(--brand-tint);
           border-color: var(--brand);
+          box-shadow: 0 2px 8px rgba(20,83,45,.18);
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1218,10 +1220,14 @@ const portalIconButton = {
   width: '38px',
   height: '38px',
   borderRadius: '10px',
-  border: '1px solid var(--border)',
   textDecoration: 'none',
   color: 'var(--brand)',
   flexShrink: 0,
+  // border/background/box-shadow all live on .uai-portal-icon-btn
+  // below instead of here -- an inline style has higher specificity
+  // than any stylesheet rule (including :hover), so a border set
+  // here would have silently blocked the CSS class's hover state
+  // from ever changing it. That was the actual "doesn't hover" bug.
 };
 
 const applyNowButton = {

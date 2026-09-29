@@ -293,6 +293,20 @@ function HomeContent() {
   const heroHeadlineText = activeBannerCaption || (lang === 'ar' && hero.titleAr ? hero.titleAr : hero.title);
   const heroHeadlineAnimates = Boolean(activeBannerCaption);
 
+  // The readable paragraph under the headline -- never animated,
+  // always just present. While a banner is active, this is THAT
+  // banner's own body message (set separately from its caption at
+  // /admin/homepage/banner-slider), so each slide can describe itself
+  // properly instead of every slide sharing one generic paragraph.
+  // The Hero Section's own static subtitle is the fallback ONLY when
+  // there are no banners configured at all -- once real banners exist,
+  // a banner with no body saved yet shows no paragraph rather than
+  // reviving that generic sentence under every slide regardless of
+  // what it's actually showing ("we don't need it there").
+  const heroBodyText = activeBanner
+    ? (lang === 'ar' && activeBanner.bodyAr ? activeBanner.bodyAr : activeBanner.bodyEn) || ''
+    : (lang === 'ar' && hero.subtitleAr ? hero.subtitleAr : hero.subtitle);
+
   // This banner's own accent color (admin-set at /admin/homepage/
   // banner-slider) tints the hero background and the image's frame
   // while it's showing, instead of the section always being the same
@@ -519,9 +533,11 @@ function HomeContent() {
               animate={heroHeadlineAnimates}
             />
 
-            <p style={heroText}>
-              {lang === 'ar' && hero.subtitleAr ? hero.subtitleAr : hero.subtitle}
-            </p>
+            {heroBodyText && (
+              <p style={heroText}>
+                {heroBodyText}
+              </p>
+            )}
 
           </div>
 
@@ -529,11 +545,13 @@ function HomeContent() {
             style={{
               ...heroImageCol,
               background: heroAccentDeep || heroImageCol.background,
-              // A well-defined frame around the banner -- an inset ring
+              // A proper thick frame, not a thin line -- an inset ring
               // rather than an outer border, so it doesn't disturb the
               // edge-to-edge bleed on the outside. Uses this slide's own
-              // accent color when set, otherwise the site's gold.
-              boxShadow: `inset 0 0 0 10px ${heroAccentFrame || 'var(--gold)'}`,
+              // accent color when set, otherwise the site's gold. Two
+              // rings (a slim dark inner line, then the wide color band)
+              // read as a real picture frame rather than a flat border.
+              boxShadow: `inset 0 0 0 34px ${heroAccentFrame || 'var(--gold)'}, inset 0 0 0 38px rgba(5,46,22,.55)`,
             }}
             className="uai-hero-image-col"
           >

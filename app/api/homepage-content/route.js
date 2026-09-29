@@ -131,7 +131,7 @@ const DEFAULT_FOOTER_LINK_GROUPS = [
       { label: "Academy Foundation", href: "/academy-foundation" },
       { label: "Academy Pathways", href: "/academy-pathways" },
       { label: "Admission & Registration", href: "/admission" },
-      { label: "Student Portal Login", href: "/login" },
+      { label: "Student & Staff Portal Login", href: "/login" },
       { label: "Events", href: "/events" },
       { label: "News", href: "/news" },
     ],
@@ -148,7 +148,16 @@ const DEFAULT_FOOTER_LINK_GROUPS = [
       { label: "Refund Policy", href: "/refund" },
       { label: "Academic Policies", href: "/academic-policies" },
       { label: "Student Resources", href: "/student-resources" },
-      { label: "Staff & Admin Portal", href: "/admin" },
+      // "Staff & Admin Portal" (href /admin) removed -- the unified
+      // /login now handles Student, Staff and Admin sign-in in one
+      // place (see app/login/page.jsx and reconcileLegacyPortalLinks
+      // below, which does the same removal for whatever a live
+      // database already has saved). One clear portal link in the
+      // Academy group above is kept rather than dropping it entirely
+      // -- the footer doubles as a mini sitemap, and it's a
+      // conventional, low-cost place for a returning student or staff
+      // member to find their way back in without having to first spot
+      // the small header icon.
     ],
   },
 ];
@@ -286,7 +295,7 @@ export async function GET() {
         // state -- the public homepage then falls back to hero.heroImageUrl
         // (and, below that, the plain gradient background) exactly as it
         // always has.
-        heroBanners: heroBanners.map((banner) => ({ id: banner.id, imageUrl: banner.imageUrl, captionEn: banner.captionEn || '', captionAr: banner.captionAr || '', accentColor: banner.accentColor || '' })),
+        heroBanners: heroBanners.map((banner) => ({ id: banner.id, imageUrl: banner.imageUrl, captionEn: banner.captionEn || '', captionAr: banner.captionAr || '', bodyEn: banner.bodyEn || '', bodyAr: banner.bodyAr || '', accentColor: banner.accentColor || '' })),
         socialLinks:
           socialLinks.length > 0
             ? socialLinks.map((link) => ({
