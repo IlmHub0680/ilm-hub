@@ -975,7 +975,25 @@ useEffect(() => {
     setLoading(true);
     setErrorMsg("");
 
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    // Was previously a fake setTimeout with no backend call at all --
+    // this now calls the real, shared password-reset endpoint (the
+    // same one used by the bookstore/media, student and staff sign-in
+    // forms; there is a single User table, so one route serves every
+    // portal). The response is deliberately identical whether or not
+    // the email matches an account, so resetSent shows the same
+    // generic confirmation either way -- see the route's own comment.
+    try {
+      await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+    } catch (err) {
+      console.error("Author password reset request error:", err);
+      // Still show the generic confirmation below -- a network hiccup
+      // on our end shouldn't read as "no account with that email" or
+      // otherwise leak whether the address is registered.
+    }
 
     setLoading(false);
     setResetSent(true);

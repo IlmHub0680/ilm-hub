@@ -49,9 +49,40 @@ async function resolveDefaultDestination(next) {
   return '/account/dashboard';
 }
 
+// Which section the visitor came from (?from=bookstore|media), so the
+// sign-in form can say what it's actually signing them into instead of
+// always saying "bookstore" even for a Media visitor. Falls back to a
+// neutral "Ulul Azm account" phrasing for authors or anyone landing
+// here without that param -- never guesses a specific section that
+// might be wrong.
+const SECTION_COPY = {
+  bookstore: {
+    backHref: '/bookstore',
+    backLabel: '← Back to Bookstore',
+    subject: 'bookstore',
+    signupBody: 'Create your Ulul Azm account to purchase and access your books.',
+  },
+  media: {
+    backHref: '/media',
+    backLabel: '← Back to Media',
+    subject: 'media',
+    signupBody: 'Create your Ulul Azm account to subscribe and access media content.',
+  },
+};
+
+function getSectionCopy(from) {
+  return SECTION_COPY[from] || {
+    backHref: '/',
+    backLabel: '← Back to Home',
+    subject: 'account',
+    signupBody: 'Create your Ulul Azm account to get started.',
+  };
+}
+
 function AccountForm() {
 const router = useRouter();
 const searchParams = useSearchParams();
+const sectionCopy = getSectionCopy(searchParams.get('from'));
 
 const [mode, setMode] = useState('login');
 const [checkingSession, setCheckingSession] = useState(true);
@@ -286,10 +317,10 @@ return (
 <div style={card} className={loginSuccess ? 'ih-login-form-exit' : ''}>
 
     <Link
-      href="/bookstore"
+      href={sectionCopy.backHref}
       style={back}
     >
-      ← Back to Bookstore
+      {sectionCopy.backLabel}
     </Link>
 
     <div style={logo}>
@@ -304,8 +335,8 @@ return (
 
     <p style={subtitle}>
       {mode === 'login'
-        ? 'Sign in to continue to your Ulul Azm bookstore account.'
-        : 'Create your Ulul Azm account to purchase and access your books.'}
+        ? `Sign in to continue to your Ulul Azm ${sectionCopy.subject} account.`
+        : sectionCopy.signupBody}
     </p>
 
     <form

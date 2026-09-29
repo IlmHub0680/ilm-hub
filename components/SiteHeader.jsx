@@ -251,13 +251,21 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
     // -- not the shared /account/dashboard router and never the Media
     // dashboard, even if this same signed-in account also has a Media
     // subscription. See app/account/bookstore/page.jsx.
-    portalHref = user ? '/account/bookstore' : '/login';
+    // Signed OUT, this must go to /account (the shared bookstore/media/
+    // author sign-in page) -- NOT /login, which is the Student Portal
+    // and previously showed a hardcoded "Student Portal" title to
+    // bookstore customers who had never enrolled as students.
+    // ?from=bookstore tells /account to show bookstore-specific
+    // copy/back-link instead of generic or (worse) media/student text.
+    portalHref = user ? '/account/bookstore' : '/account?from=bookstore';
     portalLabel = user ? 'My Account' : 'Sign In';
   } else if (sectionMode === 'media') {
     // Straight to Media's OWN dashboard (subscription status/history)
     // -- not the shared /account/dashboard router and never the
     // Bookstore dashboard. See app/account/media/page.jsx.
-    portalHref = user ? '/account/media' : '/login';
+    // Same reasoning as bookstore above: /account, not /login, for a
+    // signed-out visitor, with ?from=media for section-correct copy.
+    portalHref = user ? '/account/media' : '/account?from=media';
     portalLabel = user ? 'My Account' : 'Sign In';
   } else {
     // Falls back to the bookstore/media account chooser if, for any

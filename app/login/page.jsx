@@ -2279,6 +2279,12 @@ const handleLogout = async () => {
                   className="ih-login-input"
                   style={styles.loginInput}
                 />
+
+                <div style={{ textAlign: 'right', marginTop: '8px' }}>
+                  <Link href="/account/forgot-password" style={{ ...styles.link, fontSize: '13px', fontWeight: 700 }}>
+                    Forgot password?
+                  </Link>
+                </div>
               </div>
 
 {authError && (

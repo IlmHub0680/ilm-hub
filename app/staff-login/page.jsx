@@ -215,6 +215,12 @@ export default function StaffLoginPage() {
               />
             </label>
 
+            <div style={{ textAlign: 'right' }}>
+              <Link href="/account/forgot-password" style={{ ...styles.inlineLink, fontSize: '13px' }}>
+                Forgot password?
+              </Link>
+            </div>
+
             <button
               type="submit"
               disabled={submitting || loginSuccess}
