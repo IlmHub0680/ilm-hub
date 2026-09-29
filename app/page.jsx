@@ -268,6 +268,10 @@ function HomeContent() {
   // then falls back to hero.heroImageUrl exactly as it always has.
   const [heroBanners, setHeroBanners] = useState([]);
   const [activeSlide, setActiveSlide] = useState(0);
+  // Pauses the 10s auto-advance while the cursor is over the banner,
+  // so it never changes slide out from under someone mid-look -- a
+  // small, standard carousel courtesy.
+  const [heroPaused, setHeroPaused] = useState(false);
   const heroSlideCount = heroBanners.length;
   const activeSlideIndex = heroSlideCount > 0 ? ((activeSlide % heroSlideCount) + heroSlideCount) % heroSlideCount : 0;
 
@@ -336,14 +340,14 @@ function HomeContent() {
   // prev/next/dot click resets the 10s countdown instead of the next
   // auto-advance landing right after it.
   useEffect(() => {
-    if (heroSlideCount <= 1) return;
+    if (heroSlideCount <= 1 || heroPaused) return;
 
     const timer = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % heroSlideCount);
     }, 10000);
 
     return () => clearInterval(timer);
-  }, [heroSlideCount, activeSlide]);
+  }, [heroSlideCount, activeSlide, heroPaused]);
 
   useEffect(() => {
     let cancelled = false;
@@ -524,12 +528,13 @@ function HomeContent() {
           <div
             style={{
               ...heroTextCol,
-              // Same picture-frame treatment, and now the exact same
-              // 34/38px ring as the image side (was thinner) so
-              // neither half reads as more heavily bordered than the
-              // other. Uses this slide's accent color, so both frames
-              // change together as the slider advances.
-              boxShadow: `inset 0 0 0 34px ${heroAccentFrame || 'var(--gold)'}, inset 0 0 0 38px rgba(5,46,22,.55)`,
+              // Same picture-frame treatment, and the exact same ring
+              // as the image side (moderated down from an earlier
+              // 34/38px -- too heavy -- to 24/27px) so neither half
+              // reads as more heavily bordered than the other. Uses
+              // this slide's accent color, so both frames change
+              // together as the slider advances.
+              boxShadow: `inset 0 0 0 24px ${heroAccentFrame || 'var(--gold)'}, inset 0 0 0 27px rgba(5,46,22,.55)`,
               transition: 'box-shadow 1s ease',
             }}
             className="uai-hero-text-col"
@@ -552,16 +557,27 @@ function HomeContent() {
           <div
             style={{
               ...heroImageCol,
-              background: heroAccentDeep || heroImageCol.background,
-              // A proper thick frame, not a thin line -- an inset ring
-              // rather than an outer border, so it doesn't disturb the
+              // Same gradient formula as the section background behind
+              // the text side (was a flat single color here), so the
+              // margin around the photo actually fills with the same
+              // color treatment on both halves instead of the image
+              // side reading flat next to the text side's full gradient.
+              background: heroAccentMid
+                ? `radial-gradient(circle at 80% 20%,rgba(197,157,95,.22),transparent 28%),linear-gradient(135deg,${heroAccentDeep},${heroAccentMid} 55%,${heroAccentLight})`
+                : heroImageCol.background,
+              // A proper frame, not a thin line -- an inset ring rather
+              // than an outer border, so it doesn't disturb the
               // edge-to-edge bleed on the outside. Uses this slide's own
               // accent color when set, otherwise the site's gold. Two
-              // rings (a slim dark inner line, then the wide color band)
-              // read as a real picture frame rather than a flat border.
-              boxShadow: `inset 0 0 0 34px ${heroAccentFrame || 'var(--gold)'}, inset 0 0 0 38px rgba(5,46,22,.55)`,
+              // rings (a slim dark inner line, then the wider color
+              // band) read as a real picture frame rather than a flat
+              // border. Moderated down from an earlier 34/38px (too
+              // heavy) -- matches heroTextCol's own frame exactly.
+              boxShadow: `inset 0 0 0 24px ${heroAccentFrame || 'var(--gold)'}, inset 0 0 0 27px rgba(5,46,22,.55)`,
             }}
             className="uai-hero-image-col"
+            onMouseEnter={() => setHeroPaused(true)}
+            onMouseLeave={() => setHeroPaused(false)}
           >
 
             {heroSlideCount > 0 ? (
@@ -583,6 +599,13 @@ function HomeContent() {
                   ...heroSlide,
                   backgroundImage: `url(${hero.heroImageUrl})`,
                   opacity: 1,
+                  // Not wrapped in heroSliderLayer (which carries this
+                  // inset for the real slider), so it needs its own --
+                  // otherwise this single-image fallback (shown briefly
+                  // on every load before the banners fetch resolves, or
+                  // permanently if none are configured) crosses the
+                  // frame instead of sitting inside it.
+                  inset: '27px',
                 }}
               />
             ) : (
@@ -2153,7 +2176,7 @@ const heroTextCol = {
   // Lines the headline up with the logo/nav above -- the exact same
   // "max(24px, centered-1280px-column + 24px gutter)" formula
   // components/SiteHeader.jsx's own headerInner uses.
-  paddingLeft: 'max(44px, calc((100vw - 1280px) / 2 + 24px))',
+  paddingLeft: 'max(36px, calc((100vw - 1280px) / 2 + 24px))',
   paddingRight: '48px',
   paddingTop: '56px',
   paddingBottom: '56px',
@@ -2168,7 +2191,7 @@ const heroImageCol = {
 
 const heroImagePlaceholder = {
   position: 'absolute',
-  inset: '38px',
+  inset: '27px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -2185,7 +2208,7 @@ const heroSliderLayer = {
   // instead of edge-to-edge -- otherwise a banner photo with little
   // letterboxing fills the whole box and paints straight over the
   // frame ring instead of sitting inside it.
-  inset: '38px',
+  inset: '27px',
 };
 
 const heroSlide = {

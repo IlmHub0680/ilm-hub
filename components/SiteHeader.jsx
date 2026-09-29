@@ -742,6 +742,33 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           padding: 0 24px 15px;
         }
 
+        /* Between 900px (desktop nav's own cutoff below) and 1280px
+           (headerInner's own max-width, past which it has all the
+           room it will ever use), the nav's actual width equals the
+           viewport's, and seven items -- one of them "Admission &
+           Registration" -- plus the brand name genuinely don't all
+           fit at their full desktop size. Rather than let flex-wrap
+           strand "Donate" on its own row, both the nav's items and
+           the brand name shrink a notch in exactly this range only;
+           above 1280px this block does nothing and both stay at
+           their normal desktop size. !important because these are
+           overriding inline styles, same pattern as the rest of this
+           file's responsive overrides. */
+        @media (max-width: 1280px) {
+          .uai-nav-link {
+            font-size: 13px !important;
+            padding: 7px 7px !important;
+          }
+
+          .site-header-nav {
+            gap: 2px !important;
+          }
+
+          .site-header-brand-name {
+            font-size: 18px !important;
+          }
+        }
+
         @media (max-width: 700px) {
           .site-header-logo {
             height: var(--logo-mobile-height, 48px) !important;
