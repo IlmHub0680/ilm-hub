@@ -26,6 +26,19 @@ export async function POST(req: Request) {
         ? body.password
         : "";
 
+    // Both optional -- signup should not be gated on supplying them,
+    // but collecting them when given helps the institute actually
+    // reach or identify the account holder later.
+    const phone =
+      typeof body.phone === "string" && body.phone.trim()
+        ? body.phone.trim().slice(0, 40)
+        : null;
+
+    const countryName =
+      typeof body.country === "string" && body.country.trim()
+        ? body.country.trim().slice(0, 80)
+        : null;
+
     if (!name || !email || !password) {
       return NextResponse.json(
         {
@@ -74,6 +87,8 @@ export async function POST(req: Request) {
         name,
         email,
         passwordHash,
+        phone,
+        countryName,
         role: "USER",
         authorStatus: "PENDING",
         updatedAt: now,

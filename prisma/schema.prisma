@@ -1324,6 +1324,18 @@ model User {
   authorStatus      AuthorStatus @default(PENDING)
   preferredLanguage Language     @default(EN)
   countryId         String?
+  // Optional contact/profile fields collected at signup (bookstore /
+  // media accounts) so an account holds enough to actually reach or
+  // identify the person behind it -- both nullable so every existing
+  // account (created before this field existed) stays valid with no
+  // backfill required. countryName is a plain free-text label (same
+  // pattern the admission form already uses for its own country
+  // picker), kept deliberately separate from the countryId relation
+  // above, which is real seeded reference data used for currency /
+  // exchange-rate purposes and must not be guessed into by a signup
+  // form.
+  phone             String?
+  countryName       String?
   // Security audit fix -- bumped on password change or an explicit
   // "log out of all devices" action. Every signed session token embeds
   // the tokenVersion that was current when it was issued, so bumping

@@ -11,6 +11,16 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+// Same plain-text country picker approach app/admission/page.js already
+// uses (not tied to the Country DB table's countryId relation on User,
+// which is real seeded reference data for currency/exchange-rate
+// purposes and must not be guessed into from a signup form).
+const ACCOUNT_COUNTRY_OPTIONS = [
+  'Ghana', 'Nigeria', 'Kenya', 'South Africa', 'Egypt', 'Uganda', 'Tanzania',
+  'United Kingdom', 'United States', 'Canada', 'Saudi Arabia',
+  'United Arab Emirates', 'Germany', 'France', 'Pakistan', 'India', 'Other',
+];
+
 export default function AccountPage() {
   return (
     <Suspense fallback={<main style={page} />}>
@@ -135,6 +145,8 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 const [fullName, setFullName] = useState('');
+const [phone, setPhone] = useState('');
+const [country, setCountry] = useState('');
 const [email, setEmail] = useState('');
 const [password, setPassword] = useState('');
 const [loading, setLoading] = useState(false);
@@ -162,6 +174,8 @@ try {
       credentials: 'include',
       body: JSON.stringify({
         name: fullName.trim(),
+        phone: phone.trim(),
+        country,
         email: email.trim(),
         password,
       }),
@@ -361,6 +375,41 @@ return (
             className="ih-login-input"
             style={input}
           />
+
+          <label htmlFor="account-phone" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}>
+            Phone number (optional)
+          </label>
+          <input
+            id="account-phone"
+            type="tel"
+            placeholder="Phone number (optional)"
+            value={phone}
+            onChange={(e) =>
+              setPhone(e.target.value)
+            }
+            disabled={loginSuccess}
+            className="ih-login-input"
+            style={input}
+          />
+
+          <label htmlFor="account-country" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}>
+            Country / location (optional)
+          </label>
+          <select
+            id="account-country"
+            value={country}
+            onChange={(e) =>
+              setCountry(e.target.value)
+            }
+            disabled={loginSuccess}
+            className="ih-login-input"
+            style={input}
+          >
+            <option value="">Country / location (optional)</option>
+            {ACCOUNT_COUNTRY_OPTIONS.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </>
       )}
 
