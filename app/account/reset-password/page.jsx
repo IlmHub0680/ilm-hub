@@ -77,7 +77,11 @@ export default function ResetPasswordPage() {
         </p>
 
         <form onSubmit={handleSubmit} style={form}>
+          <label htmlFor="reset-password-new" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}>
+            New password
+          </label>
           <input
+            id="reset-password-new"
             type="password"
             placeholder="New password"
             value={password}
@@ -87,7 +91,11 @@ export default function ResetPasswordPage() {
             style={input}
           />
 
+          <label htmlFor="reset-password-confirm" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}>
+            Confirm new password
+          </label>
           <input
+            id="reset-password-confirm"
             type="password"
             placeholder="Confirm new password"
             value={confirmPassword}

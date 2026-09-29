@@ -40,6 +40,8 @@ export default function FaqPage() {
                     <button
                       type="button"
                       onClick={() => setOpenIndex(open ? null : index)}
+                      aria-expanded={open}
+                      aria-controls={`faq-answer-${index}`}
                       style={{
                         width: '100%',
                         textAlign: 'left',
@@ -56,10 +58,10 @@ export default function FaqPage() {
                       }}
                     >
                       <span>{item.question}</span>
-                      <span>{open ? '−' : '+'}</span>
+                      <span aria-hidden="true">{open ? '−' : '+'}</span>
                     </button>
                     {open && (
-                      <div style={{ padding: '0 16px 16px', color: 'var(--ink-soft)', lineHeight: 1.7, fontSize: 14.5 }}>
+                      <div id={`faq-answer-${index}`} style={{ padding: '0 16px 16px', color: 'var(--ink-soft)', lineHeight: 1.7, fontSize: 14.5 }}>
                         {item.answer}
                       </div>
                     )}

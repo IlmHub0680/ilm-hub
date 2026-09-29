@@ -52,7 +52,11 @@ export default function ForgotPasswordPage() {
         </p>
 
         <form onSubmit={handleSubmit} style={form}>
+          <label htmlFor="forgot-password-email" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}>
+            Email address
+          </label>
           <input
+            id="forgot-password-email"
             type="email"
             placeholder="Email address"
             value={email}

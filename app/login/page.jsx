@@ -2242,11 +2242,12 @@ const handleLogout = async () => {
               style={styles.loginForm}
             >
               <div>
-                <label style={styles.label}>
+                <label htmlFor="login-email-address" style={styles.label}>
                   Email Address
                 </label>
 
                 <input
+                  id="login-email-address"
                   type="email"
                   value={email}
                   onChange={(e) =>
@@ -2261,11 +2262,12 @@ const handleLogout = async () => {
               </div>
 
               <div>
-                <label style={styles.label}>
+                <label htmlFor="login-password" style={styles.label}>
                   Password
                 </label>
 
                 <input
+                  id="login-password"
                   type="password"
                   value={password}
                   onChange={(e) =>
@@ -2485,14 +2487,20 @@ const handleLogout = async () => {
 
           <div style={styles.topBarProfileCluster}>
             <button
+              type="button"
               onClick={() => {
                 setActiveStudentTab('notifications');
                 markNotificationsRead();
               }}
               style={styles.notificationButton}
               title="Notifications"
+              aria-label={
+                unreadNotifications > 0
+                  ? `Notifications, ${unreadNotifications} unread`
+                  : 'Notifications'
+              }
             >
-              🔔
+              <span aria-hidden="true">🔔</span>
               {unreadNotifications > 0 && (
                 <span style={styles.notificationCount}>
                   {unreadNotifications}
@@ -3965,11 +3973,12 @@ const handleLogout = async () => {
                   onSubmit={handlePrivateTutoring}
                   style={styles.formStack}
                 >
-                  <label style={styles.label}>
+                  <label htmlFor="login-select-instructor" style={styles.label}>
                     Select Instructor
                   </label>
 
                   <select
+                    id="login-select-instructor"
                     value={
                       privateTutoringForm.instructor
                     }
@@ -4000,11 +4009,12 @@ const handleLogout = async () => {
                     )}
                   </select>
 
-                  <label style={styles.label}>
+                  <label htmlFor="login-select-course" style={styles.label}>
                     Select Course
                   </label>
 
                   <select
+                    id="login-select-course"
                     value={
                       privateTutoringForm.course
                     }
@@ -4261,6 +4271,8 @@ const handleLogout = async () => {
                 </div>
 
                 <select
+                  id="login-calendar-display"
+                  aria-label="Calendar Display"
                   value={calendarMode}
                   onChange={(e) => setCalendarMode(e.target.value)}
                   style={styles.calendarModeSelect}
@@ -4397,11 +4409,12 @@ const handleLogout = async () => {
                   onSubmit={handleAbsenceSubmit}
                   style={styles.formStack}
                 >
-                  <label style={styles.label}>
+                  <label htmlFor="login-absence-type" style={styles.label}>
                     Absence Type
                   </label>
 
                   <select
+                    id="login-absence-type"
                     value={absenceForm.type}
                     onChange={(e) =>
                       setAbsenceForm({
@@ -4424,11 +4437,12 @@ const handleLogout = async () => {
                     </option>
                   </select>
 
-                  <label style={styles.label}>
+                  <label htmlFor="login-course" style={styles.label}>
                     Course
                   </label>
 
                   <select
+                    id="login-course"
                     value={absenceForm.course}
                     onChange={(e) =>
                       setAbsenceForm({
@@ -4458,11 +4472,12 @@ const handleLogout = async () => {
                       ))}
                   </select>
 
-                  <label style={styles.label}>
+                  <label htmlFor="login-date" style={styles.label}>
                     Date
                   </label>
 
                   <input
+                    id="login-date"
                     type="date"
                     value={absenceForm.date}
                     onChange={(e) =>
@@ -4475,7 +4490,7 @@ const handleLogout = async () => {
                     required
                   />
 
-                  <label style={styles.label}>
+                  <label htmlFor="login-reason" style={styles.label}>
                     Reason
                   </label>
 
@@ -4579,6 +4594,7 @@ const handleLogout = async () => {
                   style={styles.formStack}
                 >
                   <select
+                    id="login-reason"
                     value={supervisorTopic}
                     onChange={(e) =>
                       setSupervisorTopic(
@@ -4800,11 +4816,12 @@ const handleLogout = async () => {
                   onSubmit={handleSubmitRequest}
                   style={styles.formStack}
                 >
-                  <label style={styles.label}>
+                  <label htmlFor="login-request-type" style={styles.label}>
                     Request Type
                   </label>
 
                   <select
+                    id="login-request-type"
                     value={requestType}
                     onChange={(e) => setRequestType(e.target.value)}
                     style={styles.input}
@@ -4823,11 +4840,12 @@ const handleLogout = async () => {
                     )}
                   </select>
 
-                  <label style={styles.label}>
+                  <label htmlFor="login-request-details" style={styles.label}>
                     Details
                   </label>
 
                   <textarea
+                    id="login-request-details"
                     value={requestDetails}
                     onChange={(e) => setRequestDetails(e.target.value)}
                     rows={5}
@@ -4836,7 +4854,7 @@ const handleLogout = async () => {
                     required
                   />
 
-                  <label style={styles.label}>
+                  <label htmlFor="request-attachment-file" style={styles.label}>
                     Supporting Document (optional)
                   </label>
 
@@ -4846,10 +4864,10 @@ const handleLogout = async () => {
                     </p>
 
                     <input
+                      id="request-attachment-file"
                       type="file"
                       accept=".pdf,.docx,.jpg,.jpeg,.png,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png"
                       style={styles.fileInput}
-                      id="request-attachment-file"
                     />
                   </div>
 

@@ -314,20 +314,30 @@ return (
     >
 
       {mode === 'signup' && (
-        <input
-          placeholder="Full name"
-          value={fullName}
-          onChange={(e) =>
-            setFullName(e.target.value)
-          }
-          required
-          disabled={loginSuccess}
-          className="ih-login-input"
-          style={input}
-        />
+        <>
+          <label htmlFor="account-fullname" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}>
+            Full name
+          </label>
+          <input
+            id="account-fullname"
+            placeholder="Full name"
+            value={fullName}
+            onChange={(e) =>
+              setFullName(e.target.value)
+            }
+            required
+            disabled={loginSuccess}
+            className="ih-login-input"
+            style={input}
+          />
+        </>
       )}
 
+      <label htmlFor="account-email" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}>
+        Email address
+      </label>
       <input
+        id="account-email"
         type="email"
         placeholder="Email address"
         value={email}
@@ -340,7 +350,11 @@ return (
         style={input}
       />
 
+      <label htmlFor="account-password" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}>
+        Password
+      </label>
       <input
+        id="account-password"
         type="password"
         placeholder="Password"
         value={password}
