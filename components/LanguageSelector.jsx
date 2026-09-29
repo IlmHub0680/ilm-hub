@@ -110,6 +110,10 @@ export default function LanguageSelector({ lang, onChange, dir = 'ltr', theme = 
 const wrap = {
   position: 'relative',
   display: 'inline-block',
+  // Establishes its own stacking context so the menu's zIndex above
+  // is compared against other page elements as intended, rather than
+  // depending on whichever ancestor happens to be positioned.
+  zIndex: 300,
 };
 
 const triggerLight = {
@@ -147,7 +151,15 @@ const menu = {
   borderRadius: '12px',
   boxShadow: '0 12px 32px rgba(15,23,42,.14)',
   padding: '6px',
-  zIndex: 60,
+  // Higher than SiteHeader/app/page.jsx's sticky header (zIndex 100)
+  // -- this selector's trigger lives in the top bar, directly above
+  // that sticky header, so the dropdown opens right into its
+  // stacking area. At zIndex 60 the header painted over the top two
+  // rows (English, Arabic) while only the rows below the header's
+  // edge (French, Hausa) stayed visible -- exactly the "English and
+  // Arabic are behind, only Francais/Hausa show" bug. 300 clears
+  // every sticky/fixed element on the site.
+  zIndex: 300,
 };
 
 const menuItem = {

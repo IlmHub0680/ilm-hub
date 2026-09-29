@@ -946,13 +946,16 @@ function HomeContent() {
         @media (max-width: 860px) {
           .uai-hero-inner {
             grid-template-columns: 1fr !important;
-            padding-top: 48px !important;
-            padding-bottom: 40px !important;
-            gap: 32px !important;
+            /* Vertical spacing now comes from heroTextCol's own
+               padding plus this row gap -- heroInner itself carries
+               no padding of its own any more (edge-to-edge redesign),
+               so it isn't duplicated here. */
+            gap: 0 !important;
           }
 
           .uai-hero-image-col {
             aspect-ratio: 16 / 9 !important;
+            order: -1;
           }
         }
 
@@ -2004,28 +2007,42 @@ const heroStyle = {
   color: 'var(--on-accent)',
 };
 
+// Redesigned to a true edge-to-edge layout, matching the reference
+// (Islamic University of Madinah) homepage the user pointed to: the
+// headline lines up with the logo above it on the left, and the
+// banner photo bleeds all the way to the browser's right edge with
+// no rounded corners, border or floating-card shadow, rather than
+// sitting inset inside a centered, padded container. `alignItems:
+// 'stretch'` plus heroInner's own minHeight is what lets the image
+// column (which has no intrinsic height of its own -- its slides are
+// all position:absolute) fill the same height as the text column
+// instead of needing an aspect-ratio box.
 const heroInner = {
   position: 'relative',
-  maxWidth: '1240px',
-  margin: '0 auto',
-  padding: '72px 24px',
+  width: '100%',
   display: 'grid',
   gridTemplateColumns: 'minmax(0,0.9fr) minmax(0,1.1fr)',
-  gap: '48px',
-  alignItems: 'center',
+  alignItems: 'stretch',
+  minHeight: '560px',
 };
 
 const heroTextCol = {
   textAlign: 'start',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  // Lines the headline up with the logo/nav above -- the exact same
+  // "max(24px, centered-1280px-column + 24px gutter)" formula
+  // components/SiteHeader.jsx's own headerInner uses.
+  paddingLeft: 'max(24px, calc((100vw - 1280px) / 2 + 24px))',
+  paddingRight: '48px',
+  paddingTop: '56px',
+  paddingBottom: '56px',
 };
 
 const heroImageCol = {
   position: 'relative',
-  borderRadius: '20px',
   overflow: 'hidden',
-  aspectRatio: '16 / 9',
-  boxShadow: '0 30px 70px rgba(5,46,22,.35)',
-  border: '1px solid rgba(255,255,255,.18)',
   background: 'var(--brand-dark)',
 };
 

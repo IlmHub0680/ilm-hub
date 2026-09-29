@@ -386,17 +386,6 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
 
           {rightExtra}
 
-          {/* Apply Now sits right next to the portal icon so it's the
-              first thing a prospective student sees, not just one more
-              item inside the Admission & Registration dropdown -- only
-              shown in the default/general header (not on the Bookstore
-              or Media section headers, where it's off-topic). */}
-          {!sectionMode && (
-            <Link href="/admission" style={applyNowButton} className="uai-gold-btn">
-              Apply Now
-            </Link>
-          )}
-
           {portalHref && (
             <Link
               href={portalHref}
@@ -416,6 +405,17 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
               {(sectionMode === 'bookstore' || sectionMode === 'media') && (
                 <span>{portalLabel}</span>
               )}
+            </Link>
+          )}
+
+          {/* Apply Now is the last item in the header -- after the
+              portal icon, not sandwiched between the search icon and
+              the portal icon -- only shown in the default/general
+              header (not on the Bookstore or Media section headers,
+              where it's off-topic). */}
+          {!sectionMode && (
+            <Link href="/admission" style={applyNowButton} className="uai-gold-btn">
+              Apply Now
             </Link>
           )}
         </div>
