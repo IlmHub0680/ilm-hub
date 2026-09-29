@@ -313,12 +313,12 @@ export default function AssistantWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, autoIdentity]);
 
-  // The header's delete/trash button: a full reset back to the exact
-  // opening state (greeting + identity chooser or zone menu), not the
-  // partial "just ask identity again" reset "Start over" below does.
-  // Rebuilds directly with buildInitialMessages rather than nulling
-  // messages and hoping the effect above re-fires -- that effect only
-  // depends on [open, autoIdentity], neither of which changes here.
+  // The header's delete/trash button: the only way back to this
+  // exact opening state now (greeting + identity chooser, or the
+  // zone menu once identity is already known). Rebuilds directly
+  // with buildInitialMessages rather than nulling messages and
+  // hoping the effect above re-fires -- that effect only depends on
+  // [open, autoIdentity], neither of which changes here.
   function clearConversation() {
     logEvent('conversation_cleared', { zone: effectiveZone });
     const resolvedIdentity = autoIdentity || null;
@@ -345,11 +345,6 @@ export default function AssistantWidget() {
         timestamp: Date.now(),
       },
     ]);
-  }
-
-  function resetIdentity() {
-    setIdentity(null);
-    setMessages((m) => [...(m || []), { role: 'assistant', kind: 'identity', text: IDENTITY_PROMPT_TEXT, timestamp: Date.now() }]);
   }
 
   async function sendMessage(text) {
@@ -628,7 +623,7 @@ export default function AssistantWidget() {
                     and every actual data lookup still comes from the
                     signed-in session, exactly as before this existed. */}
                 {m.kind === 'identity' && !identity && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
                     {IDENTITY_CARDS.map((card) => (
                       <button
                         key={card.id}
@@ -637,22 +632,24 @@ export default function AssistantWidget() {
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '10px',
+                          justifyContent: 'center',
+                          gap: '5px',
                           background: 'var(--brand)',
                           border: 'none',
-                          borderRadius: 'var(--radius-m)',
-                          padding: '13px 16px',
+                          borderRadius: 'var(--radius-s)',
+                          padding: '10px 4px',
                           cursor: 'pointer',
-                          fontSize: '13.5px',
+                          fontSize: '11px',
                           fontWeight: 700,
                           color: 'var(--on-accent)',
-                          textAlign: 'start',
+                          textAlign: 'center',
+                          lineHeight: 1.15,
                         }}
                       >
-                        <span aria-hidden="true" style={{ fontSize: '17px', lineHeight: 1 }}>
+                        <span aria-hidden="true" style={{ fontSize: '14px', lineHeight: 1, flexShrink: 0 }}>
                           {card.icon}
                         </span>
-                        {t(card.label)}
+                        <span>{t(card.label)}</span>
                       </button>
                     ))}
                   </div>
@@ -676,11 +673,11 @@ export default function AssistantWidget() {
                           <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--ink-soft)' }}>
                             {t('What would you like to do next?')}
                           </div>
-                          {/* Stacked, full-width elegant rectangle
-                              buttons -- solid deep green, matching the
-                              identity cards above -- instead of a
-                              two-column grid of small bordered tiles. */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                          {/* Three-column grid of compact, elegant
+                              rectangle buttons -- solid deep green,
+                              matching the identity cards above --
+                              instead of one long stacked list. */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
                             {topicOptions.map((opt, oi) => (
                               <button
                                 key={oi}
@@ -690,16 +687,17 @@ export default function AssistantWidget() {
                                 style={{
                                   display: 'flex',
                                   alignItems: 'center',
-                                  justifyContent: 'flex-start',
+                                  justifyContent: 'center',
+                                  minHeight: '46px',
                                   background: 'var(--brand)',
                                   color: 'var(--on-accent)',
                                   border: 'none',
-                                  borderRadius: 'var(--radius-m)',
-                                  padding: '11px 14px',
-                                  fontSize: '12.5px',
+                                  borderRadius: 'var(--radius-s)',
+                                  padding: '8px 5px',
+                                  fontSize: '10.5px',
                                   fontWeight: 700,
-                                  textAlign: 'start',
-                                  lineHeight: 1.3,
+                                  textAlign: 'center',
+                                  lineHeight: 1.2,
                                   cursor: sending ? 'not-allowed' : 'pointer',
                                   opacity: sending ? 0.6 : 1,
                                 }}
@@ -742,32 +740,6 @@ export default function AssistantWidget() {
                 {t('Thinking…')}
               </div>
             )}
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              padding: '6px 10px',
-              borderTop: '1px solid var(--border)',
-              background: 'var(--surface)',
-            }}
-          >
-            <button
-              type="button"
-              onClick={resetIdentity}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--ink-soft)',
-                fontSize: '11px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                padding: '2px 6px',
-              }}
-            >
-              ↺ {t('Start over')}
-            </button>
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', padding: '10px', borderTop: '1px solid var(--border)' }}>

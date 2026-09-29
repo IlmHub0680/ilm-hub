@@ -526,8 +526,14 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
            now covers everything at or under that width, tablet
            through phone, since the nav no longer hides behind a
            hamburger at any width. */
+        /* !important is required here -- the trigger's own inline
+           style (navDropdownWrap: display:'inline-block', needed for
+           its position:relative dropdown-panel anchor) otherwise beats
+           this plain class rule outright regardless of viewport width,
+           which was quietly leaving "More" visible on desktop at the
+           same time as the individual Media/Library/Donate items. */
         .uai-nav-more-wrap {
-          display: none;
+          display: none !important;
         }
 
         /* At 1280px (headerInner's own max-width, past which it has
