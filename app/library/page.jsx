@@ -78,6 +78,24 @@ function LibraryPageInner() {
           bannerUrl
             ? {
                 ...hero,
+                // The fixed 380px minHeight below was far shorter than
+                // the uploaded banner's own 2048x768 design -- at a
+                // typical desktop width that made the box nearly 3.7:1,
+                // so 'contain' shrank the image down to fit that short
+                // height and pillarboxed it heavily, leaving the
+                // banner's own crest/icon-row artwork looking cramped
+                // right up against the top/bottom edges even though
+                // nothing was technically cropped. Locking the section's
+                // own aspect ratio to the banner's real one instead
+                // means the box's shape already matches the image at
+                // any width, so it renders at full size with mostly
+                // just gentle side padding, the way Bookstore's naturally
+                // taller hero does -- min-height stays only as a floor,
+                // and if the heading text ever needs more room than the
+                // ratio allows, the box grows past it rather than
+                // squeezing anything.
+                aspectRatio: '2048 / 768',
+                minHeight: '320px',
                 // 'contain', not 'cover' -- the uploaded banner is shown
                 // in full rather than cropped to fill the box; the dark
                 // background-color fallback fills any letterboxing so
