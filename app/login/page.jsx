@@ -1166,7 +1166,18 @@ const handleLogout = async () => {
     console.error('Logout error:', error);
   }
 
+  // loginSuccess never got reset here, so after signing out the page
+  // kept rendering the post-login "Signed in -- loading your
+  // portal..." success overlay forever instead of the actual login
+  // form (isLoggedIn flipped to false, but the overlay's own
+  // condition -- loginSuccess -- was still true from the original
+  // sign-in and nothing ever set it back). Resetting the full set of
+  // auth-flow state here is what actually returns the page to a
+  // clean, ready-to-sign-in-again form.
   setIsLoggedIn(false);
+  setLoginSuccess(false);
+  setAuthError('');
+  setPortalRole('student');
   setActiveStudentTab('dashboard');
 };
 

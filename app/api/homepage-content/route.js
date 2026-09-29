@@ -15,6 +15,31 @@ import { prisma } from "@/lib/prisma";
 // wholesale, fixes it regardless of whatever the live database
 // currently has, without depending on a one-off script being run
 // against it first.
+// 2026-09: the live database's original seed created two now-
+// redundant portal links -- "Student Portal Login" (Academy group,
+// href /login) and "Staff & Admin Portal" (Institute group, href
+// /admin) -- from back when student and staff had separate sign-in
+// pages. The site now has one unified Student/Staff portal chooser
+// at /login (see app/login/page.jsx), so those two links are
+// reconciled here by their known original href+label, the same way
+// the "Academic Governance" cleanup above already handles a stale
+// seed without requiring the database itself to be hand-edited.
+// Renaming/dropping is matched on the EXACT original text, so an
+// admin who has since customized either link's label at
+// /admin/homepage/footer-links is left alone.
+function reconcileLegacyPortalLinks(groups) {
+  return groups.map((group) => ({
+    ...group,
+    links: group.links
+      .filter((link) => !(link.href === "/admin" && link.label === "Staff & Admin Portal"))
+      .map((link) =>
+        link.href === "/login" && link.label === "Student Portal Login"
+          ? { ...link, label: "Student & Staff Portal Login" }
+          : link
+      ),
+  }));
+}
+
 function mergeFooterGroups(defaultGroups, dbGroups) {
   const dbByTitle = new Map(dbGroups.map((group) => [group.title, group]));
 
@@ -261,7 +286,7 @@ export async function GET() {
         // state -- the public homepage then falls back to hero.heroImageUrl
         // (and, below that, the plain gradient background) exactly as it
         // always has.
-        heroBanners: heroBanners.map((banner) => ({ id: banner.id, imageUrl: banner.imageUrl, captionEn: banner.captionEn || '', captionAr: banner.captionAr || '' })),
+        heroBanners: heroBanners.map((banner) => ({ id: banner.id, imageUrl: banner.imageUrl, captionEn: banner.captionEn || '', captionAr: banner.captionAr || '', accentColor: banner.accentColor || '' })),
         socialLinks:
           socialLinks.length > 0
             ? socialLinks.map((link) => ({
@@ -274,13 +299,15 @@ export async function GET() {
           footerLinkGroups.length > 0
             ? mergeFooterGroups(
                 DEFAULT_FOOTER_LINK_GROUPS,
-                footerLinkGroups.map((group) => ({
-                  title: group.title,
-                  links: group.links.map((link) => ({
-                    label: link.label,
-                    href: link.href,
-                  })),
-                }))
+                reconcileLegacyPortalLinks(
+                  footerLinkGroups.map((group) => ({
+                    title: group.title,
+                    links: group.links.map((link) => ({
+                      label: link.label,
+                      href: link.href,
+                    })),
+                  }))
+                )
               )
             : DEFAULT_FOOTER_LINK_GROUPS,
         welcome: sectionsText

@@ -158,9 +158,16 @@ function MediaPageInner() {
           bannerUrl
             ? {
                 ...hero,
+                // 'contain', not 'cover' -- the uploaded banner is shown
+                // in full rather than cropped to fill the box; the dark
+                // background-color fallback fills any letterboxing so
+                // it blends with the gradient overlay instead of
+                // leaving a hard edge.
+                backgroundColor: 'var(--brand-dark)',
                 backgroundImage: `linear-gradient(135deg, rgba(8,32,24,.78), rgba(8,32,24,.5)), url(${bannerUrl})`,
-                backgroundSize: 'cover',
+                backgroundSize: 'contain',
                 backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
               }
             : hero
         }

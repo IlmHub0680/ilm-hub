@@ -10,6 +10,7 @@ const VALID_SECTIONS = [
   "bookstore",
   "media",
   "library",
+  "admission",
   "homepage-beneficial-knowledge",
   // The homepage's two MEDIA & LIBRARY cards -- each card's icon/image
   // and text are independently admin-editable via this same

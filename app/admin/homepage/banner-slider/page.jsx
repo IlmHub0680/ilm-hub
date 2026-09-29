@@ -17,7 +17,7 @@ const captionInputStyle = {
 };
 
 function emptyBanner() {
-  return { imageUrl: '', captionEn: '', captionAr: '', isActive: true };
+  return { imageUrl: '', captionEn: '', captionAr: '', accentColor: '', isActive: true };
 }
 
 export default function HeroBannerSliderPage() {
@@ -148,7 +148,9 @@ export default function HeroBannerSliderPage() {
           a short caption (English, and Arabic if you have it) — it types out
           in the homepage headline as that banner is shown, describing the
           picture on screen. Leave a caption blank to fall back to the Hero
-          Section's own title instead.
+          Section's own title instead. Pick an accent color to tint the
+          hero background and the image's frame while that banner is
+          showing -- Reset returns it to the site's default green.
         </p>
       </div>
 
@@ -214,6 +216,23 @@ export default function HeroBannerSliderPage() {
                 placeholder="التسمية التوضيحية (عربي) — اختياري"
                 style={{ ...captionInputStyle, fontFamily: 'var(--font-arabic)' }}
               />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+              <input
+                type="color"
+                value={banner.accentColor || '#0f4d2c'}
+                onChange={(e) => updateBanner(i, 'accentColor', e.target.value)}
+                title="Accent color -- the hero background/frame tints toward this while this banner is showing"
+                style={{ width: 44, height: 30, padding: 0, border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', background: 'none' }}
+              />
+              <button
+                type="button"
+                onClick={() => updateBanner(i, 'accentColor', '')}
+                style={{ border: 'none', background: 'none', color: 'var(--ink-soft)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+              >
+                Reset
+              </button>
             </div>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>

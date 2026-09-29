@@ -548,9 +548,15 @@ export default function BookstorePage() {
         style={
           bannerUrl
             ? {
+                // 'contain', not 'cover' -- shows the uploaded banner
+                // in full instead of cropping it to fill the box; the
+                // .hero class's own dark green background (see the
+                // <style jsx global> block below) fills any
+                // letterboxing instead of leaving a hard edge.
                 backgroundImage: `linear-gradient(135deg, rgba(3,31,16,.82), rgba(20,83,45,.55)), url(${bannerUrl})`,
-                backgroundSize: 'cover',
+                backgroundSize: 'contain',
                 backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
               }
             : undefined
         }

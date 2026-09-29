@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CircleUserRound, LayoutDashboard, LogIn, Search, Menu, X } from 'lucide-react';
+import { UserRound, LayoutDashboard, LogIn, Search, Menu, X } from 'lucide-react';
 import { MEDIA_CATEGORIES } from '@/lib/media';
 import { LIBRARY_CATEGORIES } from '@/lib/library';
 import { useSiteBranding } from '@/components/SiteBrandingProvider';
@@ -390,8 +390,8 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
             <Link
               href={portalHref}
               style={sectionMode === 'bookstore' || sectionMode === 'media' ? portalButton : portalIconButton}
+              className={sectionMode === 'bookstore' || sectionMode === 'media' ? undefined : 'uai-portal-icon-btn'}
               aria-label={portalLabel || 'Portal'}
-              title={portalLabel || undefined}
             >
               {sectionMode === 'bookstore' || sectionMode === 'media' ? (
                 user ? (
@@ -400,7 +400,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
                   <LogIn size={18} strokeWidth={2.2} />
                 )
               ) : (
-                <CircleUserRound size={20} strokeWidth={2} />
+                <UserRound size={19} strokeWidth={2.1} />
               )}
               {(sectionMode === 'bookstore' || sectionMode === 'media') && (
                 <span>{portalLabel}</span>
@@ -711,7 +711,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
                   <LogIn size={16} strokeWidth={2.2} />
                 )
               ) : (
-                <CircleUserRound size={16} strokeWidth={2.2} />
+                <UserRound size={16} strokeWidth={2.2} />
               )}
               {portalLabel}
             </Link>
@@ -720,6 +720,21 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
       )}
 
       <style jsx>{`
+        .uai-portal-icon-btn {
+          transition: background .18s ease, border-color .18s ease, color .18s ease;
+        }
+
+        .uai-portal-icon-btn:hover {
+          background: var(--brand-tint);
+          border-color: var(--brand);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .uai-portal-icon-btn {
+            transition: none;
+          }
+        }
+
         .mobile-menu-button-container {
           display: none;
           padding: 0 24px 15px;

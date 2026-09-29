@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from './LanguageContext';
+import { useSectionBanner } from '@/components/SectionBannerProvider';
 
 // Display-only friendly names for the real Program records shown in
 // this admission flow -- matches PATHWAY_OPTIONS/PATHWAY_TIERS' wording
@@ -22,6 +23,7 @@ function programmeDisplayName(name) {
 
 function AdmissionPageInner() {
   const { t } = useLanguage();
+  const bannerUrl = useSectionBanner();
   const searchParams = useSearchParams();
   const [currentStage, setCurrentStage] = useState(1);
   const [academicProgrammes, setAcademicProgrammes] = useState([]);
@@ -1358,7 +1360,47 @@ function AdmissionPageInner() {
 
   return (
     <div style={{ fontFamily: 'var(--font-body)', backgroundColor: 'var(--border-soft)', color: 'var(--brand)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      
+
+      {/* Banner background, same pattern as the Bookstore/Media/
+          Library pages (admin-uploaded at /admin/admission/banner,
+          falls back to the plain green gradient when nothing's been
+          uploaded yet). */}
+      <section
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          // 'contain', not 'cover' -- same convention as the Bookstore/
+          // Media/Library banners: the uploaded picture is shown in
+          // full rather than cropped to fill the box. Longhand
+          // backgroundColor/backgroundImage (never the `background`
+          // shorthand) so setting one never silently resets another --
+          // the dark green color fills any letterboxing so it blends
+          // with the gradient overlay instead of leaving a hard edge.
+          backgroundColor: '#0b3b21',
+          backgroundImage: bannerUrl
+            ? `linear-gradient(135deg, rgba(3,31,16,.82), rgba(20,83,45,.55)), url(${bannerUrl})`
+            : 'linear-gradient(135deg, #031f10, #0b3b21 55%, #14532d)',
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          color: '#fff',
+          padding: '64px 24px',
+          textAlign: 'center',
+        }}
+      >
+        <span style={{ color: '#d7b76d', fontSize: '13.5px', fontWeight: 900, letterSpacing: '1.5px' }}>
+          {t('ADMISSION & REGISTRATION')}
+        </span>
+
+        <h1 style={{ margin: '16px 0 10px', fontFamily: 'var(--font-display), Georgia, serif', fontSize: 'clamp(26px, 3.4vw, 44px)', lineHeight: 1.15 }}>
+          {t('Admission Application')}
+        </h1>
+
+        <p style={{ maxWidth: '640px', margin: '0 auto', color: '#d9e8df', lineHeight: 1.7, fontSize: '15.5px' }}>
+          {t('Complete your applicant profile, select programmes & pay application fees.')}
+        </p>
+      </section>
+
       <main style={{ maxWidth: '900px', width: '100%', margin: '60px auto', padding: '0 20px', flex: 1 }}>
         {!submitted && (
           <Link
@@ -1381,13 +1423,6 @@ function AdmissionPageInner() {
 
         <div style={{ backgroundColor: 'var(--surface)', padding: '40px 50px', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
           
-          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-            <h1 style={{ fontSize: '32px', color: 'var(--brand)', margin: '0 0 8px 0' }}>{t('Admission Application')}</h1>
-            <p style={{ fontSize: '15px', color: 'var(--ink-soft)', margin: '0 0 18px 0' }}>
-              {t('Complete your applicant profile, select programmes & pay application fees.')}
-            </p>
-          </div>
-
           {paymentCancelledNotice && !submitted && (
             <div
               style={{

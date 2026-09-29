@@ -10,6 +10,7 @@ const sections = [
   { href: '/admin/homepage/beneficial-knowledge', label: 'Beneficial Knowledge Image', icon: '📚' },
   { href: '/admin/homepage/media-card', label: 'Media Card', icon: '🎙️' },
   { href: '/admin/homepage/library-card', label: 'Library Card', icon: '📖' },
+  { href: '/admin/homepage/admission-banner', label: 'Admission Banner', icon: '📝' },
   { href: '/admin/homepage/announcements', label: 'Announcements', icon: '📣' },
   { href: '/admin/homepage/social-links', label: 'Social Links', icon: '🔗' },
   { href: '/admin/homepage/footer-links', label: 'Footer Links', icon: '🦶' },

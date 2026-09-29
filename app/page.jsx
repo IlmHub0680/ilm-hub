@@ -9,6 +9,29 @@ import IslamicDateWidget from '@/components/IslamicDateWidget';
 import { LanguageProvider, useLanguage } from './HomeLanguageContext';
 import LanguageSelector from '@/components/LanguageSelector';
 
+// Lightens (positive percent) or darkens (negative percent) a "#rrggbb"
+// hex color, returning an "rgb(r, g, b)" string -- used to derive the
+// hero's deep/mid/light gradient stops and the image's frame color
+// from a single admin-picked accent color, the same way the site's own
+// fixed --brand-deepest/--brand/--brand-light triad works. Returns
+// null for anything that isn't a clean 6-digit hex, so callers can
+// fall back to the site's default colors.
+function shadeHexColor(hex, percent) {
+  if (!hex || typeof hex !== 'string') return null;
+  const match = /^#([0-9a-fA-F]{6})$/.exec(hex.trim());
+  if (!match) return null;
+
+  const num = parseInt(match[1], 16);
+  const amt = Math.round(2.55 * percent);
+
+  const clamp = (value) => Math.max(0, Math.min(255, value));
+  const r = clamp(((num >> 16) & 0xff) + amt);
+  const g = clamp(((num >> 8) & 0xff) + amt);
+  const b = clamp((num & 0xff) + amt);
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 function HomeContent() {
   const { t, dir, lang, setLang } = useLanguage();
   const { heroImageUrl: brandedHeroImageUrl } = useSiteBranding();
@@ -261,7 +284,26 @@ function HomeContent() {
   const activeBannerCaption = activeBanner
     ? (lang === 'ar' && activeBanner.captionAr ? activeBanner.captionAr : activeBanner.captionEn)
     : '';
+  // Only a real per-slide caption types out character by character --
+  // the fallback below (no caption saved yet) is shown immediately,
+  // full-length, no animation. Typing a long fallback sentence as a
+  // giant bold headline is exactly what looked wrong ("the text is
+  // bolded and very big and goes faster with the banner... not all
+  // the sentence should write, just the caption should").
   const heroHeadlineText = activeBannerCaption || (lang === 'ar' && hero.titleAr ? hero.titleAr : hero.title);
+  const heroHeadlineAnimates = Boolean(activeBannerCaption);
+
+  // This banner's own accent color (admin-set at /admin/homepage/
+  // banner-slider) tints the hero background and the image's frame
+  // while it's showing, instead of the section always being the same
+  // fixed green -- "the text side takes the banner's color as it
+  // changes". No accent color saved for this banner (or no banners at
+  // all) keeps the site's original green exactly as before.
+  const activeAccentColor = activeBanner?.accentColor || '';
+  const heroAccentDeep = shadeHexColor(activeAccentColor, -45);
+  const heroAccentMid = activeAccentColor || null;
+  const heroAccentLight = shadeHexColor(activeAccentColor, 30);
+  const heroAccentFrame = shadeHexColor(activeAccentColor, 15);
 
   function goToSlide(index) {
     setActiveSlide(index);
@@ -452,7 +494,17 @@ function HomeContent() {
           instead of crowding the photo.
       ===================================================== */}
 
-      <section style={heroStyle} dir={dir}>
+      <section
+        style={
+          heroAccentMid
+            ? {
+                ...heroStyle,
+                background: `radial-gradient(circle at 80% 20%,rgba(197,157,95,.22),transparent 28%),linear-gradient(135deg,${heroAccentDeep},${heroAccentMid} 55%,${heroAccentLight})`,
+              }
+            : heroStyle
+        }
+        dir={dir}
+      >
         <div style={heroInner} className="uai-hero-inner">
 
           <div style={heroTextCol}>
@@ -464,6 +516,7 @@ function HomeContent() {
             <TypedHeadline
               text={heroHeadlineText}
               style={heroTitle}
+              animate={heroHeadlineAnimates}
             />
 
             <p style={heroText}>
@@ -472,7 +525,18 @@ function HomeContent() {
 
           </div>
 
-          <div style={heroImageCol} className="uai-hero-image-col">
+          <div
+            style={{
+              ...heroImageCol,
+              background: heroAccentDeep || heroImageCol.background,
+              // A well-defined frame around the banner -- an inset ring
+              // rather than an outer border, so it doesn't disturb the
+              // edge-to-edge bleed on the outside. Uses this slide's own
+              // accent color when set, otherwise the site's gold.
+              boxShadow: `inset 0 0 0 10px ${heroAccentFrame || 'var(--gold)'}`,
+            }}
+            className="uai-hero-image-col"
+          >
 
             {heroSlideCount > 0 ? (
               <div style={heroSliderLayer} aria-hidden={heroSlideCount <= 1}>
@@ -769,7 +833,13 @@ function HomeContent() {
 
       <section style={lightSection} dir={dir}>
 
-        <div style={sectionInner}>
+        {/* Left-aligned (not centered like the other sections here) and
+            capped narrower than the section's own width -- the user's
+            own ask: push the whole block to the start side so the
+            unused space on the other side is available for something
+            new they're adding in a follow-up task, rather than
+            widening the cards to fill it. */}
+        <div style={{ ...sectionInner, maxWidth: '1240px', textAlign: 'start' }}>
 
           <span style={goldLabel}>
             {t('MEDIA & LIBRARY')}
@@ -779,7 +849,7 @@ function HomeContent() {
             {t('Learn, Listen & Read')}
           </h2>
 
-          <p style={sectionDescription}>
+          <p style={{ ...sectionDescription, marginInlineStart: 0 }}>
             {t('Two separate, dedicated sections: recorded lessons, Khutbahs, Mutun Al-Ilmiyyah and Manzumat live in Media; articles, fatwas, research papers and classical texts live in the Library.')}
           </p>
 
@@ -794,7 +864,14 @@ function HomeContent() {
               across the top of the card, and a custom heading/text
               override the defaults, exactly like the Bookstore
               section's "Beneficial Knowledge" box already works. */}
-          <div style={mediaLibraryGrid}>
+          <div
+            style={{
+              ...mediaLibraryGrid,
+              gap: '44px',
+              maxWidth: '660px',
+              margin: '38px 0 0',
+            }}
+          >
 
             <Link href="/media" style={mediaLibraryCard} className="uai-lift-card">
               {mediaCardImage ? (
@@ -946,6 +1023,10 @@ function HomeContent() {
         @media (max-width: 860px) {
           .uai-hero-inner {
             grid-template-columns: 1fr !important;
+            /* The fixed 600px desktop height (see heroInner's own
+               comment) would badly compress both stacked columns on a
+               phone -- back to auto, sized by content, here. */
+            height: auto !important;
             /* Vertical spacing now comes from heroTextCol's own
                padding plus this row gap -- heroInner itself carries
                no padding of its own any more (edge-to-edge redesign),
@@ -1094,7 +1175,7 @@ function HomeContent() {
 // via a visually-hidden span, rather than only what's been "typed" so
 // far -- an animated partial string is not a reliable or pleasant
 // thing for assistive tech to read.
-function TypedHeadline({ text, style }) {
+function TypedHeadline({ text, style, animate = true }) {
   const [shownLength, setShownLength] = useState(0);
 
   useEffect(() => {
@@ -1108,7 +1189,10 @@ function TypedHeadline({ text, style }) {
       window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    if (reducedMotion) {
+    // `animate` is false for the "no caption saved yet" fallback text
+    // -- only a real per-slide caption should type out character by
+    // character; the fallback just appears, fully formed, right away.
+    if (reducedMotion || !animate) {
       setShownLength(text.length);
       return undefined;
     }
@@ -1125,7 +1209,7 @@ function TypedHeadline({ text, style }) {
     }, 38);
 
     return () => clearInterval(interval);
-  }, [text]);
+  }, [text, animate]);
 
   return (
     <h1 style={style}>
@@ -2005,6 +2089,7 @@ const heroStyle = {
   background:
     'radial-gradient(circle at 80% 20%,rgba(197,157,95,.22),transparent 28%),linear-gradient(135deg,var(--brand-deepest),var(--brand) 55%,var(--brand-light))',
   color: 'var(--on-accent)',
+  transition: 'background 1s ease',
 };
 
 // Redesigned to a true edge-to-edge layout, matching the reference
@@ -2023,7 +2108,15 @@ const heroInner = {
   display: 'grid',
   gridTemplateColumns: 'minmax(0,0.9fr) minmax(0,1.1fr)',
   alignItems: 'stretch',
-  minHeight: '560px',
+  // A fixed height, not minHeight -- heroImageCol has no intrinsic
+  // height of its own (its slides are all position:absolute), so it
+  // stretches to match whatever height this row ends up at. With
+  // minHeight, the row's real height came from heroTextCol's content,
+  // which grows/shrinks as TypedHeadline types the caption out
+  // character by character -- so the image visibly "zoomed"/resized
+  // in sync with every keystroke of the typing animation. A fixed
+  // height removes that feedback loop entirely.
+  height: '600px',
 };
 
 const heroTextCol = {
@@ -2044,6 +2137,7 @@ const heroImageCol = {
   position: 'relative',
   overflow: 'hidden',
   background: 'var(--brand-dark)',
+  transition: 'background 1s ease, box-shadow 1s ease',
 };
 
 const heroImagePlaceholder = {
@@ -2067,8 +2161,14 @@ const heroSliderLayer = {
 const heroSlide = {
   position: 'absolute',
   inset: 0,
-  backgroundSize: 'cover',
+  // 'contain' -- not 'cover' -- so the whole banner photo is always
+  // visible, never cropped to fill the box ("doesn't make the full
+  // picture appear"). Any letterboxing this leaves is filled by
+  // heroImageCol's own background (the slide's accent color, or the
+  // site's brand color by default), not an empty gap.
+  backgroundSize: 'contain',
   backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
   transition: 'opacity 1.1s ease-in-out',
 };
 
@@ -3077,8 +3177,18 @@ const mediaLibraryCard = {
 const mediaLibraryCardBanner = {
   width: '100%',
   height: '150px',
-  backgroundSize: 'cover',
+  // The background COLOR must come before the size/position/repeat
+  // longhands below -- the `background` shorthand resets any longhand
+  // it doesn't itself specify, so declaring it last would silently
+  // wipe out backgroundSize/Position/Repeat.
+  background: 'var(--paper)',
+  // 'contain', not 'cover' -- same reasoning as the hero banner: an
+  // admin-uploaded picture is shown in full rather than cropped to
+  // fill the box. The paper-toned background above fills any
+  // letterboxing instead of leaving a hard white gap.
+  backgroundSize: 'contain',
   backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
   borderBottom: '1px solid var(--border)',
 };
 

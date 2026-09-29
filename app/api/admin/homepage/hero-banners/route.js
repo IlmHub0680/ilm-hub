@@ -13,6 +13,7 @@ function serialize(banner) {
     imageUrl: banner.imageUrl,
     captionEn: banner.captionEn || '',
     captionAr: banner.captionAr || '',
+    accentColor: banner.accentColor || '',
     order: banner.order,
     isActive: banner.isActive,
   };
@@ -66,11 +67,14 @@ export async function PUT(request) {
 
       const captionEn = typeof item?.captionEn === "string" ? item.captionEn.trim() : "";
       const captionAr = typeof item?.captionAr === "string" ? item.captionAr.trim() : "";
+      const accentColorRaw = typeof item?.accentColor === "string" ? item.accentColor.trim() : "";
+      const accentColor = /^#[0-9a-fA-F]{6}$/.test(accentColorRaw) ? accentColorRaw : "";
 
       values.push({
         imageUrl,
         captionEn: captionEn || null,
         captionAr: captionAr || null,
+        accentColor: accentColor || null,
         order: i,
         isActive: item?.isActive !== false,
       });
