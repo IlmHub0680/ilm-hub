@@ -140,6 +140,16 @@ function HomeContent() {
     heroImageUrl: brandedHeroImageUrl,
   });
 
+  // The badge/title/subtitle above are a LAST-RESORT fallback only --
+  // shown solely if the /api/homepage-content fetch below never
+  // succeeds. Rendering them immediately used to mean every refresh
+  // flashed this hardcoded copy (and the site's default green) before
+  // the admin's actual, possibly quite different, current hero content
+  // swapped in a moment later. heroContentReady gates the hero's text
+  // so nothing renders until we actually know what to show -- either
+  // the real fetched content, or (fetch failure) this fallback.
+  const [heroContentReady, setHeroContentReady] = useState(false);
+
   // Welcome section, its four feature cards, the Academy section and
   // its eight subject icons, the Our Approach section and its three
   // steps, and the closing Bismillah banner -- all admin-editable at
@@ -409,7 +419,11 @@ function HomeContent() {
     fetch('/api/homepage-content')
       .then((res) => (res.ok ? res.json() : null))
       .then((result) => {
-        if (cancelled || !result?.success) return;
+        if (cancelled) return;
+        if (!result?.success) {
+          setHeroContentReady(true);
+          return;
+        }
 
         if (result.data.hero) setHero(result.data.hero);
         if (Array.isArray(result.data.heroBanners)) setHeroBanners(result.data.heroBanners);
@@ -424,10 +438,14 @@ function HomeContent() {
         if (Array.isArray(result.data.approachSteps) && result.data.approachSteps.length > 0) {
           setApproachSteps(result.data.approachSteps);
         }
+        setHeroContentReady(true);
       })
       .catch(() => {
         // Keep the seeded defaults above — the homepage must never
-        // break because the CMS content couldn't be fetched.
+        // break because the CMS content couldn't be fetched. Still
+        // mark ready so that fallback text actually renders instead
+        // of leaving the hero blank forever.
+        if (!cancelled) setHeroContentReady(true);
       });
 
     return () => {
@@ -542,12 +560,12 @@ function HomeContent() {
           >
 
             <TypedHeadline
-              text={heroHeadlineText}
+              text={heroContentReady ? heroHeadlineText : ''}
               style={heroTitle}
               animate={heroHeadlineAnimates}
             />
 
-            {heroBodyText && (
+            {heroContentReady && heroBodyText && (
               <p style={heroText}>
                 {heroBodyText}
               </p>
@@ -785,9 +803,10 @@ function HomeContent() {
 
       {/* =====================================================
           ACADEMIC PROGRAMS
-          (Model 12 -- the Academy's five real pathway tiers; full
-          detail lives on /academy-pathways and each programme's own
-          page, not here)
+          (2026-09 restructure -- 4 homepage cards over the Academy's
+          five real pathway tiers (Foundation Programme groups
+          Foundation/Intermediate/Advanced); full detail lives on
+          /academy-pathways and each programme's own page, not here)
       ===================================================== */}
 
       <AcademicProgramsSection />
@@ -1899,11 +1918,11 @@ function AcademicProgramsSection() {
         <span style={goldLabel}>{t('ACADEMIC PROGRAMS')}</span>
 
         <h2 style={{ ...sectionTitle, whiteSpace: 'normal' }}>
-          {t('Five Pathways, One Progression')}
+          {t('Four Programmes, One Progression')}
         </h2>
 
         <p style={sectionDescription}>
-          {t("Every learner enters at the pathway that matches their starting point and progresses in sequence -- from the Foundation Programme through to Diploma Studies, with a Specialized Certificate reachable along the way. This is an overview of each programme; the full framework and course-by-course detail live on their own pages.")}
+          {t("Every learner begins where they are and advances step by step -- from the Foundation Programme through to Diploma Studies, with a Specialized Certificate reachable along the way. This is an overview of each programme; the full framework and course-by-course detail live on their own pages.")}
         </p>
       </div>
 
@@ -3181,11 +3200,18 @@ const programCard = {
   transition: 'transform .22s ease, box-shadow .22s ease, border-color .22s ease',
 };
 
+// cover, not contain -- an admin-uploaded card image can be any aspect
+// ratio, and "contain" only happens to fill this 130px banner when an
+// image's own proportions match it (letterboxing with the pale --paper
+// background otherwise, which is what made 3 of the 4 pathway cards
+// look unfilled next to the one that got lucky). "cover" crops instead
+// of letterboxing, matching the treatment already used for other image
+// cards on this page (e.g. the news cards).
 const programCardBanner = {
   width: '100%',
   height: '130px',
   background: 'var(--paper)',
-  backgroundSize: 'contain',
+  backgroundSize: 'cover',
   backgroundPosition: 'center',
   backgroundRepeat: 'no-repeat',
   borderBottom: '1px solid var(--border)',

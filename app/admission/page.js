@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from './LanguageContext';
@@ -39,6 +39,22 @@ function AdmissionPageInner() {
   const [maxCompletedStage, setMaxCompletedStage] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [submittedApplicationNumber, setSubmittedApplicationNumber] = useState('');
+
+  // Inline, dismissible validation/error notice shown at the top of the
+  // active step -- replaces the native alert() popups this form used to
+  // rely on, which block the whole page and give no visual context for
+  // which step the problem is on.
+  const [formNotice, setFormNotice] = useState('');
+  const noticeRef = useRef(null);
+
+  const showNotice = (message) => {
+    setFormNotice(message);
+    if (typeof window !== 'undefined') {
+      requestAnimationFrame(() => {
+        noticeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  };
 
   useEffect(() => {
     if (!submitted) return;
@@ -558,9 +574,9 @@ function AdmissionPageInner() {
           setCurrentStage(4);
           setMaxCompletedStage((previous) => Math.max(previous, 4));
 
-          alert(
+          showNotice(
             error?.message ||
-              'We could not verify your Paystack payment. Please contact admissions if money was deducted.'
+              t('We could not verify your Paystack payment. Please contact admissions if money was deducted.')
           );
         }
       } finally {
@@ -691,9 +707,9 @@ function AdmissionPageInner() {
           setCurrentStage(4);
           setMaxCompletedStage((previous) => Math.max(previous, 4));
 
-          alert(
+          showNotice(
             error?.message ||
-              'We could not verify your Stripe payment. Please contact admissions if money was deducted.'
+              t('We could not verify your Stripe payment. Please contact admissions if money was deducted.')
           );
         }
       } finally {
@@ -715,13 +731,15 @@ function AdmissionPageInner() {
       return;
     }
 
+    setFormNotice('');
+
     const paymentMethod = formData.paymentMethod;
 
     if (
       paymentMethod !== 'ADMISSION_PAYSTACK' &&
       paymentMethod !== 'STRIPE'
     ) {
-      alert('Please select a valid online payment method.');
+      showNotice(t('Please select a valid online payment method.'));
       return;
     }
 
@@ -732,8 +750,8 @@ function AdmissionPageInner() {
       !formData.countryOfResidence ||
       !formData.programId
     ) {
-      alert(
-        'Please complete your personal information, country of residence and programme before starting payment.'
+      showNotice(
+        t('Please complete your personal information, country of residence and programme before starting payment.')
       );
       return;
     }
@@ -859,9 +877,9 @@ function AdmissionPageInner() {
         error
       );
 
-      alert(
+      showNotice(
         error?.message ||
-          'Unable to start payment. Please try again.'
+          t('Unable to start payment. Please try again.')
       );
 
       setIsProcessingPayment(false);
@@ -929,6 +947,8 @@ function AdmissionPageInner() {
   };
 
   const handleTabClick = (targetStage) => {
+    setFormNotice('');
+
     if (targetStage < currentStage) {
       setCurrentStage(targetStage);
       return;
@@ -946,14 +966,15 @@ function AdmissionPageInner() {
       setCurrentStage(targetStage);
       if (targetStage > maxCompletedStage) setMaxCompletedStage(targetStage);
     } else {
-      alert(`Please complete Step ${currentStage} fully before jumping ahead.`);
+      showNotice(`${t('Please complete Step')} ${currentStage} ${t('fully before jumping ahead.')}`);
     }
   };
 
   const nextStage = (e) => {
     e.preventDefault();
+    setFormNotice('');
     if (!isStageValid(currentStage)) {
-      alert('Please complete all required fields before moving forward.');
+      showNotice(t('Please complete all required fields before moving forward.'));
       return;
     }
     const nextStep = currentStage + 1;
@@ -1193,9 +1214,9 @@ function AdmissionPageInner() {
         error
       );
 
-      alert(
+      showNotice(
         error?.message ||
-          'Unable to start payment. Please try again.'
+          t('Unable to start payment. Please try again.')
       );
 
       setIsProcessingPayment(false);
@@ -1204,9 +1225,10 @@ function AdmissionPageInner() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormNotice('');
 
     if (!formData.paymentMethod) {
-      alert('Please select a payment method.');
+      showNotice(t('Please select a payment method.'));
       return;
     }
 
@@ -1217,8 +1239,8 @@ function AdmissionPageInner() {
       ) &&
       !isPaymentProcessed
     ) {
-      alert(
-        'Please complete and verify your payment before submitting.'
+      showNotice(
+        t('Please complete and verify your payment before submitting.')
       );
       return;
     }
@@ -1231,8 +1253,8 @@ function AdmissionPageInner() {
         : null;
 
     if (!applicationId) {
-      alert(
-        'Your admission application could not be identified. Please contact admissions.'
+      showNotice(
+        t('Your admission application could not be identified. Please contact admissions.')
       );
       return;
     }
@@ -1302,9 +1324,9 @@ function AdmissionPageInner() {
         error
       );
 
-      alert(
+      showNotice(
         error?.message ||
-          'Unable to submit your admission application.'
+          t('Unable to submit your admission application.')
       );
     } finally {
       setIsProcessingPayment(false);
@@ -1519,7 +1541,7 @@ function AdmissionPageInner() {
                       onClick={() => { setWizardResidency('RESIDENT'); setWizardStep(2); }}
                       style={wizardCardStyle(wizardResidency === 'RESIDENT')}
                     >
-                      <div style={{ fontSize: '28px', marginBottom: '10px' }} aria-hidden="true">🇬🇭</div>
+                      <div style={{ fontSize: '28px', marginBottom: '10px' }} aria-hidden="true">🏠</div>
                       <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--brand)', marginBottom: '6px' }}>
                         {t('New Student — Resident')}
                       </div>
@@ -1626,7 +1648,7 @@ function AdmissionPageInner() {
                       </span>
                       <strong style={{ color: 'var(--ink)' }}>
                         {wizardResidency === 'RESIDENT'
-                          ? `🇬🇭 ${t('New Student — Resident')}`
+                          ? `🏠 ${t('New Student — Resident')}`
                           : `🌍 ${t('New Student — International')}`}
                       </strong>
                     </div>
@@ -1710,6 +1732,47 @@ function AdmissionPageInner() {
                   );
                 })}
               </div>
+
+              {formNotice && (
+                <div
+                  ref={noticeRef}
+                  role="alert"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    background: 'var(--danger-tint)',
+                    border: '1px solid var(--danger-tint)',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    marginBottom: '22px',
+                    color: 'var(--danger)',
+                    fontSize: '13.5px',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <span>{formNotice}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFormNotice('')}
+                    aria-label={t('Dismiss')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--danger)',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      lineHeight: 1,
+                      padding: '2px 4px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
 
               <h2 style={{ fontSize: '18px', color: 'var(--ink)', margin: '0 0 25px 0', fontWeight: 'bold' }}>
                 {currentStage === 1 && t("Step 1: Account & Personal Details")}
