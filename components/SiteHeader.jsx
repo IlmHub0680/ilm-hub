@@ -521,6 +521,9 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           }
         }
 
+      `}</style>
+
+      <style jsx global>{`
         /* The "More" overflow trigger (Media/Library/Donate) is
            hidden above 1280px -- see the media query below, which
            now covers everything at or under that width, tablet
@@ -634,9 +637,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
             white-space: normal !important;
           }
         }
-      `}</style>
 
-      <style jsx global>{`
         .uai-nav-link,
         .uai-nav-dropdown-item {
           transition: background-color 0.15s ease, color 0.15s ease;
@@ -669,7 +670,9 @@ function NavLink({ href, children, className }) {
 // A hover/focus dropdown for a nav item that has its own sub-pages --
 // clicking or tapping Enter still navigates straight to `href` (the
 // section's hub page), the caret only reveals the sub-page shortcuts.
-// Desktop only; the mobile menu uses its own accordion pattern above.
+// Used at every width -- there is no separate mobile accordion
+// anymore; on touch devices without hover, see handleTriggerClick
+// below for how the first tap opens the panel instead of navigating.
 function NavDropdown({ label, href, items, groups, className }) {
   const [open, setOpen] = useState(false);
   // Hover-intent close delay -- the dropdown panel sits a few
@@ -704,8 +707,8 @@ function NavDropdown({ label, href, items, groups, className }) {
     };
   }, []);
 
-  // Hover alone can't open this on a touch device -- a tablet
-  // showing the full desktop nav (>=900px) has no hover state, so a
+  // Hover alone can't open this on a touch device -- a tablet or
+  // phone showing this same condensed nav has no hover state, so a
   // tap on the trigger would navigate straight through `href` and
   // the dropdown's own items would be unreachable. First tap opens
   // the panel and stays on this page instead of navigating; the
@@ -824,10 +827,11 @@ const headerInner = {
   gap: '16px',
   // Was 'wrap' -- with the larger brand/nav text this let the whole
   // actions cluster (search + Dashboard) drop to its own row below
-  // the logo/nav. Desktop nav is only ever shown above 900px (see
-  // the @media rule below), so this row must stay on one line; the
-  // nav block itself (flex:1, minWidth:0 below) absorbs any squeeze
-  // by wrapping its own items instead.
+  // the logo/nav. The nav is now shown at every width (see the
+  // @media rules below for how it condenses instead of hiding), so
+  // this row must stay on one line; the nav block itself (flex:1,
+  // minWidth:0 below) absorbs any squeeze by wrapping its own items
+  // instead.
   flexWrap: 'nowrap',
 };
 
