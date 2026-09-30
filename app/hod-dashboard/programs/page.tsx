@@ -10,14 +10,18 @@ type Program = {
     descriptionEn: string | null;
     descriptionAr: string | null;
     durationYears: number | null;
+    weeksPerLevel: number | null;
+    studyMode: string | null;
     isActive: boolean;
     coordinator?: { user: { name: string } } | null;
     _count: { courses: number; students: number };
 };
 
-const PROGRAM_LEVELS = ['CERTIFICATE', 'DIPLOMA', 'UNDERGRADUATE', 'POSTGRADUATE', 'MASTERS', 'DOCTORATE', 'SHORT_COURSE'];
+const PROGRAM_LEVELS = ['FOUNDATION', 'INTERMEDIATE', 'ADVANCED', 'CERTIFICATE', 'DIPLOMA', 'UNDERGRADUATE', 'POSTGRADUATE', 'MASTERS', 'DOCTORATE', 'SHORT_COURSE'];
+const STUDY_MODES = ['', 'FULL_TIME', 'PART_TIME'];
+const STUDY_MODE_LABELS: Record<string, string> = { '': 'Not set', FULL_TIME: 'Full-Time', PART_TIME: 'Part-Time' };
 
-const EMPTY_FORM = { nameEn: '', nameAr: '', code: '', level: 'UNDERGRADUATE', descriptionEn: '', descriptionAr: '', durationYears: '' };
+const EMPTY_FORM = { nameEn: '', nameAr: '', code: '', level: 'UNDERGRADUATE', descriptionEn: '', descriptionAr: '', durationYears: '', weeksPerLevel: '', studyMode: '' };
 
 const inputStyle: CSSProperties = {
     width: '100%',
@@ -105,6 +109,8 @@ export default function HODProgramsPage() {
             descriptionEn: program.descriptionEn || '',
             descriptionAr: program.descriptionAr || '',
             durationYears: program.durationYears != null ? String(program.durationYears) : '',
+            weeksPerLevel: program.weeksPerLevel != null ? String(program.weeksPerLevel) : '',
+            studyMode: program.studyMode || '',
         });
         setMessage('');
         setError('');
@@ -124,6 +130,8 @@ export default function HODProgramsPage() {
                     descriptionEn: editForm.descriptionEn,
                     descriptionAr: editForm.descriptionAr,
                     durationYears: editForm.durationYears,
+                    weeksPerLevel: editForm.weeksPerLevel,
+                    studyMode: editForm.studyMode,
                 }),
             });
             const result = await response.json();
@@ -208,6 +216,16 @@ export default function HODProgramsPage() {
                         <span style={labelStyle}>Duration (years)</span>
                         <input type="number" min={1} style={inputStyle} value={form.durationYears} onChange={(e) => setForm((p) => ({ ...p, durationYears: e.target.value }))} placeholder="e.g. 2" />
                     </label>
+                    <label>
+                        <span style={labelStyle}>Weeks per level (optional)</span>
+                        <input type="number" min={1} style={inputStyle} value={form.weeksPerLevel} onChange={(e) => setForm((p) => ({ ...p, weeksPerLevel: e.target.value }))} placeholder="e.g. 15" />
+                    </label>
+                    <label>
+                        <span style={labelStyle}>Education type (optional)</span>
+                        <select style={inputStyle} value={form.studyMode} onChange={(e) => setForm((p) => ({ ...p, studyMode: e.target.value }))}>
+                            {STUDY_MODES.map((mode) => <option key={mode} value={mode}>{STUDY_MODE_LABELS[mode]}</option>)}
+                        </select>
+                    </label>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 12, marginTop: 12 }}>
                     <label>
@@ -255,6 +273,16 @@ export default function HODProgramsPage() {
                                                 <label>
                                                     <span style={labelStyle}>Duration (years)</span>
                                                     <input type="number" min={1} style={inputStyle} value={editForm.durationYears} onChange={(e) => setEditForm((prev) => ({ ...prev, durationYears: e.target.value }))} />
+                                                </label>
+                                                <label>
+                                                    <span style={labelStyle}>Weeks per level (optional)</span>
+                                                    <input type="number" min={1} style={inputStyle} value={editForm.weeksPerLevel} onChange={(e) => setEditForm((prev) => ({ ...prev, weeksPerLevel: e.target.value }))} />
+                                                </label>
+                                                <label>
+                                                    <span style={labelStyle}>Education type (optional)</span>
+                                                    <select style={inputStyle} value={editForm.studyMode} onChange={(e) => setEditForm((prev) => ({ ...prev, studyMode: e.target.value }))}>
+                                                        {STUDY_MODES.map((mode) => <option key={mode} value={mode}>{STUDY_MODE_LABELS[mode]}</option>)}
+                                                    </select>
                                                 </label>
                                             </div>
                                             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>

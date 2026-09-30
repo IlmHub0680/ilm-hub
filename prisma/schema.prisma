@@ -1673,6 +1673,16 @@ model Program {
   approvalStatus ApprovalStatus @default(APPROVED)
   approvalNote   String?
 
+  // Public programme detail page's "Weeks Per Level" and "Education
+  // Type" stat/meta fields (homepage Academic Programs restructure) --
+  // both left for the Head of Department to set per programme, both
+  // nullable so an unset programme shows an honest "--" rather than a
+  // made-up number. studyMode reuses the same StudyMode enum already
+  // used on AdmissionApplication's own studyMode field, rather than
+  // inventing a second concept for the same thing.
+  weeksPerLevel Int?
+  studyMode     StudyMode?
+
   faculty                Faculty                 @relation(fields: [facultyId], references: [id], onDelete: Restrict)
   department             Department              @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   category               Category?               @relation(fields: [categoryId], references: [id], onDelete: SetNull)

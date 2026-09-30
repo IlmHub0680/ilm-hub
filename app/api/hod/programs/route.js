@@ -5,7 +5,15 @@ import { requireModulePermission } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
+// FOUNDATION/INTERMEDIATE/ADVANCED added alongside the pre-existing
+// levels -- these three were previously only ever created by
+// prisma/seed.js (see the ProgramLevel enum's own comment in
+// schema.prisma); a Head of Department can now add further Foundation
+// Programme-tier programmes here the same way as any other level.
 const PROGRAM_LEVELS = [
+  "FOUNDATION",
+  "INTERMEDIATE",
+  "ADVANCED",
   "CERTIFICATE",
   "DIPLOMA",
   "UNDERGRADUATE",
@@ -14,6 +22,8 @@ const PROGRAM_LEVELS = [
   "DOCTORATE",
   "SHORT_COURSE",
 ];
+
+const STUDY_MODES = ["FULL_TIME", "PART_TIME"];
 
 function errorResponse(message, status) {
   return NextResponse.json({ success: false, error: message }, { status });
@@ -129,6 +139,10 @@ export async function POST(request) {
         descriptionEn: body.descriptionEn ? String(body.descriptionEn).slice(0, 2000) : null,
         descriptionAr: body.descriptionAr ? String(body.descriptionAr).slice(0, 2000) : null,
         durationYears: body.durationYears ? Number(body.durationYears) : null,
+        weeksPerLevel: body.weeksPerLevel ? Number(body.weeksPerLevel) : null,
+        studyMode: STUDY_MODES.includes(String(body.studyMode || "").toUpperCase())
+          ? String(body.studyMode).toUpperCase()
+          : null,
         isActive: body.isActive !== false,
         // A brand-new programme starts as a real DRAFT (Model 11) — see
         // the matching Course comment above for why existing rows keep

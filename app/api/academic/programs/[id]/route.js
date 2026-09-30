@@ -31,7 +31,18 @@ export async function GET(request, { params }) {
       include: {
         faculty: { select: { nameEn: true, nameAr: true, code: true } },
         department: { select: { nameEn: true, nameAr: true, code: true } },
+        category: { select: { nameEn: true, nameAr: true } },
         coordinator: { select: { user: { select: { name: true } } } },
+        // Goals tab -- real ProgramLearningOutcome rows, ordered by
+        // their own code (e.g. PLO1, PLO2, ...). An empty array is the
+        // honest, fully-supported state for a programme whose outcomes
+        // haven't been published yet -- the page shows that plainly
+        // rather than inventing goals text.
+        learningOutcomes: {
+          where: { isActive: true },
+          orderBy: { code: 'asc' },
+          select: { id: true, code: true, statementEn: true, statementAr: true },
+        },
         courses: {
           // A course at DRAFT/UNDER_REVIEW/RETURNED_FOR_REVISION never
           // appears on a public programme page, even if left isPublished
@@ -46,6 +57,10 @@ export async function GET(request, { params }) {
             creditHours: true,
             semesterLevel: true,
             approvalStatus: true,
+            // Course Description tab -- Course.descriptionEn is a
+            // required field on every course (never null), so this is
+            // always real, department-authored text, never a fallback.
+            descriptionEn: true,
             prerequisites: {
               select: { id: true, courseCode: true, titleEn: true },
               orderBy: { courseCode: 'asc' },
@@ -78,6 +93,15 @@ export async function GET(request, { params }) {
     }
 
     const totalCreditHours = program.courses.reduce((sum, c) => sum + (c.creditHours || 0), 0);
+
+    // "Levels" stat tile -- the real, distinct semesterLevel values
+    // this programme's own published courses actually use, not a
+    // guessed or hardcoded count. A course with no semesterLevel set
+    // contributes nothing here, same honesty rule as totalCreditHours
+    // above (a missing value is left out, never coerced into a 0).
+    const levelCount = new Set(
+      program.courses.map((c) => c.semesterLevel).filter((lvl) => lvl != null)
+    ).size;
 
     // Real, deduplicated instructor roster across every course this
     // programme actually has assigned — never a placeholder "faculty"
@@ -115,9 +139,19 @@ export async function GET(request, { params }) {
         descriptionAr: program.descriptionAr || '',
         faculty: program.faculty ? { name: program.faculty.nameEn, code: program.faculty.code } : null,
         department: program.department ? { name: program.department.nameEn, code: program.department.code } : null,
+        specialization: program.category ? program.category.nameEn : null,
         coordinator: program.coordinator?.user?.name || null,
         approvalStatus: program.approvalStatus,
         totalCreditHours,
+        levelCount,
+        weeksPerLevel: program.weeksPerLevel ?? null,
+        studyMode: program.studyMode || null,
+        learningOutcomes: program.learningOutcomes.map((lo) => ({
+          id: lo.id,
+          code: lo.code,
+          statement: lo.statementEn,
+          statementAr: lo.statementAr || null,
+        })),
         courses: program.courses.map((c) => ({
           id: c.id,
           title: c.titleEn,
@@ -125,6 +159,7 @@ export async function GET(request, { params }) {
           creditHours: c.creditHours,
           semesterLevel: c.semesterLevel,
           approvalStatus: c.approvalStatus,
+          description: c.descriptionEn || '',
           prerequisites: c.prerequisites.map((p) => ({ id: p.id, code: p.courseCode, title: p.titleEn })),
         })),
         instructors: Array.from(instructorMap.values()).sort((a, b) => a.name.localeCompare(b.name)),

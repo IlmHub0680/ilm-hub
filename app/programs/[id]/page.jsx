@@ -79,6 +79,22 @@ const APPROVAL_LABELS = {
   RETURNED_FOR_REVISION: 'Under revision',
 };
 
+// Education Type meta line — reuses the same StudyMode enum already used
+// on AdmissionApplication.studyMode, set per-programme by the Head of
+// Department. Unset shows an honest "—" (see the meta card below), never
+// a guessed mode.
+const STUDY_MODE_LABELS = {
+  FULL_TIME: 'Full-Time',
+  PART_TIME: 'Part-Time',
+};
+
+const TABS = [
+  { key: 'goals', label: 'Goals' },
+  { key: 'requirements', label: 'Requirements' },
+  { key: 'studyPlan', label: 'Study Plan' },
+  { key: 'courseDescription', label: 'Course Description' },
+];
+
 export default function ProgrammeDetailPage() {
   const params = useParams();
   const id = params?.id;
@@ -86,6 +102,7 @@ export default function ProgrammeDetailPage() {
   const [programme, setProgramme] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('goals');
 
   useEffect(() => {
     if (!id) return;
@@ -137,85 +154,151 @@ export default function ProgrammeDetailPage() {
           <div style={levelBadge}>{LEVEL_LABELS[programme.level] || programme.level}</div>
           <h1 style={title}>{programme.name}</h1>
           <div style={titleAr} dir="rtl">{programme.nameAr}</div>
-
-          <div style={metaRow}>
-            {programme.faculty && <MetaChip label="Faculty" value={programme.faculty.name} />}
-            {programme.department && <MetaChip label="Department" value={programme.department.name} />}
-            <MetaChip label="Duration" value={programme.duration} />
-            <MetaChip label="Total Credit Hours" value={String(programme.totalCreditHours || '—')} />
-            {programme.coordinator && <MetaChip label="Coordinator" value={programme.coordinator} />}
-          </div>
         </div>
 
-        {programme.description && (
-          <section style={sectionBlock}>
-            <h2 style={sectionTitle}>Overview</h2>
-            <p style={bodyText}>{programme.description}</p>
-            {programme.descriptionAr && <p style={bodyTextAr} dir="rtl">{programme.descriptionAr}</p>}
+        <div style={metaCard}>
+          <div style={metaGrid}>
+            {programme.faculty && <MetaItem label="College" value={programme.faculty.name} />}
+            {programme.department && <MetaItem label="Department" value={programme.department.name} />}
+            <MetaItem label="Specialization" value={programme.specialization || '—'} />
+            <MetaItem label="Degree" value={LEVEL_LABELS[programme.level] || programme.level} />
+            <MetaItem label="Education Approach" value="Online" />
+            <MetaItem label="Education Type" value={STUDY_MODE_LABELS[programme.studyMode] || '—'} />
+            {programme.coordinator && <MetaItem label="Coordinator" value={programme.coordinator} />}
+          </div>
+
+          {programme.description && (
+            <div style={metaDescription}>
+              <div style={metaItemLabel}>Program Description</div>
+              <p style={bodyText}>{programme.description}</p>
+              {programme.descriptionAr && <p style={bodyTextAr} dir="rtl">{programme.descriptionAr}</p>}
+            </div>
+          )}
+        </div>
+
+        <div style={statTilesRow}>
+          <StatTile value={String(programme.totalCreditHours || '—')} label="Credit Hours" />
+          <StatTile value={programme.duration} label="Duration" />
+          <StatTile value={String(programme.levelCount || '—')} label="Levels" />
+          <StatTile value={programme.weeksPerLevel != null ? String(programme.weeksPerLevel) : '—'} label="Weeks Per Level" />
+        </div>
+
+        <div style={tabNav}>
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              style={activeTab === tab.key ? tabButtonActive : tabButton}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'goals' && (
+          <section style={tabPanel}>
+            {programme.learningOutcomes.length === 0 ? (
+              <p style={mutedText}>This programme's learning outcomes have not been published yet.</p>
+            ) : (
+              <div style={goalsList}>
+                {programme.learningOutcomes.map((lo) => (
+                  <div key={lo.id} style={goalItem}>
+                    <div style={goalCode}>{lo.code}</div>
+                    <p style={goalStatement}>{lo.statement}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
-        {info && (
-          <section style={sectionBlock}>
-            <h2 style={sectionTitle}>Is This Programme Right For You?</h2>
-            <div style={infoGrid}>
-              <InfoBlock label="Purpose" text={info.purpose} />
-              <InfoBlock label="Who It's For" text={info.learnerProfile} />
-              <InfoBlock label="Entry Requirements" text={info.entryRequirements} />
-              <InfoBlock label="Placement" text={info.placement} />
-              <InfoBlock label="Delivery" text="Online, through the Academy's own instructor-led live classes and course portal. Whether any in-person component is ever required is a standing open decision (Academic Governance) — check with Admissions for the current arrangement." />
-              <InfoBlock label="Assessment" text={info.assessment} />
-              <InfoBlock label="Progression" text={info.progression} />
-              <InfoBlock label="Award on Completion" text={info.award} />
-            </div>
-            <p style={{ ...mutedText, marginTop: 14 }}>
-              Full policy detail: <Link href="/academy-pathways" style={inlineLink}>Academy Pathways &amp; Qualification Framework →</Link>
+        {activeTab === 'requirements' && (
+          <section style={tabPanel}>
+            {info ? (
+              <>
+                <div style={infoGrid}>
+                  <InfoBlock label="Entry Requirements" text={info.entryRequirements} />
+                  <InfoBlock label="Placement" text={info.placement} />
+                  <InfoBlock label="Purpose" text={info.purpose} />
+                  <InfoBlock label="Who It's For" text={info.learnerProfile} />
+                  <InfoBlock label="Assessment" text={info.assessment} />
+                  <InfoBlock label="Progression" text={info.progression} />
+                  <InfoBlock label="Award on Completion" text={info.award} />
+                </div>
+                <p style={{ ...mutedText, marginTop: 14 }}>
+                  Full policy detail: <Link href="/academy-pathways" style={inlineLink}>Academy Pathways &amp; Qualification Framework →</Link>
+                </p>
+              </>
+            ) : (
+              <p style={mutedText}>Entry requirements for this programme have not been published yet.</p>
+            )}
+          </section>
+        )}
+
+        {activeTab === 'studyPlan' && (
+          <section style={tabPanel}>
+            {programme.courses.length === 0 ? (
+              <p style={mutedText}>Curriculum for this programme has not been published yet.</p>
+            ) : (
+              <div style={tableWrap}>
+                <table style={table}>
+                  <thead>
+                    <tr>
+                      <th style={th}>Code</th>
+                      <th style={th}>Course</th>
+                      <th style={th}>Credit Hours</th>
+                      <th style={th}>Prerequisites</th>
+                      <th style={th}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {programme.courses.map((c) => {
+                      const badge = APPROVAL_LABELS[c.approvalStatus];
+                      return (
+                        <tr key={c.id}>
+                          <td style={td}>{c.code}</td>
+                          <td style={td}>{c.title}</td>
+                          <td style={td}>{c.creditHours}</td>
+                          <td style={td}>
+                            {c.prerequisites.length === 0 ? '—' : c.prerequisites.map((p) => p.code).join(', ')}
+                          </td>
+                          <td style={td}>{badge ? <span style={statusBadge}>{badge}</span> : '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p style={{ ...mutedText, marginTop: 10 }}>
+              "Pending scholarly review" and "Not yet running" reflect this programme's real approval status, not a display error — some courses in the Academy's catalogue are still awaiting Scholarly Review Committee sign-off before they can be taught.
             </p>
           </section>
         )}
 
-        <section style={sectionBlock}>
-          <h2 style={sectionTitle}>Study Plan / Curriculum</h2>
-          {programme.courses.length === 0 ? (
-            <p style={mutedText}>Curriculum for this programme has not been published yet.</p>
-          ) : (
-            <div style={tableWrap}>
-              <table style={table}>
-                <thead>
-                  <tr>
-                    <th style={th}>Code</th>
-                    <th style={th}>Course</th>
-                    <th style={th}>Credit Hours</th>
-                    <th style={th}>Prerequisites</th>
-                    <th style={th}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {programme.courses.map((c) => {
-                    const badge = APPROVAL_LABELS[c.approvalStatus];
-                    return (
-                      <tr key={c.id}>
-                        <td style={td}>{c.code}</td>
-                        <td style={td}>{c.title}</td>
-                        <td style={td}>{c.creditHours}</td>
-                        <td style={td}>
-                          {c.prerequisites.length === 0 ? '—' : c.prerequisites.map((p) => p.code).join(', ')}
-                        </td>
-                        <td style={td}>{badge ? <span style={statusBadge}>{badge}</span> : '—'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <p style={{ ...mutedText, marginTop: 10 }}>
-            "Pending scholarly review" and "Not yet running" reflect this programme's real approval status, not a display error — some courses in the Academy's catalogue are still awaiting Scholarly Review Committee sign-off before they can be taught.
-          </p>
-        </section>
+        {activeTab === 'courseDescription' && (
+          <section style={tabPanel}>
+            {programme.courses.length === 0 ? (
+              <p style={mutedText}>Course descriptions for this programme have not been published yet.</p>
+            ) : (
+              <div style={courseDescList}>
+                {programme.courses.map((c) => (
+                  <div key={c.id} style={courseDescItem}>
+                    <div style={courseDescHeader}>
+                      <span style={courseDescCode}>{c.code}</span>
+                      <span style={courseDescTitle}>{c.title}</span>
+                    </div>
+                    <p style={courseDescText}>{c.description || 'A description for this course has not been published yet.'}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         <section style={sectionBlock}>
-          <h2 style={sectionTitle}>Faculty</h2>
+          <h2 style={sectionTitle}>Instructors</h2>
           {programme.instructors.length === 0 ? (
             <p style={mutedText}>No instructor has been assigned to this programme's courses yet.</p>
           ) : (
@@ -267,11 +350,20 @@ export default function ProgrammeDetailPage() {
   );
 }
 
-function MetaChip({ label, value }) {
+function MetaItem({ label, value }) {
   return (
-    <div style={metaChip}>
-      <div style={metaChipLabel}>{label}</div>
-      <div style={metaChipValue}>{value}</div>
+    <div style={metaItem}>
+      <div style={metaItemLabel}>{label}</div>
+      <div style={metaItemValue}>{value}</div>
+    </div>
+  );
+}
+
+function StatTile({ value, label }) {
+  return (
+    <div style={statTile}>
+      <div style={statTileValue}>{value}</div>
+      <div style={statTileLabel}>{label}</div>
     </div>
   );
 }
@@ -303,7 +395,7 @@ const headerCard = {
   border: '1px solid var(--border)',
   borderRadius: 14,
   padding: 28,
-  marginBottom: 24,
+  marginBottom: 16,
 };
 
 const levelBadge = {
@@ -317,12 +409,75 @@ const levelBadge = {
 };
 
 const title = { fontFamily: 'var(--font-display)', fontSize: 28, margin: '0 0 4px', color: 'var(--ink)' };
-const titleAr = { fontFamily: 'var(--font-arabic-display)', fontSize: 20, color: 'var(--ink-soft)', marginBottom: 16 };
+const titleAr = { fontFamily: 'var(--font-arabic-display)', fontSize: 20, color: 'var(--ink-soft)' };
 
-const metaRow = { display: 'flex', flexWrap: 'wrap', gap: 20, marginTop: 10 };
-const metaChip = {};
-const metaChipLabel = { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--ink-soft)', marginBottom: 2 };
-const metaChipValue = { fontSize: 14, fontWeight: 600, color: 'var(--ink)' };
+const metaCard = {
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: 14,
+  padding: 24,
+  marginBottom: 20,
+};
+
+const metaGrid = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+  gap: 18,
+};
+
+const metaItem = {};
+const metaItemLabel = { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--ink-soft)', marginBottom: 3 };
+const metaItemValue = { fontSize: 14, fontWeight: 600, color: 'var(--ink)' };
+
+const metaDescription = { marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)' };
+
+const statTilesRow = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+  gap: 14,
+  marginBottom: 28,
+};
+
+const statTile = { background: 'var(--brand-tint)', borderRadius: 12, padding: '18px 16px', textAlign: 'center' };
+const statTileValue = { fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--ink)' };
+const statTileLabel = { fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--ink-soft)', marginTop: 4 };
+
+const tabNav = {
+  display: 'flex',
+  gap: 4,
+  borderBottom: '2px solid var(--border)',
+  marginBottom: 20,
+  overflowX: 'auto',
+};
+
+const tabButton = {
+  padding: '10px 18px',
+  fontSize: 13.5,
+  fontWeight: 600,
+  color: 'var(--ink-soft)',
+  background: 'transparent',
+  border: 'none',
+  borderBottom: '2px solid transparent',
+  marginBottom: -2,
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
+};
+
+const tabButtonActive = { ...tabButton, color: 'var(--brand)', borderBottom: '2px solid var(--brand)' };
+
+const tabPanel = { marginBottom: 28 };
+
+const goalsList = { display: 'grid', gap: 12 };
+const goalItem = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' };
+const goalCode = { fontSize: 12, fontWeight: 700, color: 'var(--gold-dark)', minWidth: 50 };
+const goalStatement = { fontSize: 13.5, lineHeight: 1.6, color: 'var(--ink)', margin: 0 };
+
+const courseDescList = { display: 'grid', gap: 12 };
+const courseDescItem = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' };
+const courseDescHeader = { display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 6, flexWrap: 'wrap' };
+const courseDescCode = { fontSize: 12, fontWeight: 700, color: 'var(--gold-dark)' };
+const courseDescTitle = { fontSize: 14, fontWeight: 700, color: 'var(--ink)' };
+const courseDescText = { fontSize: 13.5, lineHeight: 1.6, color: 'var(--ink-soft)', margin: 0 };
 
 const sectionBlock = { marginBottom: 28 };
 const sectionTitle = { fontFamily: 'var(--font-display)', fontSize: 19, color: 'var(--ink)', margin: '0 0 12px' };

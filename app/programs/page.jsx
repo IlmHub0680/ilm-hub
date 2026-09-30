@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import SiteHeader from '@/components/SiteHeader';
@@ -19,13 +20,20 @@ const LEVEL_LABELS = {
   SHORT_COURSE: 'Short Course',
 };
 
-export default function AcademicProgrammesPage() {
+function AcademicProgrammesPageInner() {
+  const searchParams = useSearchParams();
   const [programmes, setProgrammes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [levelFilter, setLevelFilter] = useState('ALL');
+  // A Set, not a single string -- the homepage's Foundation Programme
+  // card links here with ?level=FOUNDATION,INTERMEDIATE,ADVANCED (its
+  // three real pathway tiers together), while every other card and
+  // the level dropdown below pass just one. Empty set = no level
+  // filter applied (every level shown).
+  const [levelFilters, setLevelFilters] = useState(new Set());
   const [facultyFilter, setFacultyFilter] = useState('ALL');
   const [search, setSearch] = useState('');
+  const [shareStatus, setShareStatus] = useState('idle');
 
   useEffect(() => {
     fetch('/api/academic/programs?type=programs')
@@ -41,6 +49,20 @@ export default function AcademicProgrammesPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Pre-applies the level filter(s) from the URL a card on the
+  // homepage (or any other link) sends visitors here with -- e.g.
+  // /programs?level=DIPLOMA or /programs?level=FOUNDATION,INTERMEDIATE,ADVANCED.
+  // Only recognized ProgramLevel values are kept, so a stray or typo'd
+  // query param is simply ignored rather than silently showing zero
+  // results.
+  useEffect(() => {
+    const raw = searchParams.get('level');
+    if (!raw) return;
+    const requested = raw.split(',').map((v) => v.trim().toUpperCase()).filter(Boolean);
+    const valid = requested.filter((lvl) => LEVEL_LABELS[lvl]);
+    if (valid.length > 0) setLevelFilters(new Set(valid));
+  }, [searchParams]);
+
   const faculties = useMemo(() => {
     const set = new Set(programmes.map((p) => p.faculty).filter(Boolean));
     return Array.from(set).sort();
@@ -52,7 +74,7 @@ export default function AcademicProgrammesPage() {
   }, [programmes]);
 
   const visible = programmes.filter((p) => {
-    if (levelFilter !== 'ALL' && p.level !== levelFilter) return false;
+    if (levelFilters.size > 0 && !levelFilters.has(p.level)) return false;
     if (facultyFilter !== 'ALL' && p.faculty !== facultyFilter) return false;
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -62,10 +84,68 @@ export default function AcademicProgrammesPage() {
     return true;
   });
 
+  function removeLevelFilter(level) {
+    setLevelFilters((prev) => {
+      const next = new Set(prev);
+      next.delete(level);
+      return next;
+    });
+  }
+
+  async function handleShare() {
+    const shareData = {
+      title: 'Academic Programmes | Ulul Azm Institute',
+      text: 'Explore academic programmes at Ulul Azm Institute.',
+      url: typeof window !== 'undefined' ? window.location.href : '',
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        /* the visitor closed the share sheet without picking anything --
+           not an error worth surfacing */
+      }
+      return;
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard && shareData.url) {
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+        setShareStatus('copied');
+        setTimeout(() => setShareStatus('idle'), 2500);
+      } catch (err) {
+        setShareStatus('unavailable');
+        setTimeout(() => setShareStatus('idle'), 2500);
+      }
+    } else {
+      setShareStatus('unavailable');
+      setTimeout(() => setShareStatus('idle'), 2500);
+    }
+  }
+
+  const hasActiveFilters = levelFilters.size > 0 || facultyFilter !== 'ALL';
+
   return (
     <>
       <SiteHeader />
       <main style={page}>
+      <div style={topBar}>
+        <nav aria-label="Breadcrumb" style={breadcrumb}>
+          <Link href="/" style={breadcrumbLink}>Home</Link>
+          <span style={breadcrumbSep}>›</span>
+          <span style={breadcrumbCurrent}>Academic Programmes</span>
+        </nav>
+
+        <div style={{ position: 'relative' }}>
+          <button type="button" onClick={handleShare} style={shareButton}>
+            🔗 Share Page
+          </button>
+          {shareStatus === 'copied' && <span style={shareStatusText}>Link copied!</span>}
+          {shareStatus === 'unavailable' && <span style={shareStatusText}>Couldn&apos;t copy the link.</span>}
+        </div>
+      </div>
+
       <section style={hero}>
         <div style={heroInner}>
           <div style={eyebrow}>Ulul Azm</div>
@@ -89,7 +169,11 @@ export default function AcademicProgrammesPage() {
         />
 
         <div style={filterRow}>
-          <select value={levelFilter} onChange={(e) => setLevelFilter(e.target.value)} style={selectStyle}>
+          <select
+            value={levelFilters.size === 1 ? Array.from(levelFilters)[0] : 'ALL'}
+            onChange={(e) => setLevelFilters(e.target.value === 'ALL' ? new Set() : new Set([e.target.value]))}
+            style={selectStyle}
+          >
             <option value="ALL">All Levels</option>
             {levels.map((lvl) => (
               <option key={lvl} value={lvl}>{LEVEL_LABELS[lvl] || lvl}</option>
@@ -105,6 +189,22 @@ export default function AcademicProgrammesPage() {
             </select>
           )}
         </div>
+
+        {hasActiveFilters && (
+          <div style={appliedFiltersRow}>
+            <span style={appliedFiltersLabel}>Applied Filters:</span>
+            {Array.from(levelFilters).map((lvl) => (
+              <button key={lvl} type="button" onClick={() => removeLevelFilter(lvl)} style={filterChip}>
+                {LEVEL_LABELS[lvl] || lvl} <span aria-hidden="true">×</span>
+              </button>
+            ))}
+            {facultyFilter !== 'ALL' && (
+              <button type="button" onClick={() => setFacultyFilter('ALL')} style={filterChip}>
+                {facultyFilter} <span aria-hidden="true">×</span>
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
       <section style={grid}>
@@ -149,7 +249,78 @@ export default function AcademicProgrammesPage() {
   );
 }
 
+export default function AcademicProgrammesPage() {
+  return (
+    <Suspense fallback={null}>
+      <AcademicProgrammesPageInner />
+    </Suspense>
+  );
+}
+
 const page = { minHeight: '100vh', background: 'var(--paper)', fontFamily: 'var(--font-body)' };
+
+const topBar = {
+  maxWidth: 1180,
+  margin: '0 auto',
+  padding: '16px 24px 0',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  flexWrap: 'wrap',
+  gap: 10,
+};
+
+const breadcrumb = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 };
+const breadcrumbLink = { color: 'var(--brand)', textDecoration: 'none', fontWeight: 700 };
+const breadcrumbSep = { color: 'var(--ink-soft)' };
+const breadcrumbCurrent = { color: 'var(--ink-soft)' };
+
+const shareButton = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '8px 16px',
+  borderRadius: 8,
+  border: '1px solid var(--border)',
+  background: 'var(--surface)',
+  color: 'var(--ink)',
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: 'pointer',
+};
+
+const shareStatusText = {
+  position: 'absolute',
+  top: '100%',
+  right: 0,
+  marginTop: 4,
+  fontSize: 12,
+  color: 'var(--brand)',
+  whiteSpace: 'nowrap',
+};
+
+const appliedFiltersRow = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  flexWrap: 'wrap',
+};
+
+const appliedFiltersLabel = { fontSize: 12.5, fontWeight: 700, color: 'var(--ink-soft)' };
+
+const filterChip = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '5px 10px',
+  borderRadius: 999,
+  border: '1px solid var(--brand-tint, var(--border))',
+  background: 'var(--brand-tint)',
+  color: 'var(--brand)',
+  fontSize: 12.5,
+  fontWeight: 700,
+  cursor: 'pointer',
+};
 
 const hero = {
   background: 'linear-gradient(135deg, var(--brand-dark), var(--brand))',

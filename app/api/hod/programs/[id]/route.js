@@ -69,6 +69,13 @@ export async function PUT(request, { params }) {
     if (body.durationYears !== undefined) {
       values.durationYears = body.durationYears ? Number(body.durationYears) : null;
     }
+    if (body.weeksPerLevel !== undefined) {
+      values.weeksPerLevel = body.weeksPerLevel ? Number(body.weeksPerLevel) : null;
+    }
+    if (body.studyMode !== undefined) {
+      const mode = String(body.studyMode || "").toUpperCase();
+      values.studyMode = ["FULL_TIME", "PART_TIME"].includes(mode) ? mode : null;
+    }
     if (body.isActive !== undefined) values.isActive = Boolean(body.isActive);
 
     if (body.coordinatorId !== undefined) {

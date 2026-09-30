@@ -18,6 +18,14 @@ const VALID_SECTIONS = [
   // pattern as homepage-beneficial-knowledge above.
   "homepage-media-card",
   "homepage-library-card",
+  // The homepage Academic Programs section's 4 pathway cards
+  // (Bachelor's Degree, Diploma Studies, Specialized Certificate
+  // Programs, Foundation Programme) -- same independently-editable
+  // image/caption pattern as the MEDIA & LIBRARY cards above.
+  "homepage-pathway-bachelor",
+  "homepage-pathway-diploma",
+  "homepage-pathway-certificate",
+  "homepage-pathway-foundation",
 ];
 
 function json(data, status = 200) {
