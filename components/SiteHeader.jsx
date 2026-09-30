@@ -289,7 +289,7 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           ) : (
             <div style={dynamicLogoStyle} className="site-header-logo">ع</div>
           )}
-          <div>
+          <div className="site-header-brand-text">
             <div style={brandName} className="site-header-brand-name">Ulul Azm Institute</div>
             <div style={brandSubtitle} className="site-header-brand-subtitle">A Digital Home For Islamic Knowledge</div>
           </div>
@@ -399,13 +399,14 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
         </nav>
 
         {/* HEADER ACTIONS */}
-        <div style={headerActions}>
+        <div style={headerActions} className="site-header-actions">
           {showSearch && (
           <div ref={searchBoxRef} style={searchWrap}>
             <button
               type="button"
               onClick={() => setSearchOpen((open) => !open)}
               style={searchButton}
+              className="site-header-search-btn"
               aria-label="Search the site"
               aria-expanded={searchOpen}
             >
@@ -541,19 +542,19 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
 
         /* At 1280px (headerInner's own max-width, past which it has
            all the room it will ever use) and every width below it,
-           down through phones, the nav's actual width equals the
-           viewport's, and seven items -- one of them "Admission &
-           Registration" -- plus the brand name genuinely don't all
-           fit at their full desktop size. Rather than let flex-wrap
-           strand an item on its own row, two things happen together
-           for this whole range: the nav's items and the brand name
-           shrink a notch, AND Media/Library/Donate move behind a
-           single "More" trigger (.uai-nav-overflow-item hidden,
-           .uai-nav-more-wrap shown) -- so what's left (Home, Academy,
-           Admission, Bookstore, More) comfortably fits on one line
-           all the way down to the narrowest phones. Above 1280px
-           this block does nothing and everything stays at full
-           desktop size/layout. !important because these are
+           down through phones, seven nav items -- one of them
+           "Admission & Registration" -- plus the brand name genuinely
+           don't all fit at their full desktop size. Two things happen
+           together for this whole range: the nav's items and the
+           brand name shrink a notch, AND Media/Library/Donate move
+           behind a single "More" trigger (.uai-nav-overflow-item
+           hidden, .uai-nav-more-wrap shown). That's enough on its own
+           down to roughly tablet width; below ~700px it stops being
+           enough (see the max-width:700px block below, which gives
+           the nav its own full-width row once the logo+actions
+           cluster alone are all a narrow row has space for). Above
+           1280px this block does nothing and everything stays at
+           full desktop size/layout. !important because these are
            overriding inline styles, same pattern as the rest of this
            file's responsive overrides. */
         @media (max-width: 1280px) {
@@ -583,21 +584,38 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           }
         }
 
+        /* Below tablet width the logo+actions cluster and the nav
+           can no longer all share one row even with the shrink above
+           -- verified live: the nav's own flex:1/minWidth:0 (see
+           navStyle) let it get squeezed toward zero width while the
+           logo and actions clusters kept their natural size, so the
+           nav's items had nowhere to lay out and stacked one per row
+           on top of the rest of the header instead of wrapping
+           gracefully. Fix: let the header row itself wrap, and force
+           the nav (flex-basis 100%) onto its own full-width row below
+           the logo/actions row -- order:3 puts it after both of them
+           regardless of its earlier position in the markup. With the
+           nav given the *entire* row's width to work with instead of
+           whatever was left over, its own flex-wrap comfortably lays
+           out Home/Academy/Admission/Bookstore/More across one or two
+           centered lines at every width down to the narrowest phones. */
         @media (max-width: 700px) {
           .site-header-logo {
             height: var(--logo-mobile-height, 48px) !important;
             max-width: var(--logo-mobile-max-width, 150px) !important;
           }
+
+          .site-header-inner {
+            flex-wrap: wrap !important;
+          }
+
+          .site-header-nav {
+            flex-basis: 100% !important;
+            order: 3 !important;
+            justify-content: center !important;
+          }
         }
 
-        /* Extra safety margin for narrow phones now that the nav
-           (Home/Academy/Admission/Bookstore/More) never hides behind
-           a hamburger -- shrinks the nav items and the fixed-width
-           search/portal/Apply Now cluster a notch further so the row
-           has the best chance of staying on one line all the way
-           down. If a device is narrower still, .site-header-nav's
-           own flexWrap:'wrap' (see navStyle) lets it wrap to a second
-           line as a graceful fallback rather than breaking anything. */
         @media (max-width: 560px) {
           .uai-nav-link {
             font-size: 12px !important;
@@ -620,21 +638,58 @@ export default function SiteHeader({ rightExtra, showSearch = true, sectionMode 
           }
         }
 
+        /* Narrowest phones: the logo+brand cluster and the search/
+           portal/Apply Now cluster are the only two things left
+           sharing the top row (nav has its own row below, see the
+           max-width:700px block above), and even those two can run
+           tight side by side. Was: brand-name jumped UP to 19px here
+           (bigger than the 18px it shrinks to at 1280px) -- a leftover
+           that never mattered while the nav crowded onto this same
+           row, but became the reason the top row itself overflowed
+           once the nav was moved out. Brand-name now keeps shrinking
+           instead of growing, and the brand-text column gets a real
+           max-width so the subtitle's own white-space:normal below
+           finally has a box narrow enough to wrap inside, rather than
+           silently sizing that whole column to the subtitle's
+           full-line width (its actual behavior without a max-width in
+           the way, regardless of whether wrapping is allowed). */
         @media (max-width: 480px) {
           .site-header-inner {
             padding-left: 14px !important;
             padding-right: 14px !important;
-            gap: 10px !important;
+            gap: 8px !important;
+          }
+
+          .site-header-brand-text {
+            max-width: 118px !important;
           }
 
           .site-header-brand-name {
-            font-size: 19px !important;
+            font-size: 14px !important;
           }
 
           .site-header-brand-subtitle {
             font-size: 7px !important;
             letter-spacing: 0.1px !important;
             white-space: normal !important;
+          }
+
+          /* The search button has no responsive rule of its own
+             anywhere else in this file (unlike the portal icon and
+             Apply Now, it never had a class to hook), so at this
+             width it was still its full 38px next to the
+             now-34px portal icon -- shrunk to match, plus a tighter
+             gap between the three action items, both needed for the
+             logo+actions row to fit next to each other in the fix
+             above (see the max-width:700px block) rather than
+             wrapping onto separate rows of their own. */
+          .site-header-search-btn {
+            width: 34px !important;
+            height: 34px !important;
+          }
+
+          .site-header-actions {
+            gap: 4px !important;
           }
         }
 
